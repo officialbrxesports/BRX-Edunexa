@@ -1,0 +1,24 @@
+{
+  "name": "brx-edunexa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BRX EduNexa - Global Education Management Platform",
+  "packageManager": "npm@11.6.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "packages/types",
+    "packages/ui",
+    "packages/config",
+    "packages/utils"
+  ],
+  "scripts": {
+    "dev:web": "npm --workspace apps/web run dev",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "build:web": "npm --workspace apps/web run build",
+    "build:api": "npm --workspace apps/api run build"
+  }
+}
