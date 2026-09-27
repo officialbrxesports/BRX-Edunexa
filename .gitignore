@@ -42,3 +42,11 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+/generated/prisma
+
+.env
+
+# Local AI tool configuration
+.agents/
+.claude/
+.windsurf/
