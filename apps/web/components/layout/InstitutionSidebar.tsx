@@ -1,13 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  getInstitutionModules,
-} from "@/lib/institution/institution-modules";
-import type {
-  InstitutionType,
-} from "@/lib/institution/modules";
+import { getAvailableFeatures } from "@/lib/access/access-engine";
+import type { InstitutionType } from "@/lib/institution/modules";
+import { MODULES } from "@/lib/institution/modules";
 
 type Props = {
   institutionType: InstitutionType;
@@ -26,8 +23,14 @@ export default function InstitutionSidebar({
 }: Props) {
   const pathname = usePathname();
 
-  const modules =
-    getInstitutionModules(institutionType);
+  const featureKeys = getAvailableFeatures(
+    institutionType,
+    userRole,
+  );
+
+  const modules = featureKeys
+    .map((key) => MODULES[key])
+    .filter(Boolean);
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[270px] border-r border-white/10 bg-[#080d1c]/95 backdrop-blur-2xl lg:flex lg:flex-col">
@@ -81,9 +84,7 @@ export default function InstitutionSidebar({
           {modules.map((module) => {
             const active =
               pathname === module.path ||
-              pathname.startsWith(
-                `${module.path}/`,
-              );
+              pathname.startsWith(`${module.path}/`);
 
             return (
               <Link
@@ -118,9 +119,7 @@ export default function InstitutionSidebar({
       <div className="border-t border-white/10 p-4">
         <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-sm font-bold">
-            {userName
-              .slice(0, 1)
-              .toUpperCase()}
+            {userName.slice(0, 1).toUpperCase()}
           </div>
 
           <div className="min-w-0">

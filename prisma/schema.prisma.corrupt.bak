@@ -1,0 +1,487 @@
+﻿generator client {
+  provider     = "prisma-client"
+  output       = "../apps/api/src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PLATFORM_ADMIN
+  HEAD
+  TEACHER
+  STAFF
+  STUDENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INVITED
+  DELETED
+}
+
+enum InstitutionType {
+  SCHOOL
+  COLLEGE
+  UNIVERSITY
+  COACHING
+  PRIVATE_SCHOOL
+  INSTITUTE
+  OTHER
+}
+
+enum InstitutionStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  OTHER
+}
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
+enum LateFeeType {
+  NONE
+  FIXED
+  DAILY
+  PERCENTAGE
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum RegistrationVerificationType {
+  MOBILE
+  EMAIL
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  firstName    String
+  lastName     String?
+  phone        String?
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+
+  teacherAssignments TeacherStudent[] @relation("TeacherAssignments")
+  studentAssignments TeacherStudent[] @relation("StudentAssignments")
+
+  enrollments  StudentEnrollment[]
+  attendances  Attendance[]
+  fees         StudentFee[]
+
+  createdAssignments Assignment[] @relation("AssignmentCreator")
+  targetedAssignments Assignment[] @relation("AssignmentStudent")
+
+  passwordResetOtps PasswordResetOtp[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+model Institution {
+  id     String            @id @default(uuid())
+  name   String
+  code   String            @unique
+  type   InstitutionType
+  status InstitutionStatus @default(PENDING)
+
+  country String
+  state   String
+  city    String?
+  address String?
+
+  email   String?
+  phone   String?
+  website String?
+
+  users       User[]
+  classes     Class[]
+  feePlans    FeePlan[]
+  assignments Assignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([country])
+  @@index([state])
+  @@index([type])
+  @@index([status])
+  @@map("institutions")
+}
+
+model Class {
+  id            String @id @default(uuid())
+  name          String
+  code          String
+  institutionId String
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  sections           Section[]
+  studentEnrollments StudentEnrollment[]
+  attendances        Attendance[]
+  fees               StudentFee[]
+  feePlans           FeePlan[]
+  assignments        Assignment[] @relation("AssignmentClass")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+  @@map("classes")
+}
+
+model Section {
+  id   String @id @default(uuid())
+  name String
+  code String
+
+  classId String
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  studentEnrollments StudentEnrollment[]
+  attendances        Attendance[]
+  fees               StudentFee[]
+  feePlans           FeePlan[]
+  assignments        Assignment[] @relation("AssignmentSection")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([classId, code])
+  @@index([classId])
+  @@map("sections")
+}
+
+model TeacherStudent {
+  id        String @id @default(uuid())
+  teacherId String
+  studentId String
+
+  teacher User @relation("TeacherAssignments", fields: [teacherId], references: [id], onDelete: Cascade)
+  student User @relation("StudentAssignments", fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teacherId, studentId])
+  @@index([teacherId])
+  @@index([studentId])
+  @@map("teacher_students")
+}
+
+model Assignment {
+  id String @id @default(uuid())
+
+  title       String
+  description String?
+
+  status AssignmentStatus @default(DRAFT)
+
+  dueDate     DateTime?
+  publishedAt DateTime?
+
+  institutionId String
+  teacherId     String
+
+  classId   String?
+  sectionId String?
+  studentId String?
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  teacher User @relation("AssignmentCreator", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  class Class? @relation("AssignmentClass", fields: [classId], references: [id], onDelete: Cascade)
+
+  section Section? @relation("AssignmentSection", fields: [sectionId], references: [id], onDelete: Cascade)
+
+  student User? @relation("AssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([teacherId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([studentId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("assignments")
+}
+
+model StudentEnrollment {
+  id String @id @default(uuid())
+
+  studentId String
+  classId   String
+  sectionId String
+
+  student User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, classId, sectionId])
+  @@index([studentId])
+  @@index([classId])
+  @@index([sectionId])
+  @@map("student_enrollments")
+}
+
+model Attendance {
+  id String @id @default(uuid())
+
+  studentId String
+  classId   String
+  sectionId String
+  markedBy  String
+
+  date   DateTime
+  status AttendanceStatus
+
+  student User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, classId, sectionId, date])
+  @@index([studentId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([date])
+  @@index([markedBy])
+  @@map("attendance")
+}
+
+model StudentFee {
+  id String @id @default(uuid())
+
+  studentId String
+  classId   String
+  sectionId String
+
+  totalAmount Decimal @db.Decimal(10, 2)
+  paidAmount  Decimal @default(0) @db.Decimal(10, 2)
+  dueAmount   Decimal @db.Decimal(10, 2)
+
+  dueDate DateTime
+  status  FeeStatus @default(PENDING)
+
+  student User    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  payments FeePayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("student_fees")
+}
+
+model FeePlan {
+  id String @id @default(uuid())
+
+  institutionId String
+  classId       String
+  sectionId     String?
+
+  name        String
+  description String?
+
+  amount     Decimal      @db.Decimal(10, 2)
+  frequency  FeeFrequency
+  customDays Int?
+
+  dueDay Int?
+
+  lateFeeType   LateFeeType @default(NONE)
+  lateFeeAmount Decimal     @default(0) @db.Decimal(10, 2)
+
+  discountAllowed Boolean @default(false)
+
+  startDate DateTime
+  endDate   DateTime?
+
+  isActive Boolean @default(true)
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  class       Class       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section     Section?    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([frequency])
+  @@index([isActive])
+  @@map("fee_plans")
+}
+
+model FeePayment {
+  id String @id @default(uuid())
+
+  feeId String
+
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentDate   DateTime      @default(now())
+  transactionId String?
+  note          String?
+
+  fee StudentFee @relation(fields: [feeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([feeId])
+  @@index([paymentDate])
+  @@map("fee_payments")
+}
+
+model PasswordResetOtp {
+  id String @id @default(uuid())
+
+  userId String
+
+  otpHash String
+
+  expiresAt DateTime
+
+  attempts Int @default(0)
+
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_otps")
+}
+
+model RegistrationSession {
+  id String @id @default(uuid())
+
+  institutionType InstitutionType
+
+  institutionName  String
+  institutionEmail String
+  institutionPhone String
+
+  country String
+  state   String
+  city    String?
+  address String?
+  website String?
+
+  firstName    String
+  lastName     String?
+  ownerEmail   String
+  ownerPhone   String
+  passwordHash String
+
+  establishedYear    Int?
+  registrationNumber String?
+  gstin              String?
+
+  mobileVerified Boolean @default(false)
+  emailVerified  Boolean @default(false)
+
+  expiresAt   DateTime
+  completedAt DateTime?
+
+  otpVerifications RegistrationOtpVerification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionEmail])
+  @@index([institutionPhone])
+  @@index([ownerEmail])
+  @@index([expiresAt])
+  @@map("registration_sessions")
+}
+
+model RegistrationOtpVerification {
+  id String @id @default(uuid())
+
+  sessionId String
+
+  type RegistrationVerificationType
+
+  otpHash String
+
+  expiresAt DateTime
+
+  attempts Int @default(0)
+
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  session RegistrationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([type])
+  @@index([expiresAt])
+  @@map("registration_otp_verifications")
+}

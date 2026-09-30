@@ -62,6 +62,7 @@ export const ModelName = {
   StudentFee: 'StudentFee',
   FeePlan: 'FeePlan',
   FeePayment: 'FeePayment',
+  PasswordResetOtp: 'PasswordResetOtp',
   RegistrationSession: 'RegistrationSession',
   RegistrationOtpVerification: 'RegistrationOtpVerification'
 } as const
@@ -254,6 +255,19 @@ export const FeePaymentScalarFieldEnum = {
 } as const
 
 export type FeePaymentScalarFieldEnum = (typeof FeePaymentScalarFieldEnum)[keyof typeof FeePaymentScalarFieldEnum]
+
+
+export const PasswordResetOtpScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  otpHash: 'otpHash',
+  expiresAt: 'expiresAt',
+  attempts: 'attempts',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type PasswordResetOtpScalarFieldEnum = (typeof PasswordResetOtpScalarFieldEnum)[keyof typeof PasswordResetOtpScalarFieldEnum]
 
 
 export const RegistrationSessionScalarFieldEnum = {

@@ -473,14 +473,6 @@ export type EnumRegistrationVerificationTypeFieldUpdateOperationsInput = {
   set?: $Enums.RegistrationVerificationType
 }
 
-export type IntFieldUpdateOperationsInput = {
-  set?: number
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
-}
-
 export type RegistrationOtpVerificationCreateWithoutSessionInput = {
   id?: string
   type: $Enums.RegistrationVerificationType

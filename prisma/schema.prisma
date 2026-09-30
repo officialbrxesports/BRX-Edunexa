@@ -87,12 +87,6 @@ enum RegistrationVerificationType {
   EMAIL
 }
 
-/**
- * |--------------------------------------------------------------------------
- * | USER
- * |--------------------------------------------------------------------------
- */
-
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
@@ -109,15 +103,14 @@ model User {
   teacherAssignments TeacherStudent[] @relation("TeacherAssignments")
   studentAssignments TeacherStudent[] @relation("StudentAssignments")
 
-  createdAssignments Assignment[] @relation("AssignmentTeacher")
-  receivedAssignments Assignment[] @relation("AssignmentStudent")
+  enrollments  StudentEnrollment[]
+  attendances  Attendance[]
+  fees         StudentFee[]
 
-  enrollments StudentEnrollment[]
-  attendances Attendance[]
-  fees        StudentFee[]
-
-  createdAssignments  Assignment[] @relation("AssignmentCreator")
+  createdAssignments Assignment[] @relation("AssignmentCreator")
   targetedAssignments Assignment[] @relation("AssignmentStudent")
+
+  passwordResetOtps PasswordResetOtp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -127,12 +120,6 @@ model User {
   @@index([status])
   @@map("users")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | INSTITUTION
- * |--------------------------------------------------------------------------
- */
 
 model Institution {
   id     String            @id @default(uuid())
@@ -165,12 +152,6 @@ model Institution {
   @@map("institutions")
 }
 
-/**
- * |--------------------------------------------------------------------------
- * | CLASS
- * |--------------------------------------------------------------------------
- */
-
 model Class {
   id            String @id @default(uuid())
   name          String
@@ -184,9 +165,7 @@ model Class {
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments       Assignment[]
-
-  assignments Assignment[] @relation("AssignmentClass")
+  assignments        Assignment[] @relation("AssignmentClass")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -196,27 +175,19 @@ model Class {
   @@map("classes")
 }
 
-/**
- * |--------------------------------------------------------------------------
- * | SECTION
- * |--------------------------------------------------------------------------
- */
-
 model Section {
   id   String @id @default(uuid())
   name String
   code String
 
   classId String
-  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   studentEnrollments StudentEnrollment[]
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[]
-
-  assignments Assignment[] @relation("AssignmentSection")
+  assignments        Assignment[] @relation("AssignmentSection")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -225,12 +196,6 @@ model Section {
   @@index([classId])
   @@map("sections")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | TEACHER ↔ STUDENT
- * |--------------------------------------------------------------------------
- */
 
 model TeacherStudent {
   id        String @id @default(uuid())
@@ -248,12 +213,6 @@ model TeacherStudent {
   @@index([studentId])
   @@map("teacher_students")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | ASSIGNMENT
- * |--------------------------------------------------------------------------
- */
 
 model Assignment {
   id String @id @default(uuid())
@@ -274,10 +233,14 @@ model Assignment {
   studentId String?
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  teacher     User        @relation("AssignmentCreator", fields: [teacherId], references: [id], onDelete: Cascade)
-  class       Class?      @relation("AssignmentClass", fields: [classId], references: [id], onDelete: Cascade)
-  section     Section?    @relation("AssignmentSection", fields: [sectionId], references: [id], onDelete: Cascade)
-  student     User?       @relation("AssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  teacher User @relation("AssignmentCreator", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  class Class? @relation("AssignmentClass", fields: [classId], references: [id], onDelete: Cascade)
+
+  section Section? @relation("AssignmentSection", fields: [sectionId], references: [id], onDelete: Cascade)
+
+  student User? @relation("AssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -291,12 +254,6 @@ model Assignment {
   @@index([dueDate])
   @@map("assignments")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | STUDENT ENROLLMENT
- * |--------------------------------------------------------------------------
- */
 
 model StudentEnrollment {
   id String @id @default(uuid())
@@ -318,12 +275,6 @@ model StudentEnrollment {
   @@index([sectionId])
   @@map("student_enrollments")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | ATTENDANCE
- * |--------------------------------------------------------------------------
- */
 
 model Attendance {
   id String @id @default(uuid())
@@ -351,12 +302,6 @@ model Attendance {
   @@index([markedBy])
   @@map("attendance")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | STUDENT FEE
- * |--------------------------------------------------------------------------
- */
 
 model StudentFee {
   id String @id @default(uuid())
@@ -388,12 +333,6 @@ model StudentFee {
   @@index([dueDate])
   @@map("student_fees")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | FEE PLAN
- * |--------------------------------------------------------------------------
- */
 
 model FeePlan {
   id String @id @default(uuid())
@@ -436,12 +375,6 @@ model FeePlan {
   @@map("fee_plans")
 }
 
-/**
- * |--------------------------------------------------------------------------
- * | FEE PAYMENT
- * |--------------------------------------------------------------------------
- */
-
 model FeePayment {
   id String @id @default(uuid())
 
@@ -463,74 +396,27 @@ model FeePayment {
   @@map("fee_payments")
 }
 
-model Assignment {
+model PasswordResetOtp {
   id String @id @default(uuid())
 
-  institutionId String
-  teacherId     String
+  userId String
 
-  title       String
-  description String?
+  otpHash String
 
-  status AssignmentStatus @default(DRAFT)
+  expiresAt DateTime
 
-  dueDate      DateTime?
-  publishedAt  DateTime?
+  attempts Int @default(0)
 
-  classId   String?
-  sectionId String?
-  studentId String?
-
-  institution Institution @relation(
-    fields: [institutionId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  teacher User @relation(
-    "AssignmentTeacher",
-    fields: [teacherId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  class Class? @relation(
-    fields: [classId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  section Section? @relation(
-    fields: [sectionId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  student User? @relation(
-    "AssignmentStudent",
-    fields: [studentId],
-    references: [id],
-    onDelete: Cascade
-  )
+  verifiedAt DateTime?
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  @@index([institutionId])
-  @@index([teacherId])
-  @@index([status])
-  @@index([classId])
-  @@index([sectionId])
-  @@index([studentId])
-  @@index([dueDate])
-  @@map("assignments")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_otps")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | REGISTRATION SESSION
- * |--------------------------------------------------------------------------
- */
 
 model RegistrationSession {
   id String @id @default(uuid())
@@ -574,12 +460,6 @@ model RegistrationSession {
   @@index([expiresAt])
   @@map("registration_sessions")
 }
-
-/**
- * |--------------------------------------------------------------------------
- * | REGISTRATION OTP
- * |--------------------------------------------------------------------------
- */
 
 model RegistrationOtpVerification {
   id String @id @default(uuid())

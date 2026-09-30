@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 
 import { ConfigModule } from '@nestjs/config';
 
@@ -14,6 +14,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AcademicsModule } from './modules/academics/academics.module';
 import { RegistrationModule } from './modules/registration/registration.module';
 import { OtpModule } from './modules/otp/otp.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { PermissionsModule } from './modules/permissions/permissions.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { OtpModule } from './modules/otp/otp.module';
     RegistrationModule,
     OtpModule,
     AssignmentsModule,
+    DashboardModule,
+    PermissionsModule,
   ],
 
   controllers: [
