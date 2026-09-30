@@ -293,14 +293,30 @@ export class FeesService {
     });
   }
 
-  async getFeeById(`n    institutionId: string | null,`n    feeId: string,`n    userId?: string,`n    role?: string,`n  ) {
+  async getFeeById(
+    institutionId: string | null,
+    feeId: string,
+    userId?: string,
+    role?: string,
+  ) {
     if (!institutionId) {
       throw new ForbiddenException(
         'Institution not found',
       );
     }
 
-    const normalizedRole = role?.toUpperCase();`n`n    const fee =`n      await this.prisma.studentFee.findFirst({`n        where: {`n          id: feeId,`n          student: {`n            institutionId,`n            ...(normalizedRole === "STUDENT" ? { id: userId } : {}),
+    const normalizedRole = role?.toUpperCase();
+
+    const fee =
+      await this.prisma.studentFee.findFirst({
+        where: {
+          id: feeId,
+          student: {
+            institutionId,
+            ...(normalizedRole === 'STUDENT'
+              ? { id: userId }
+              : {}),
+          },
         },
         include: {
           student: {
@@ -330,7 +346,6 @@ export class FeesService {
 
     return fee;
   }
-
   async updateFee(
     institutionId: string | null,
     feeId: string,
@@ -851,5 +866,4 @@ export class FeesService {
     };
   }
 }
-
 
