@@ -239,6 +239,8 @@ export type UserWhereInput = {
   createdAssignments?: Prisma.AssignmentListRelationFilter
   targetedAssignments?: Prisma.AssignmentListRelationFilter
   passwordResetOtps?: Prisma.PasswordResetOtpListRelationFilter
+  sentNotifications?: Prisma.NotificationListRelationFilter
+  receivedNotifications?: Prisma.NotificationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -262,6 +264,8 @@ export type UserOrderByWithRelationInput = {
   createdAssignments?: Prisma.AssignmentOrderByRelationAggregateInput
   targetedAssignments?: Prisma.AssignmentOrderByRelationAggregateInput
   passwordResetOtps?: Prisma.PasswordResetOtpOrderByRelationAggregateInput
+  sentNotifications?: Prisma.NotificationOrderByRelationAggregateInput
+  receivedNotifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -288,6 +292,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAssignments?: Prisma.AssignmentListRelationFilter
   targetedAssignments?: Prisma.AssignmentListRelationFilter
   passwordResetOtps?: Prisma.PasswordResetOtpListRelationFilter
+  sentNotifications?: Prisma.NotificationListRelationFilter
+  receivedNotifications?: Prisma.NotificationListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -344,6 +350,8 @@ export type UserCreateInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -366,6 +374,8 @@ export type UserUncheckedCreateInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUpdateInput = {
@@ -388,6 +398,8 @@ export type UserUpdateInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -410,6 +422,8 @@ export type UserUncheckedUpdateInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -677,6 +691,36 @@ export type UserUpdateOneRequiredWithoutFeesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFeesInput, Prisma.UserUpdateWithoutFeesInput>, Prisma.UserUncheckedUpdateWithoutFeesInput>
 }
 
+export type UserCreateNestedOneWithoutSentNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSentNotificationsInput, Prisma.UserUncheckedCreateWithoutSentNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSentNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserCreateNestedOneWithoutReceivedNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReceivedNotificationsInput, Prisma.UserUncheckedCreateWithoutReceivedNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReceivedNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutSentNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSentNotificationsInput, Prisma.UserUncheckedCreateWithoutSentNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSentNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutSentNotificationsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSentNotificationsInput, Prisma.UserUpdateWithoutSentNotificationsInput>, Prisma.UserUncheckedUpdateWithoutSentNotificationsInput>
+}
+
+export type UserUpdateOneRequiredWithoutReceivedNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReceivedNotificationsInput, Prisma.UserUncheckedCreateWithoutReceivedNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReceivedNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutReceivedNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReceivedNotificationsInput, Prisma.UserUpdateWithoutReceivedNotificationsInput>, Prisma.UserUncheckedUpdateWithoutReceivedNotificationsInput>
+}
+
 export type UserCreateNestedOneWithoutPasswordResetOtpsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetOtpsInput, Prisma.UserUncheckedCreateWithoutPasswordResetOtpsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutPasswordResetOtpsInput
@@ -710,6 +754,8 @@ export type UserCreateWithoutInstitutionInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutInstitutionInput = {
@@ -731,6 +777,8 @@ export type UserUncheckedCreateWithoutInstitutionInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutInstitutionInput = {
@@ -795,6 +843,8 @@ export type UserCreateWithoutTeacherAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutTeacherAssignmentsInput = {
@@ -816,6 +866,8 @@ export type UserUncheckedCreateWithoutTeacherAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutTeacherAssignmentsInput = {
@@ -842,6 +894,8 @@ export type UserCreateWithoutStudentAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutStudentAssignmentsInput = {
@@ -863,6 +917,8 @@ export type UserUncheckedCreateWithoutStudentAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutStudentAssignmentsInput = {
@@ -900,6 +956,8 @@ export type UserUpdateWithoutTeacherAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeacherAssignmentsInput = {
@@ -921,6 +979,8 @@ export type UserUncheckedUpdateWithoutTeacherAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUpsertWithoutStudentAssignmentsInput = {
@@ -953,6 +1013,8 @@ export type UserUpdateWithoutStudentAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutStudentAssignmentsInput = {
@@ -974,6 +1036,8 @@ export type UserUncheckedUpdateWithoutStudentAssignmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateWithoutCreatedAssignmentsInput = {
@@ -995,6 +1059,8 @@ export type UserCreateWithoutCreatedAssignmentsInput = {
   fees?: Prisma.StudentFeeCreateNestedManyWithoutStudentInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutCreatedAssignmentsInput = {
@@ -1016,6 +1082,8 @@ export type UserUncheckedCreateWithoutCreatedAssignmentsInput = {
   fees?: Prisma.StudentFeeUncheckedCreateNestedManyWithoutStudentInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutCreatedAssignmentsInput = {
@@ -1042,6 +1110,8 @@ export type UserCreateWithoutTargetedAssignmentsInput = {
   fees?: Prisma.StudentFeeCreateNestedManyWithoutStudentInput
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutTargetedAssignmentsInput = {
@@ -1063,6 +1133,8 @@ export type UserUncheckedCreateWithoutTargetedAssignmentsInput = {
   fees?: Prisma.StudentFeeUncheckedCreateNestedManyWithoutStudentInput
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutTargetedAssignmentsInput = {
@@ -1100,6 +1172,8 @@ export type UserUpdateWithoutCreatedAssignmentsInput = {
   fees?: Prisma.StudentFeeUpdateManyWithoutStudentNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedAssignmentsInput = {
@@ -1121,6 +1195,8 @@ export type UserUncheckedUpdateWithoutCreatedAssignmentsInput = {
   fees?: Prisma.StudentFeeUncheckedUpdateManyWithoutStudentNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUpsertWithoutTargetedAssignmentsInput = {
@@ -1153,6 +1229,8 @@ export type UserUpdateWithoutTargetedAssignmentsInput = {
   fees?: Prisma.StudentFeeUpdateManyWithoutStudentNestedInput
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTargetedAssignmentsInput = {
@@ -1174,6 +1252,8 @@ export type UserUncheckedUpdateWithoutTargetedAssignmentsInput = {
   fees?: Prisma.StudentFeeUncheckedUpdateManyWithoutStudentNestedInput
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateWithoutEnrollmentsInput = {
@@ -1195,6 +1275,8 @@ export type UserCreateWithoutEnrollmentsInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutEnrollmentsInput = {
@@ -1216,6 +1298,8 @@ export type UserUncheckedCreateWithoutEnrollmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutEnrollmentsInput = {
@@ -1253,6 +1337,8 @@ export type UserUpdateWithoutEnrollmentsInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEnrollmentsInput = {
@@ -1274,6 +1360,8 @@ export type UserUncheckedUpdateWithoutEnrollmentsInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateWithoutAttendancesInput = {
@@ -1295,6 +1383,8 @@ export type UserCreateWithoutAttendancesInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutAttendancesInput = {
@@ -1316,6 +1406,8 @@ export type UserUncheckedCreateWithoutAttendancesInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutAttendancesInput = {
@@ -1353,6 +1445,8 @@ export type UserUpdateWithoutAttendancesInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAttendancesInput = {
@@ -1374,6 +1468,8 @@ export type UserUncheckedUpdateWithoutAttendancesInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateWithoutFeesInput = {
@@ -1395,6 +1491,8 @@ export type UserCreateWithoutFeesInput = {
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutFeesInput = {
@@ -1416,6 +1514,8 @@ export type UserUncheckedCreateWithoutFeesInput = {
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutFeesInput = {
@@ -1453,6 +1553,8 @@ export type UserUpdateWithoutFeesInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutFeesInput = {
@@ -1474,6 +1576,224 @@ export type UserUncheckedUpdateWithoutFeesInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+}
+
+export type UserCreateWithoutSentNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  firstName: string
+  lastName?: string | null
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
+  teacherAssignments?: Prisma.TeacherStudentCreateNestedManyWithoutTeacherInput
+  studentAssignments?: Prisma.TeacherStudentCreateNestedManyWithoutStudentInput
+  enrollments?: Prisma.StudentEnrollmentCreateNestedManyWithoutStudentInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutStudentInput
+  fees?: Prisma.StudentFeeCreateNestedManyWithoutStudentInput
+  createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
+  targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
+  passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
+}
+
+export type UserUncheckedCreateWithoutSentNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  firstName: string
+  lastName?: string | null
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  institutionId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  teacherAssignments?: Prisma.TeacherStudentUncheckedCreateNestedManyWithoutTeacherInput
+  studentAssignments?: Prisma.TeacherStudentUncheckedCreateNestedManyWithoutStudentInput
+  enrollments?: Prisma.StudentEnrollmentUncheckedCreateNestedManyWithoutStudentInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutStudentInput
+  fees?: Prisma.StudentFeeUncheckedCreateNestedManyWithoutStudentInput
+  createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
+  targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
+}
+
+export type UserCreateOrConnectWithoutSentNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSentNotificationsInput, Prisma.UserUncheckedCreateWithoutSentNotificationsInput>
+}
+
+export type UserCreateWithoutReceivedNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  firstName: string
+  lastName?: string | null
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  institution?: Prisma.InstitutionCreateNestedOneWithoutUsersInput
+  teacherAssignments?: Prisma.TeacherStudentCreateNestedManyWithoutTeacherInput
+  studentAssignments?: Prisma.TeacherStudentCreateNestedManyWithoutStudentInput
+  enrollments?: Prisma.StudentEnrollmentCreateNestedManyWithoutStudentInput
+  attendances?: Prisma.AttendanceCreateNestedManyWithoutStudentInput
+  fees?: Prisma.StudentFeeCreateNestedManyWithoutStudentInput
+  createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
+  targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
+  passwordResetOtps?: Prisma.PasswordResetOtpCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+}
+
+export type UserUncheckedCreateWithoutReceivedNotificationsInput = {
+  id?: string
+  email: string
+  passwordHash: string
+  firstName: string
+  lastName?: string | null
+  phone?: string | null
+  role: $Enums.UserRole
+  status?: $Enums.UserStatus
+  institutionId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  teacherAssignments?: Prisma.TeacherStudentUncheckedCreateNestedManyWithoutTeacherInput
+  studentAssignments?: Prisma.TeacherStudentUncheckedCreateNestedManyWithoutStudentInput
+  enrollments?: Prisma.StudentEnrollmentUncheckedCreateNestedManyWithoutStudentInput
+  attendances?: Prisma.AttendanceUncheckedCreateNestedManyWithoutStudentInput
+  fees?: Prisma.StudentFeeUncheckedCreateNestedManyWithoutStudentInput
+  createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
+  targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUncheckedCreateNestedManyWithoutUserInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+}
+
+export type UserCreateOrConnectWithoutReceivedNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReceivedNotificationsInput, Prisma.UserUncheckedCreateWithoutReceivedNotificationsInput>
+}
+
+export type UserUpsertWithoutSentNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSentNotificationsInput, Prisma.UserUncheckedUpdateWithoutSentNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSentNotificationsInput, Prisma.UserUncheckedCreateWithoutSentNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSentNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSentNotificationsInput, Prisma.UserUncheckedUpdateWithoutSentNotificationsInput>
+}
+
+export type UserUpdateWithoutSentNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
+  teacherAssignments?: Prisma.TeacherStudentUpdateManyWithoutTeacherNestedInput
+  studentAssignments?: Prisma.TeacherStudentUpdateManyWithoutStudentNestedInput
+  enrollments?: Prisma.StudentEnrollmentUpdateManyWithoutStudentNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutStudentNestedInput
+  fees?: Prisma.StudentFeeUpdateManyWithoutStudentNestedInput
+  createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
+  targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSentNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teacherAssignments?: Prisma.TeacherStudentUncheckedUpdateManyWithoutTeacherNestedInput
+  studentAssignments?: Prisma.TeacherStudentUncheckedUpdateManyWithoutStudentNestedInput
+  enrollments?: Prisma.StudentEnrollmentUncheckedUpdateManyWithoutStudentNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutStudentNestedInput
+  fees?: Prisma.StudentFeeUncheckedUpdateManyWithoutStudentNestedInput
+  createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
+  targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
+}
+
+export type UserUpsertWithoutReceivedNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReceivedNotificationsInput, Prisma.UserUncheckedUpdateWithoutReceivedNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReceivedNotificationsInput, Prisma.UserUncheckedCreateWithoutReceivedNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReceivedNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReceivedNotificationsInput, Prisma.UserUncheckedUpdateWithoutReceivedNotificationsInput>
+}
+
+export type UserUpdateWithoutReceivedNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  institution?: Prisma.InstitutionUpdateOneWithoutUsersNestedInput
+  teacherAssignments?: Prisma.TeacherStudentUpdateManyWithoutTeacherNestedInput
+  studentAssignments?: Prisma.TeacherStudentUpdateManyWithoutStudentNestedInput
+  enrollments?: Prisma.StudentEnrollmentUpdateManyWithoutStudentNestedInput
+  attendances?: Prisma.AttendanceUpdateManyWithoutStudentNestedInput
+  fees?: Prisma.StudentFeeUpdateManyWithoutStudentNestedInput
+  createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
+  targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReceivedNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  firstName?: Prisma.StringFieldUpdateOperationsInput | string
+  lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teacherAssignments?: Prisma.TeacherStudentUncheckedUpdateManyWithoutTeacherNestedInput
+  studentAssignments?: Prisma.TeacherStudentUncheckedUpdateManyWithoutStudentNestedInput
+  enrollments?: Prisma.StudentEnrollmentUncheckedUpdateManyWithoutStudentNestedInput
+  attendances?: Prisma.AttendanceUncheckedUpdateManyWithoutStudentNestedInput
+  fees?: Prisma.StudentFeeUncheckedUpdateManyWithoutStudentNestedInput
+  createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
+  targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
+  passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
 }
 
 export type UserCreateWithoutPasswordResetOtpsInput = {
@@ -1495,6 +1815,8 @@ export type UserCreateWithoutPasswordResetOtpsInput = {
   fees?: Prisma.StudentFeeCreateNestedManyWithoutStudentInput
   createdAssignments?: Prisma.AssignmentCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentCreateNestedManyWithoutStudentInput
+  sentNotifications?: Prisma.NotificationCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationCreateNestedManyWithoutRecipientInput
 }
 
 export type UserUncheckedCreateWithoutPasswordResetOtpsInput = {
@@ -1516,6 +1838,8 @@ export type UserUncheckedCreateWithoutPasswordResetOtpsInput = {
   fees?: Prisma.StudentFeeUncheckedCreateNestedManyWithoutStudentInput
   createdAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutTeacherInput
   targetedAssignments?: Prisma.AssignmentUncheckedCreateNestedManyWithoutStudentInput
+  sentNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutSenderInput
+  receivedNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutRecipientInput
 }
 
 export type UserCreateOrConnectWithoutPasswordResetOtpsInput = {
@@ -1553,6 +1877,8 @@ export type UserUpdateWithoutPasswordResetOtpsInput = {
   fees?: Prisma.StudentFeeUpdateManyWithoutStudentNestedInput
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPasswordResetOtpsInput = {
@@ -1574,6 +1900,8 @@ export type UserUncheckedUpdateWithoutPasswordResetOtpsInput = {
   fees?: Prisma.StudentFeeUncheckedUpdateManyWithoutStudentNestedInput
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserCreateManyInstitutionInput = {
@@ -1608,6 +1936,8 @@ export type UserUpdateWithoutInstitutionInput = {
   createdAssignments?: Prisma.AssignmentUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateWithoutInstitutionInput = {
@@ -1629,6 +1959,8 @@ export type UserUncheckedUpdateWithoutInstitutionInput = {
   createdAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutTeacherNestedInput
   targetedAssignments?: Prisma.AssignmentUncheckedUpdateManyWithoutStudentNestedInput
   passwordResetOtps?: Prisma.PasswordResetOtpUncheckedUpdateManyWithoutUserNestedInput
+  sentNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutSenderNestedInput
+  receivedNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutRecipientNestedInput
 }
 
 export type UserUncheckedUpdateManyWithoutInstitutionInput = {
@@ -1658,6 +1990,8 @@ export type UserCountOutputType = {
   createdAssignments: number
   targetedAssignments: number
   passwordResetOtps: number
+  sentNotifications: number
+  receivedNotifications: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1669,6 +2003,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   createdAssignments?: boolean | UserCountOutputTypeCountCreatedAssignmentsArgs
   targetedAssignments?: boolean | UserCountOutputTypeCountTargetedAssignmentsArgs
   passwordResetOtps?: boolean | UserCountOutputTypeCountPasswordResetOtpsArgs
+  sentNotifications?: boolean | UserCountOutputTypeCountSentNotificationsArgs
+  receivedNotifications?: boolean | UserCountOutputTypeCountReceivedNotificationsArgs
 }
 
 /**
@@ -1737,6 +2073,20 @@ export type UserCountOutputTypeCountPasswordResetOtpsArgs<ExtArgs extends runtim
   where?: Prisma.PasswordResetOtpWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSentNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReceivedNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1759,6 +2109,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAssignments?: boolean | Prisma.User$createdAssignmentsArgs<ExtArgs>
   targetedAssignments?: boolean | Prisma.User$targetedAssignmentsArgs<ExtArgs>
   passwordResetOtps?: boolean | Prisma.User$passwordResetOtpsArgs<ExtArgs>
+  sentNotifications?: boolean | Prisma.User$sentNotificationsArgs<ExtArgs>
+  receivedNotifications?: boolean | Prisma.User$receivedNotificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1817,6 +2169,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdAssignments?: boolean | Prisma.User$createdAssignmentsArgs<ExtArgs>
   targetedAssignments?: boolean | Prisma.User$targetedAssignmentsArgs<ExtArgs>
   passwordResetOtps?: boolean | Prisma.User$passwordResetOtpsArgs<ExtArgs>
+  sentNotifications?: boolean | Prisma.User$sentNotificationsArgs<ExtArgs>
+  receivedNotifications?: boolean | Prisma.User$receivedNotificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1838,6 +2192,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     createdAssignments: Prisma.$AssignmentPayload<ExtArgs>[]
     targetedAssignments: Prisma.$AssignmentPayload<ExtArgs>[]
     passwordResetOtps: Prisma.$PasswordResetOtpPayload<ExtArgs>[]
+    sentNotifications: Prisma.$NotificationPayload<ExtArgs>[]
+    receivedNotifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2254,6 +2610,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   createdAssignments<T extends Prisma.User$createdAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   targetedAssignments<T extends Prisma.User$targetedAssignmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$targetedAssignmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssignmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   passwordResetOtps<T extends Prisma.User$passwordResetOtpsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$passwordResetOtpsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PasswordResetOtpPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sentNotifications<T extends Prisma.User$sentNotificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sentNotificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  receivedNotifications<T extends Prisma.User$receivedNotificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$receivedNotificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2903,6 +3261,54 @@ export type User$passwordResetOtpsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.PasswordResetOtpScalarFieldEnum | Prisma.PasswordResetOtpScalarFieldEnum[]
+}
+
+/**
+ * User.sentNotifications
+ */
+export type User$sentNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
+}
+
+/**
+ * User.receivedNotifications
+ */
+export type User$receivedNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
 }
 
 /**

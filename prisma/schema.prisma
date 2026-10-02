@@ -103,17 +103,20 @@ model User {
   teacherAssignments TeacherStudent[] @relation("TeacherAssignments")
   studentAssignments TeacherStudent[] @relation("StudentAssignments")
 
-  enrollments  StudentEnrollment[]
-  attendances  Attendance[]
-  fees         StudentFee[]
+  enrollments StudentEnrollment[]
+  attendances Attendance[]
+  fees        StudentFee[]
 
-  createdAssignments Assignment[] @relation("AssignmentCreator")
+  createdAssignments  Assignment[] @relation("AssignmentCreator")
   targetedAssignments Assignment[] @relation("AssignmentStudent")
 
   passwordResetOtps PasswordResetOtp[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  sentNotifications     Notification[] @relation("NotificationSender")
+  receivedNotifications Notification[] @relation("NotificationRecipient")
 
   @@index([institutionId])
   @@index([role])
@@ -137,10 +140,11 @@ model Institution {
   phone   String?
   website String?
 
-  users       User[]
-  classes     Class[]
-  feePlans    FeePlan[]
-  assignments Assignment[]
+  users         User[]
+  classes       Class[]
+  feePlans      FeePlan[]
+  assignments   Assignment[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -165,7 +169,7 @@ model Class {
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[] @relation("AssignmentClass")
+  assignments        Assignment[]        @relation("AssignmentClass")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -181,13 +185,13 @@ model Section {
   code String
 
   classId String
-  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   studentEnrollments StudentEnrollment[]
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[] @relation("AssignmentSection")
+  assignments        Assignment[]        @relation("AssignmentSection")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -394,6 +398,45 @@ model FeePayment {
   @@index([feeId])
   @@index([paymentDate])
   @@map("fee_payments")
+}
+
+enum NotificationType {
+  INFO
+  ANNOUNCEMENT
+  REMINDER
+  SUCCESS
+  WARNING
+  ALERT
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  institutionId String
+  senderId      String?
+  recipientId   String
+
+  title   String
+  message String
+  type    NotificationType @default(INFO)
+
+  isRead Boolean   @default(false)
+  readAt DateTime?
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sender      User?       @relation("NotificationSender", fields: [senderId], references: [id], onDelete: SetNull)
+  recipient   User        @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([institutionId, recipientId, isRead])
+  @@map("notifications")
 }
 
 model PasswordResetOtp {

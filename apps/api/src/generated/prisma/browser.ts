@@ -73,6 +73,11 @@ export type FeePlan = Prisma.FeePlanModel
  */
 export type FeePayment = Prisma.FeePaymentModel
 /**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
  * Model PasswordResetOtp
  * 
  */

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -52,9 +52,7 @@ export class AcademicsController {
 
   @Get('classes')
   @Roles('HEAD', 'TEACHER', 'STAFF')
-  async getClasses(
-    @Req() request: Request,
-  ) {
+  async getClasses(@Req() request: Request) {
     const user = request.user as {
       institutionId?: string;
     };
@@ -134,9 +132,7 @@ export class AcademicsController {
     );
   }
 
-  @Get(
-    'classes/:classId/sections/:sectionId/students',
-  )
+  @Get('classes/:classId/sections/:sectionId/students')
   @Roles('HEAD', 'TEACHER', 'STAFF')
   async getSectionStudents(
     @Req() request: Request,
@@ -260,13 +256,11 @@ export class AcademicsController {
     );
   }
 
-    // =========================================
-  // SECTION ATTENDANCE / HISTORY
+  // =========================================
+  // SECTION ATTENDANCE
   // =========================================
 
-  @Get(
-    'classes/:classId/sections/:sectionId/attendance',
-  )
+  @Get('classes/:classId/sections/:sectionId/attendance')
   @Roles('HEAD', 'TEACHER', 'STAFF')
   async getSectionAttendance(
     @Req() request: Request,
@@ -290,9 +284,7 @@ export class AcademicsController {
   // MONTHLY ATTENDANCE REPORT
   // =========================================
 
-  @Get(
-    'classes/:classId/sections/:sectionId/attendance/monthly',
-  )
+  @Get('classes/:classId/sections/:sectionId/attendance/monthly')
   @Roles('HEAD', 'TEACHER', 'STAFF')
   async getMonthlyAttendanceReport(
     @Req() request: Request,

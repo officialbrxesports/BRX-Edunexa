@@ -119,3 +119,15 @@ export const RegistrationVerificationType = {
 } as const
 
 export type RegistrationVerificationType = (typeof RegistrationVerificationType)[keyof typeof RegistrationVerificationType]
+
+
+export const NotificationType = {
+  INFO: 'INFO',
+  ANNOUNCEMENT: 'ANNOUNCEMENT',
+  REMINDER: 'REMINDER',
+  SUCCESS: 'SUCCESS',
+  WARNING: 'WARNING',
+  ALERT: 'ALERT'
+} as const
+
+export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

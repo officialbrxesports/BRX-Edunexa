@@ -1,4 +1,5 @@
-import {
+﻿import {
+  IsNotEmpty,
   IsString,
   MaxLength,
   MinLength,
@@ -6,11 +7,12 @@ import {
 
 export class CreateClassDto {
   @IsString()
-  @MinLength(1)
+  @IsNotEmpty()
   @MaxLength(100)
   name!: string;
 
   @IsString()
+  @IsNotEmpty()
   @MinLength(1)
   @MaxLength(50)
   code!: string;
