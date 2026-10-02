@@ -65,7 +65,9 @@ export const ModelName = {
   Notification: 'Notification',
   PasswordResetOtp: 'PasswordResetOtp',
   RegistrationSession: 'RegistrationSession',
-  RegistrationOtpVerification: 'RegistrationOtpVerification'
+  RegistrationOtpVerification: 'RegistrationOtpVerification',
+  Exam: 'Exam',
+  Result: 'Result'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -330,6 +332,41 @@ export const RegistrationOtpVerificationScalarFieldEnum = {
 } as const
 
 export type RegistrationOtpVerificationScalarFieldEnum = (typeof RegistrationOtpVerificationScalarFieldEnum)[keyof typeof RegistrationOtpVerificationScalarFieldEnum]
+
+
+export const ExamScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  examDate: 'examDate',
+  totalMarks: 'totalMarks',
+  passingMarks: 'passingMarks',
+  status: 'status',
+  institutionId: 'institutionId',
+  classId: 'classId',
+  sectionId: 'sectionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ExamScalarFieldEnum = (typeof ExamScalarFieldEnum)[keyof typeof ExamScalarFieldEnum]
+
+
+export const ResultScalarFieldEnum = {
+  id: 'id',
+  marks: 'marks',
+  maxMarks: 'maxMarks',
+  grade: 'grade',
+  remarks: 'remarks',
+  status: 'status',
+  examId: 'examId',
+  studentId: 'studentId',
+  institutionId: 'institutionId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ResultScalarFieldEnum = (typeof ResultScalarFieldEnum)[keyof typeof ResultScalarFieldEnum]
 
 
 export const SortOrder = {

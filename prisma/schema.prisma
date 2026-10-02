@@ -87,6 +87,27 @@ enum RegistrationVerificationType {
   EMAIL
 }
 
+enum NotificationType {
+  INFO
+  ANNOUNCEMENT
+  REMINDER
+  SUCCESS
+  WARNING
+  ALERT
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+enum ResultStatus {
+  DRAFT
+  PUBLISHED
+}
+
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
@@ -110,13 +131,15 @@ model User {
   createdAssignments  Assignment[] @relation("AssignmentCreator")
   targetedAssignments Assignment[] @relation("AssignmentStudent")
 
-  passwordResetOtps PasswordResetOtp[]
+  results Result[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  passwordResetOtps PasswordResetOtp[]
 
   sentNotifications     Notification[] @relation("NotificationSender")
   receivedNotifications Notification[] @relation("NotificationRecipient")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([institutionId])
   @@index([role])
@@ -146,6 +169,9 @@ model Institution {
   assignments   Assignment[]
   notifications Notification[]
 
+  exams   Exam[]
+  results Result[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -169,7 +195,8 @@ model Class {
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[]        @relation("AssignmentClass")
+  assignments        Assignment[] @relation("AssignmentClass")
+  exams              Exam[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -185,13 +212,14 @@ model Section {
   code String
 
   classId String
-  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   studentEnrollments StudentEnrollment[]
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[]        @relation("AssignmentSection")
+  assignments        Assignment[] @relation("AssignmentSection")
+  exams              Exam[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -400,15 +428,6 @@ model FeePayment {
   @@map("fee_payments")
 }
 
-enum NotificationType {
-  INFO
-  ANNOUNCEMENT
-  REMINDER
-  SUCCESS
-  WARNING
-  ALERT
-}
-
 model Notification {
   id String @id @default(uuid())
 
@@ -527,4 +546,61 @@ model RegistrationOtpVerification {
   @@index([type])
   @@index([expiresAt])
   @@map("registration_otp_verifications")
+}
+
+model Exam {
+  id           String     @id @default(uuid())
+  title        String
+  description  String?
+  examDate     DateTime
+  totalMarks   Int
+  passingMarks Int
+  status       ExamStatus @default(DRAFT)
+
+  institutionId String
+  classId       String?
+  sectionId     String?
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  class       Class?      @relation(fields: [classId], references: [id], onDelete: SetNull)
+  section     Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  results Result[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([examDate])
+  @@index([status])
+  @@map("exams")
+}
+
+model Result {
+  id            String       @id @default(uuid())
+  marks         Float
+  maxMarks      Float
+  grade         String?
+  remarks       String?
+  status        ResultStatus @default(DRAFT)
+
+  examId        String
+  studentId     String
+  institutionId String
+
+  exam        Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student     User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
+  @@index([examId])
+  @@index([status])
+  @@map("results")
 }

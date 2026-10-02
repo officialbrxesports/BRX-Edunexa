@@ -92,3 +92,13 @@ export type RegistrationSession = Prisma.RegistrationSessionModel
  * 
  */
 export type RegistrationOtpVerification = Prisma.RegistrationOtpVerificationModel
+/**
+ * Model Exam
+ * 
+ */
+export type Exam = Prisma.ExamModel
+/**
+ * Model Result
+ * 
+ */
+export type Result = Prisma.ResultModel
