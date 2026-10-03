@@ -18,13 +18,12 @@
   "scripts": {
     "dev:web": "npm --workspace apps/web run dev",
     "dev:api": "npm --workspace apps/api run start:dev",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "build:web": "npm --workspace apps/web run build",
-    "build:api": "npm --workspace apps/api run build"
-  },
-  "devDependencies": {
-    "prisma": "^7.9.1"
+    "build:api": "npm run prisma:generate && npm --workspace apps/api run build"
   },
   "dependencies": {
-    "@prisma/client": "^7.9.1"
+    "@prisma/client": "^7.9.1",
+    "prisma": "^7.9.1"
   }
 }
