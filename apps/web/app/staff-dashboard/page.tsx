@@ -27,7 +27,7 @@ export default function StaffDashboard() {
 
       try {
         const response = await fetch(
-          "http://localhost:3000/users/me/role",
+          "/api/users/me/role",
           {
             headers: {
               Authorization: `Bearer ${token}`,

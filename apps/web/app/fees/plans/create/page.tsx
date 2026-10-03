@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 type ClassItem = {
   id: string;

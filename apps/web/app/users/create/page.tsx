@@ -35,7 +35,7 @@ export default function CreateUserPage() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/users",
+        "/api/users",
         {
           method: "POST",
           headers: {

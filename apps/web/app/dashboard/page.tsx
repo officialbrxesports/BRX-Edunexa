@@ -46,9 +46,9 @@ export default function DashboardPage() {
 
         const [meResponse, classesResponse, usersResponse] =
           await Promise.all([
-            fetch("http://localhost:3000/users/me", { headers }),
-            fetch("http://localhost:3000/academics/classes", { headers }),
-            fetch("http://localhost:3000/users", { headers }),
+            fetch("/api/users/me", { headers }),
+            fetch("/api/academics/classes", { headers }),
+            fetch("/api/users", { headers }),
           ]);
 
         const meData = await meResponse.json();

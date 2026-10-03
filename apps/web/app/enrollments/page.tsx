@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:3000";
+const API = "/api";
 
 type Student = {
   id: string;

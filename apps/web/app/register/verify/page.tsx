@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 
 type VerifyMethod = "phone" | "email";
 
-const API_URL = "http://localhost:3000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  "/api";
 
 export default function VerifyPage() {
   const router = useRouter();

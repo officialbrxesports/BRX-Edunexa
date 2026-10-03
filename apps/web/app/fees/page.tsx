@@ -85,7 +85,7 @@ type Summary = {
   overdueCount: number;
 };
 
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 function money(value: string | number) {
   return `₹${Number(value).toLocaleString("en-IN")}`;

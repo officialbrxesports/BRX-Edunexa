@@ -76,7 +76,7 @@ export default function MonthlyAttendancePage() {
         }
 
         const response = await fetch(
-          "http://localhost:3000/academics/classes",
+          "/api/academics/classes",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -115,7 +115,7 @@ export default function MonthlyAttendancePage() {
         const token = getToken();
 
         const response = await fetch(
-          `http://localhost:3000/academics/classes/${classId}/sections`,
+          `/api/academics/classes/${classId}/sections`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -163,7 +163,7 @@ export default function MonthlyAttendancePage() {
       }
 
       const response = await fetch(
-        `http://localhost:3000/academics/classes/${classId}/sections/${sectionId}/attendance/monthly?month=${month}`,
+        `/api/academics/classes/${classId}/sections/${sectionId}/attendance/monthly?month=${month}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

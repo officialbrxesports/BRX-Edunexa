@@ -45,7 +45,7 @@ export default function EditStudentPage() {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/users/${studentId}`,
+          `/api/users/${studentId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -115,7 +115,7 @@ export default function EditStudentPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/users/${studentId}`,
+        `/api/users/${studentId}`,
         {
           method: "PATCH",
           headers: {

@@ -51,7 +51,7 @@ export default function ClassesPage() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/academics/classes",
+        "/api/academics/classes",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -85,7 +85,7 @@ export default function ClassesPage() {
       const token = getToken();
 
       const response = await fetch(
-        `http://localhost:3000/academics/classes/${classId}/sections`,
+        `/api/academics/classes/${classId}/sections`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -132,7 +132,7 @@ export default function ClassesPage() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/academics/classes",
+        "/api/academics/classes",
         {
           method: "POST",
           headers: {
@@ -198,7 +198,7 @@ export default function ClassesPage() {
       }
 
       const response = await fetch(
-        `http://localhost:3000/academics/classes/${selectedClassId}/sections`,
+        `/api/academics/classes/${selectedClassId}/sections`,
         {
           method: "POST",
           headers: {

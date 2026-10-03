@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-const API = "http://localhost:3000";
+const API = "/api";
 
 type User = {
   id: string;

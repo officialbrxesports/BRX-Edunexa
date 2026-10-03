@@ -24,7 +24,7 @@ export default function ExamsPage() {
         throw new Error("Please login first.");
       }
 
-      const response = await fetch("http://localhost:3000/exams", {
+      const response = await fetch("/api/exams", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

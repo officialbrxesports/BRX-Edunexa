@@ -45,7 +45,7 @@ export default function ExamDetailsPage() {
         }
 
         const response = await fetch(
-          `http://localhost:3000/exams/${examId}`,
+          `/api/exams/${examId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

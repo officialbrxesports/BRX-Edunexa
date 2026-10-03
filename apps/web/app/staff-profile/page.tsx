@@ -36,7 +36,7 @@ export default function StaffProfilePage() {
 
       try {
         const response = await fetch(
-          "http://localhost:3000/users/me",
+          "/api/users/me",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -91,7 +91,7 @@ export default function StaffProfilePage() {
 
     try {
       const response = await fetch(
-        "http://localhost:3000/users/me",
+        "/api/users/me",
         {
           method: "PATCH",
           headers: {

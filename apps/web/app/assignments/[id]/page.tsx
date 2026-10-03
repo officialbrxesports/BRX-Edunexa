@@ -51,7 +51,7 @@ export default function AssignmentDetailsPage() {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/assignments/${id}`,
+          `/api/assignments/${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -87,7 +87,7 @@ export default function AssignmentDetailsPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/assignments/${id}/publish`,
+        `/api/assignments/${id}/publish`,
         {
           method: "POST",
           headers: {
@@ -126,7 +126,7 @@ export default function AssignmentDetailsPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/assignments/${id}`,
+        `/api/assignments/${id}`,
         {
           method: "DELETE",
           headers: {

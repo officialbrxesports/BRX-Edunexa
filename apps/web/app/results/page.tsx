@@ -40,7 +40,7 @@ export default function ResultsPage() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/exams/results",
+        "/api/exams/results",
         {
           headers: {
             Authorization: `Bearer ${token}`,

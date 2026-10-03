@@ -42,12 +42,12 @@ export default function TeacherProfilePage() {
       setLoading(true);
 
       const [teacherResponse, studentsResponse] = await Promise.all([
-        fetch(`http://localhost:3000/users/${teacherId}`, {
+        fetch(`/api/users/${teacherId}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
-        fetch(`http://localhost:3000/users/${teacherId}/students`, {
+        fetch(`/api/users/${teacherId}/students`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -109,7 +109,7 @@ export default function TeacherProfilePage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/users/${teacherId}/students/${studentId}`,
+        `/api/users/${teacherId}/students/${studentId}`,
         {
           method: "DELETE",
           headers: {

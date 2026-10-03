@@ -59,7 +59,7 @@ export default function AttendancePage() {
         }
 
         const response = await fetch(
-          "http://localhost:3000/academics/classes",
+          "/api/academics/classes",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -135,7 +135,7 @@ export default function AttendancePage() {
         }
 
         const response = await fetch(
-          `http://localhost:3000/academics/classes/${selectedClassId}/sections/${selectedSectionId}/students`,
+          `/api/academics/classes/${selectedClassId}/sections/${selectedSectionId}/students`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -240,7 +240,7 @@ export default function AttendancePage() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/academics/attendance",
+        "/api/academics/attendance",
         {
           method: "POST",
 

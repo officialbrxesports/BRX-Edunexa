@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 type Student = {
   id: string;

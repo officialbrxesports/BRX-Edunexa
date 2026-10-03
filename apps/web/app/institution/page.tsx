@@ -47,7 +47,7 @@ export default function InstitutionPage() {
     async function loadInstitution() {
       try {
         const response = await fetch(
-          "http://localhost:3000/institutions",
+          "/api/institutions",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -110,7 +110,7 @@ export default function InstitutionPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/institutions/${institution.id}`,
+        `/api/institutions/${institution.id}`,
         {
           method: "PATCH",
           headers: {

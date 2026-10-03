@@ -119,7 +119,7 @@ export default function ResultForm({
       }
 
       const response = await fetch(
-        "http://localhost:3000/exams/results",
+        "/api/exams/results",
         {
           method: "POST",
           headers: {

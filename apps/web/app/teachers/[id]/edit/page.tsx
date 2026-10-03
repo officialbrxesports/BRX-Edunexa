@@ -33,7 +33,7 @@ export default function EditTeacherPage() {
 
       try {
         const response = await fetch(
-          `http://localhost:3000/users/${teacherId}`,
+          `/api/users/${teacherId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -102,7 +102,7 @@ export default function EditTeacherPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/users/${teacherId}`,
+        `/api/users/${teacherId}`,
         {
           method: "PATCH",
           headers: {

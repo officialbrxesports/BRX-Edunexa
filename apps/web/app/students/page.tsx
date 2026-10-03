@@ -56,7 +56,7 @@ export default function StudentsPage() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:3000/users", {
+      const response = await fetch("/api/users", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -78,7 +78,7 @@ export default function StudentsPage() {
         users.map(async (student) => {
           try {
             const enrollmentResponse = await fetch(
-              `http://localhost:3000/academics/students/${student.id}/enrollments`,
+              `/api/academics/students/${student.id}/enrollments`,
               {
                 headers: {
                   Authorization: `Bearer ${token}`,

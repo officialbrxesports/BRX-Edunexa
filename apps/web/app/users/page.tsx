@@ -31,7 +31,7 @@ export default function UsersPage() {
         }
 
         const response = await fetch(
-          "http://localhost:3000/users",
+          "/api/users",
           {
             headers: {
               Authorization: `Bearer ${token}`,

@@ -47,7 +47,7 @@ type Fee = {
   };
 };
 
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 function getToken() {
   if (typeof window === "undefined") {

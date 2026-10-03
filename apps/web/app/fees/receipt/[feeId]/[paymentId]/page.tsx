@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-const API_URL = "http://localhost:3000";
+const API_URL = "/api";
 
 type ReceiptData = {
   receiptNumber: string;

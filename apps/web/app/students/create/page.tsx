@@ -48,7 +48,7 @@ export default function CreateStudentPage() {
           return;
         }
 
-        const response = await fetch("http://localhost:3000/academics/classes", {
+        const response = await fetch("/api/academics/classes", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -86,7 +86,7 @@ export default function CreateStudentPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:3000/academics/classes/${classId}/sections`,
+        `/api/academics/classes/${classId}/sections`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -150,7 +150,7 @@ export default function CreateStudentPage() {
     setSaving(true);
 
     try {
-      const response = await fetch("http://localhost:3000/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,7 +180,7 @@ export default function CreateStudentPage() {
 
       if (studentId && form.classId) {
         const enrollmentResponse = await fetch(
-          "http://localhost:3000/academics/enrollments",
+          "/api/academics/enrollments",
           {
             method: "POST",
             headers: {

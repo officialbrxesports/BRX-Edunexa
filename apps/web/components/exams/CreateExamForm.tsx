@@ -64,7 +64,7 @@ export default function CreateExamForm({
       }
 
       const response = await fetch(
-        "http://localhost:3000/exams",
+        "/api/exams",
         {
           method: "POST",
           headers: {

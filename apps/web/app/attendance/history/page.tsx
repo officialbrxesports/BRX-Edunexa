@@ -73,7 +73,7 @@ export default function AttendanceHistoryPage() {
         }
 
         const response = await fetch(
-          "http://localhost:3000/academics/classes",
+          "/api/academics/classes",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -151,7 +151,7 @@ export default function AttendanceHistoryPage() {
         }
 
         const url =
-          `http://localhost:3000/academics/classes/` +
+          `/api/academics/classes/` +
           `${selectedClassId}/sections/` +
           `${selectedSectionId}/attendance` +
           `?date=${selectedDate}`;
