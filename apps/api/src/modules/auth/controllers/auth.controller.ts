@@ -16,10 +16,13 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { VerifyResetOtpDto } from '../dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 
+import { GoogleLoginDto } from '../google/dto/google-login.dto';
+
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 import { AuthService } from '../services/auth.service';
 import { PasswordResetService } from '../services/password-reset.service';
+import { GoogleAuthService } from '../google/google-auth.service';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -35,6 +38,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly passwordResetService: PasswordResetService,
+    private readonly googleAuthService: GoogleAuthService,
   ) {}
 
   // ============================================
@@ -49,7 +53,7 @@ export class AuthController {
   }
 
   // ============================================
-  // Login
+  // Existing email/password login
   // ============================================
 
   @Post('login')
@@ -60,6 +64,19 @@ export class AuthController {
   }
 
   // ============================================
+  // Google Login
+  // ============================================
+
+  @Post('google')
+  async googleLogin(
+    @Body() dto: GoogleLoginDto,
+  ) {
+    return this.googleAuthService.loginWithGoogle(
+      dto.credential,
+    );
+  }
+
+  // ============================================
   // Forgot Password
   // ============================================
 
@@ -67,7 +84,9 @@ export class AuthController {
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
   ) {
-    return this.passwordResetService.forgotPassword(dto);
+    return this.passwordResetService.forgotPassword(
+      dto,
+    );
   }
 
   // ============================================
@@ -78,7 +97,9 @@ export class AuthController {
   async verifyResetOtp(
     @Body() dto: VerifyResetOtpDto,
   ) {
-    return this.passwordResetService.verifyOtp(dto);
+    return this.passwordResetService.verifyOtp(
+      dto,
+    );
   }
 
   // ============================================
@@ -89,7 +110,9 @@ export class AuthController {
   async resetPassword(
     @Body() dto: ResetPasswordDto,
   ) {
-    return this.passwordResetService.resetPassword(dto);
+    return this.passwordResetService.resetPassword(
+      dto,
+    );
   }
 
   // ============================================

@@ -24,7 +24,7 @@ import { ExamsModule } from './modules/exams/exams.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '../../.env',
+      envFilePath: 'apps/api/.env',
     }),
 
     DatabaseModule,

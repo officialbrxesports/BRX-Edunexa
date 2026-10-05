@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
@@ -27,6 +28,128 @@ export default function LoginPage() {
 
   const [error, setError] =
     useState("");
+
+    const handleGoogleLogin =
+    async (
+      credential: string,
+    ) => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response =
+          await fetch(
+            `${API_URL}/auth/google`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body: JSON.stringify({
+                credential,
+              }),
+            },
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Google login failed",
+          );
+        }
+
+        const token =
+          data.accessToken;
+
+        if (!token) {
+          throw new Error(
+            "BRX did not receive an access token.",
+          );
+        }
+
+        localStorage.setItem(
+          "brx_access_token",
+          token,
+        );
+
+        document.cookie =
+          `brx_access_token=${token}; path=/; SameSite=Lax`;
+
+        const profileResponse =
+          await fetch(
+            `${API_URL}/users/me`,
+            {
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            },
+          );
+
+        const profileData =
+          await profileResponse.json();
+
+        if (!profileResponse.ok) {
+          throw new Error(
+            profileData.message ||
+              "Unable to load user profile",
+          );
+        }
+
+        switch (
+          profileData.role
+        ) {
+          case "HEAD":
+            router.push(
+              "/dashboard",
+            );
+            break;
+
+          case "TEACHER":
+            router.push(
+              "/teacher-dashboard",
+            );
+            break;
+
+          case "STUDENT":
+            router.push(
+              "/student-dashboard",
+            );
+            break;
+
+          case "STAFF":
+            router.push(
+              "/staff-dashboard",
+            );
+            break;
+
+          case "PLATFORM_ADMIN":
+            router.push(
+              "/dashboard",
+            );
+            break;
+
+          default:
+            router.push(
+              "/dashboard",
+            );
+        }
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Google login failed",
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   const handleLogin = async (
     event: FormEvent,
@@ -467,6 +590,24 @@ export default function LoginPage() {
 
                     </div>
 
+                  </div>
+
+                  <div className="mb-6">
+                    <GoogleLoginButton
+                      onSuccess={handleGoogleLogin}
+                      onError={setError}
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="mb-6 flex items-center gap-4">
+                    <div className="h-px flex-1 bg-white/10" />
+
+                    <span className="text-xs font-medium text-slate-500">
+                      OR
+                    </span>
+
+                    <div className="h-px flex-1 bg-white/10" />
                   </div>
 
                   {/* Error */}

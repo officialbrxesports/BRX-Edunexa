@@ -1,7 +1,10 @@
 ﻿import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  ConfigModule,
+  ConfigService,
+} from '@nestjs/config';
 
 import { AuthController } from './controllers/auth.controller';
 
@@ -10,6 +13,8 @@ import { PasswordService } from './services/password.service';
 import { PasswordResetService } from './services/password-reset.service';
 
 import { JwtStrategy } from './strategies/jwt.strategy';
+
+import { GoogleAuthService } from './google/google-auth.service';
 
 @Module({
   imports: [
@@ -23,8 +28,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
 
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
+      useFactory: (
+        configService: ConfigService,
+      ) => ({
+        secret:
+          configService.getOrThrow<string>(
+            'JWT_SECRET',
+          ),
 
         signOptions: {
           expiresIn: '1h',
@@ -42,12 +52,14 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     PasswordService,
     PasswordResetService,
     JwtStrategy,
+    GoogleAuthService,
   ],
 
   exports: [
     AuthService,
     JwtModule,
     PassportModule,
+    GoogleAuthService,
   ],
 })
 export class AuthModule {}
