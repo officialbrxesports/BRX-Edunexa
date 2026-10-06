@@ -15,10 +15,10 @@ export default function LoginPage() {
   const router = useRouter();
 
   const [email, setEmail] =
-    useState("head@brx.test");
+    useState("");
 
   const [password, setPassword] =
-    useState("Head@12345");
+    useState("");
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -29,7 +29,11 @@ export default function LoginPage() {
   const [error, setError] =
     useState("");
 
-    const handleGoogleLogin =
+  // ==============================
+  // GOOGLE LOGIN
+  // ==============================
+
+  const handleGoogleLogin =
     async (
       credential: string,
     ) => {
@@ -59,10 +63,40 @@ export default function LoginPage() {
 
         if (!response.ok) {
           throw new Error(
-            data.message ||
+            data?.message ||
               "Google login failed",
           );
         }
+
+        // ==================================
+        // NEW GOOGLE USER
+        // ==================================
+
+        if (
+          data.requiresOnboarding
+        ) {
+          sessionStorage.setItem(
+            "brx_google_credential",
+            credential,
+          );
+
+          sessionStorage.setItem(
+            "brx_google_profile",
+            JSON.stringify(
+              data.googleProfile,
+            ),
+          );
+
+          router.push(
+            "/register/institution",
+          );
+
+          return;
+        }
+
+        // ==================================
+        // EXISTING BRX USER
+        // ==================================
 
         const token =
           data.accessToken;
@@ -97,7 +131,7 @@ export default function LoginPage() {
 
         if (!profileResponse.ok) {
           throw new Error(
-            profileData.message ||
+            profileData?.message ||
               "Unable to load user profile",
           );
         }
@@ -151,6 +185,10 @@ export default function LoginPage() {
       }
     };
 
+  // ==============================
+  // PASSWORD LOGIN
+  // ==============================
+
   const handleLogin = async (
     event: FormEvent,
   ) => {
@@ -160,29 +198,42 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await
-        fetch(`${API_URL}/auth/login`, 
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        },
-      );
+      const response =
+        await fetch(
+          `${API_URL}/auth/login`,
+          {
+            method: "POST",
 
-      const data = await response.json();
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify({
+              email,
+              password,
+            }),
+          },
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Login failed",
+          data?.message ||
+            "Login failed",
         );
       }
 
-      const token = data.accessToken;
+      const token =
+        data.accessToken;
+
+      if (!token) {
+        throw new Error(
+          "BRX did not receive an access token.",
+        );
+      }
 
       localStorage.setItem(
         "brx_access_token",
@@ -194,7 +245,7 @@ export default function LoginPage() {
 
       const profileResponse =
         await fetch(
-            `${API_URL}/users/me`, 
+          `${API_URL}/users/me`,
           {
             headers: {
               Authorization:
@@ -208,14 +259,18 @@ export default function LoginPage() {
 
       if (!profileResponse.ok) {
         throw new Error(
-          profileData.message ||
+          profileData?.message ||
             "Unable to load user profile",
         );
       }
 
-      switch (profileData.role) {
+      switch (
+        profileData.role
+      ) {
         case "HEAD":
-          router.push("/dashboard");
+          router.push(
+            "/dashboard",
+          );
           break;
 
         case "TEACHER":
@@ -237,11 +292,15 @@ export default function LoginPage() {
           break;
 
         case "PLATFORM_ADMIN":
-          router.push("/dashboard");
+          router.push(
+            "/dashboard",
+          );
           break;
 
         default:
-          router.push("/dashboard");
+          router.push(
+            "/dashboard",
+          );
       }
     } catch (error) {
       setError(

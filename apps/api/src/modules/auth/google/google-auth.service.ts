@@ -18,104 +18,76 @@ export class GoogleAuthService {
     private readonly configService: ConfigService,
   ) {
     const clientId =
-      this.configService.get<string>(
-        'GOOGLE_CLIENT_ID',
-      );
+      this.configService.get<string>('GOOGLE_CLIENT_ID');
 
     if (!clientId) {
-      throw new Error(
-        'GOOGLE_CLIENT_ID is not configured',
-      );
+      throw new Error('GOOGLE_CLIENT_ID is not configured');
     }
 
     this.googleClient = new OAuth2Client(clientId);
   }
 
-  async loginWithGoogle(
-    credential: string,
-  ) {
+  async loginWithGoogle(credential: string) {
     const clientId =
-      this.configService.getOrThrow<string>(
-        'GOOGLE_CLIENT_ID',
-      );
+      this.configService.get<string>('GOOGLE_CLIENT_ID');
 
-    let ticket;
-
-    try {
-      ticket =
-        await this.googleClient.verifyIdToken({
-          idToken: credential,
-          audience: clientId,
-        });
-    } catch {
-      throw new UnauthorizedException(
-        'Invalid Google authentication',
-      );
+    if (!clientId) {
+      throw new Error('GOOGLE_CLIENT_ID is not configured');
     }
 
-    const payload =
-      ticket.getPayload();
+    const ticket =
+      await this.googleClient.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+
+    const payload = ticket.getPayload();
 
     if (!payload) {
       throw new UnauthorizedException(
-        'Unable to read Google account',
+        'Invalid Google credential',
       );
     }
 
-    const googleEmail =
-      payload.email?.trim().toLowerCase();
+    const email = payload.email?.toLowerCase().trim();
 
-    if (!googleEmail) {
-      throw new UnauthorizedException(
-        'Google account email is unavailable',
-      );
-    }
-
-    if (payload.email_verified !== true) {
+    if (!email || !payload.email_verified) {
       throw new UnauthorizedException(
         'Google email is not verified',
       );
     }
 
-    /*
-     * IMPORTANT:
-     *
-     * We do NOT create a random BRX account here.
-     *
-     * The BRX database decides whether this
-     * Google account already belongs to a
-     * HEAD / TEACHER / STAFF / STUDENT.
-     *
-     * Invitation-based account creation will be
-     * added in the next phase.
-     */
+    const googleSub = payload.sub;
+    const name = payload.name ?? '';
+    const picture = payload.picture ?? null;
 
-    const user =
-      await this.prisma.user.findUnique({
-        where: {
-          email: googleEmail,
-        },
-        select: {
-          id: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          phone: true,
-          role: true,
-          status: true,
-          institutionId: true,
-        },
-      });
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
+      },
+      include: {
+        institution: true,
+      },
+    });
 
+    // NEW GOOGLE USER
+    // Do NOT create a HEAD automatically.
     if (!user) {
-      throw new UnauthorizedException(
-        'No BRX EduNexa account is linked to this Google account. Please use your institution invitation or create an institution account.',
-      );
+      return {
+        requiresOnboarding: true,
+
+        googleProfile: {
+          sub: googleSub,
+          email,
+          name,
+          picture,
+        },
+      };
     }
 
     if (user.status !== 'ACTIVE') {
       throw new UnauthorizedException(
-        `Your BRX EduNexa account is ${user.status.toLowerCase()}. Please contact your institution administrator.`,
+        'Your BRX EduNexa account is not active',
       );
     }
 
@@ -124,14 +96,25 @@ export class GoogleAuthService {
         sub: user.id,
         email: user.email,
         role: user.role,
-        institutionId:
-          user.institutionId,
+        institutionId: user.institutionId,
       });
 
     return {
+      requiresOnboarding: false,
+
       accessToken,
+
       tokenType: 'Bearer',
-      user,
+
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.email.split("@")[0],
+        role: user.role,
+        status: user.status,
+        institutionId: user.institutionId,
+        institution: user.institution,
+      },
     };
   }
 }

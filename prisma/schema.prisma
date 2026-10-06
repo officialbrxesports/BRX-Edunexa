@@ -28,7 +28,6 @@ enum InstitutionType {
   COLLEGE
   UNIVERSITY
   COACHING
-  PRIVATE_SCHOOL
   INSTITUTE
   OTHER
 }
@@ -120,6 +119,8 @@ model User {
 
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
+
+  brxUid String @unique @db.VarChar(32)
 
   teacherAssignments TeacherStudent[] @relation("TeacherAssignments")
   studentAssignments TeacherStudent[] @relation("StudentAssignments")

@@ -1740,6 +1740,7 @@ export const UserScalarFieldEnum = {
   role: 'role',
   status: 'status',
   institutionId: 'institutionId',
+  brxUid: 'brxUid',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

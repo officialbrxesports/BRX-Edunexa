@@ -1,257 +1,131 @@
-"use client";
+'use client';
 
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
 
-export default function InstitutionPage() {
-  const router = useRouter();
+const institutionTypes = [
+  {
+    value: 'SCHOOL',
+    title: 'School',
+    description: 'Manage school students, teachers and academics.',
+  },
+  {
+    value: 'PRIVATE_SCHOOL',
+    title: 'Private School',
+    description: 'Complete private school management.',
+  },
+  {
+    value: 'COLLEGE',
+    title: 'College',
+    description: 'Manage college departments, students and faculty.',
+  },
+  {
+    value: 'UNIVERSITY',
+    title: 'University',
+    description: 'Manage university programs, departments and students.',
+  },
+  {
+    value: 'COACHING',
+    title: 'Coaching',
+    description: 'Manage batches, students, teachers and fees.',
+  },
+  {
+    value: 'INSTITUTE',
+    title: 'Institute',
+    description: 'Manage institute courses and learners.',
+  },
+  {
+    value: 'OTHER',
+    title: 'Other',
+    description: 'Use BRX EduNexa for another education organization.',
+  },
+];
 
-  const [type, setType] = useState("");
+export default function InstitutionRegistrationPage() {
+  const [selected, setSelected] = useState('');
 
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    website: "",
-    establishedYear: "",
-    registrationNumber: "",
-    gstin: "",
-  });
+  function continueNext() {
+    if (!selected) return;
 
-  useEffect(() => {
-    const saved =
-      localStorage.getItem(
-        "brx_registration_type",
-      );
-
-    if (!saved) {
-      router.replace("/register");
-      return;
-    }
-
-    setType(saved);
-  }, [router]);
-
-  const update = (
-    key: keyof typeof form,
-    value: string,
-  ) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-
-    localStorage.setItem(
-      "brx_institution_details",
-      JSON.stringify(form),
+    sessionStorage.setItem(
+      'brx_institution_type',
+      selected,
     );
 
-    router.push("/register/owner");
-  };
+    window.location.href =
+      '/register/owner';
+  }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#07112f] text-white">
+    <main className="min-h-screen bg-[#070b18] px-5 py-12 text-white">
+      <div className="mx-auto max-w-5xl">
 
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 h-[450px] w-[450px] rounded-full bg-blue-500/20 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-500/20 blur-[120px]" />
-      </div>
+        <div className="mb-10 text-center">
+          <div className="mb-4 inline-flex rounded-2xl bg-indigo-600 px-5 py-3 text-xl font-bold">
+            BRX
+          </div>
 
-      <div className="relative mx-auto max-w-4xl p-5 sm:p-8">
-
-        <div className="mb-6">
-          <p className="text-xs font-bold tracking-[0.2em] text-blue-300">
-            STEP 2 OF 5
-          </p>
-
-          <h1 className="mt-2 text-3xl font-bold">
-            Institution Details
+          <h1 className="text-4xl font-bold">
+            Choose your institution
           </h1>
 
-          <p className="mt-2 text-sm text-slate-400">
-            Tell us about your institution.
+          <p className="mt-3 text-gray-400">
+            Tell us what type of education organization
+            you want to manage with BRX EduNexa.
           </p>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="rounded-[32px] border border-white/15 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-2xl sm:p-10"
-        >
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {institutionTypes.map((item) => {
+            const active =
+              selected === item.value;
 
-          <div className="grid gap-5 sm:grid-cols-2">
-
-            <Field
-              label="Institution Name"
-              required
-              value={form.name}
-              onChange={(v) => update("name", v)}
-              placeholder="BRX Excellence Coaching"
-            />
-
-            <Field
-              label="Institution Phone"
-              value={form.phone}
-              onChange={(v) => update("phone", v)}
-              placeholder="+91 XXXXX XXXXX"
-            />
-
-            <Field
-              label="Institution Email"
-              value={form.email}
-              onChange={(v) => update("email", v)}
-              placeholder="info@example.com"
-              type="email"
-            />
-
-            <Field
-              label="Website"
-              value={form.website}
-              onChange={(v) => update("website", v)}
-              placeholder="https://example.com"
-            />
-
-            <div className="sm:col-span-2">
-              <Field
-                label="Full Address"
-                required
-                value={form.address}
-                onChange={(v) =>
-                  update("address", v)
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() =>
+                  setSelected(item.value)
                 }
-                placeholder="Full institution address"
-              />
-            </div>
+                className={`rounded-2xl border p-6 text-left transition ${
+                  active
+                    ? 'border-indigo-400 bg-indigo-600/20 shadow-lg shadow-indigo-900/30'
+                    : 'border-white/10 bg-white/5 hover:border-indigo-400/50 hover:bg-white/10'
+                }`}
+              >
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">
+                    {item.title}
+                  </h2>
 
-            <Field
-              label="City"
-              required
-              value={form.city}
-              onChange={(v) => update("city", v)}
-              placeholder="Patna"
-            />
+                  <div
+                    className={`h-5 w-5 rounded-full border ${
+                      active
+                        ? 'border-indigo-400 bg-indigo-500'
+                        : 'border-white/30'
+                    }`}
+                  />
+                </div>
 
-            <Field
-              label="State"
-              required
-              value={form.state}
-              onChange={(v) => update("state", v)}
-              placeholder="Bihar"
-            />
+                <p className="text-sm leading-6 text-gray-400">
+                  {item.description}
+                </p>
+              </button>
+            );
+          })}
+        </div>
 
-            <Field
-              label="PIN Code"
-              required
-              value={form.pincode}
-              onChange={(v) =>
-                update("pincode", v)
-              }
-              placeholder="800001"
-            />
-
-            <Field
-              label="Established Year"
-              value={form.establishedYear}
-              onChange={(v) =>
-                update("establishedYear", v)
-              }
-              placeholder="2026"
-            />
-
-            <Field
-              label="Registration Number"
-              value={form.registrationNumber}
-              onChange={(v) =>
-                update(
-                  "registrationNumber",
-                  v,
-                )
-              }
-              placeholder="Optional"
-            />
-
-            <Field
-              label="GSTIN"
-              value={form.gstin}
-              onChange={(v) =>
-                update("gstin", v)
-              }
-              placeholder="Optional"
-            />
-
-          </div>
-
-          <div className="mt-8 flex gap-3">
-
-            <button
-              type="button"
-              onClick={() =>
-                router.push("/register")
-              }
-              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm font-semibold text-slate-300"
-            >
-              ← Back
-            </button>
-
-            <button
-              type="submit"
-              className="flex-1 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 text-sm font-bold shadow-xl"
-            >
-              Continue →
-            </button>
-
-          </div>
-
-        </form>
+        <div className="mt-10 flex justify-center">
+          <button
+            type="button"
+            disabled={!selected}
+            onClick={continueNext}
+            className="rounded-xl bg-indigo-600 px-8 py-3 font-semibold transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Continue
+          </button>
+        </div>
 
       </div>
     </main>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required,
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-medium text-slate-300">
-        {label}
-        {required && (
-          <span className="ml-1 text-red-400">
-            *
-          </span>
-        )}
-      </label>
-
-      <input
-        type={type}
-        value={value}
-        required={required}
-        onChange={(e) =>
-          onChange(e.target.value)
-        }
-        placeholder={placeholder}
-        className="w-full rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 text-sm text-white outline-none backdrop-blur-xl transition placeholder:text-slate-600 focus:border-blue-400/60 focus:bg-white/10 focus:ring-4 focus:ring-blue-500/10"
-      />
-    </div>
   );
 }
