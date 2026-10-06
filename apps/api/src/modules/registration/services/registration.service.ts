@@ -1,3 +1,4 @@
+import { generateBrxUid } from '../../../common/brx-uid.util';
 import {
   BadRequestException,
   ConflictException,
@@ -5,6 +6,10 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+
+import * as crypto from 'crypto';
+
+import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
 
 import * as bcrypt from 'bcrypt';
 
@@ -158,8 +163,7 @@ export class RegistrationService {
 
     const session =
       await this.prisma.registrationSession.create({
-        data: {
-          institutionType:
+        data: {institutionType:
             dto.institutionType,
 
           institutionName:
@@ -284,6 +288,286 @@ export class RegistrationService {
   // Complete registration
   // ============================================
 
+    // ============================================
+  // Google onboarding
+  // ============================================
+
+  async completeGoogleOnboarding(
+    dto: GoogleOnboardingDto,
+  ) {
+    const clientId =
+      process.env.GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      throw new InternalServerErrorException(
+        'GOOGLE_CLIENT_ID is not configured',
+      );
+    }
+
+    // ==========================================
+    // Verify Google credential
+    // ==========================================
+
+    const { OAuth2Client } =
+      await import('google-auth-library');
+
+    const googleClient =
+      new OAuth2Client(clientId);
+
+    const ticket =
+      await googleClient.verifyIdToken({
+        idToken: dto.credential,
+        audience: clientId,
+      });
+
+    const payload =
+      ticket.getPayload();
+
+    if (!payload) {
+      throw new BadRequestException(
+        'Invalid Google credential',
+      );
+    }
+
+    const googleEmail =
+      payload.email?.trim().toLowerCase();
+
+    if (
+      !googleEmail ||
+      !payload.email_verified
+    ) {
+      throw new BadRequestException(
+        'Google email is not verified',
+      );
+    }
+
+    // ==========================================
+    // Check existing user
+    // ==========================================
+
+    const existingUser =
+      await this.prisma.user.findUnique({
+        where: {
+          email: googleEmail,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (existingUser) {
+      throw new ConflictException(
+        'An account with this Google email already exists. Please login with Google.',
+      );
+    }
+
+    // ==========================================
+    // Check institution
+    // ==========================================
+
+    const institutionEmail =
+      dto.institutionEmail
+        .trim()
+        .toLowerCase();
+
+    const institutionPhone =
+      dto.institutionPhone.trim();
+
+    const existingInstitution =
+      await this.prisma.institution.findFirst({
+        where: {
+          OR: [
+            {
+              email: institutionEmail,
+            },
+            {
+              phone: institutionPhone,
+            },
+          ],
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    if (existingInstitution) {
+      throw new ConflictException(
+        'An institution with this email or phone already exists',
+      );
+    }
+
+    // ==========================================
+    // Institution code
+    // ==========================================
+
+    const institutionCode =
+      await this.generateInstitutionCode(
+        dto.institutionName.trim(),
+      );
+
+    // ==========================================
+    // Google accounts still need a passwordHash
+    //
+    // We generate an unusable random password.
+    // Google authentication remains the login method.
+    // ==========================================
+
+    const randomPassword =
+      `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+
+    const passwordHash =
+      await bcrypt.hash(
+        randomPassword,
+        12,
+      );
+
+    // ==========================================
+    // Create Institution + HEAD
+    // ==========================================
+
+    try {
+      const result =
+        await this.prisma.$transaction(
+          async (tx) => {
+            const institution =
+              await tx.institution.create({
+                data: {
+                  name:
+                    dto.institutionName.trim(),
+
+                  code:
+                    institutionCode,
+
+                  type:
+                    dto.institutionType,
+
+                  status:
+                    InstitutionStatus.ACTIVE,
+
+                  country:
+                    dto.country.trim(),
+
+                  state:
+                    dto.state.trim(),
+
+                  city:
+                    dto.city?.trim() || null,
+
+                  address:
+                    dto.address?.trim() || null,
+
+                  email:
+                    institutionEmail,
+
+                  phone:
+                    institutionPhone,
+
+                  website:
+                    dto.website?.trim() || null,
+                },
+              });
+
+            const head =
+              await tx.user.create({
+                data: {
+                  brxUid:
+                    generateBrxUid(),
+
+                  email:
+                    googleEmail,
+
+                  passwordHash,
+
+                  firstName:
+                    dto.firstName.trim(),
+
+                  lastName:
+                    dto.lastName?.trim() ||
+                    null,
+
+                  phone:
+                    dto.ownerPhone.trim(),
+
+                  role:
+                    UserRole.HEAD,
+
+                  status:
+                    UserStatus.ACTIVE,
+
+                  institutionId:
+                    institution.id,
+                },
+              });
+
+            return {
+              institution,
+              head,
+            };
+          },
+        );
+
+      return {
+        success: true,
+
+        message:
+          'Google onboarding completed successfully',
+
+        institution: {
+          id:
+            result.institution.id,
+
+          code:
+            result.institution.code,
+
+          name:
+            result.institution.name,
+
+          type:
+            result.institution.type,
+
+          status:
+            result.institution.status,
+        },
+
+        head: {
+          id:
+            result.head.id,
+
+          brxUid:
+            result.head.brxUid,
+
+          email:
+            result.head.email,
+
+          firstName:
+            result.head.firstName,
+
+          lastName:
+            result.head.lastName,
+
+          phone:
+            result.head.phone,
+
+          role:
+            result.head.role,
+
+          status:
+            result.head.status,
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof ConflictException
+      ) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Unable to complete Google onboarding',
+      );
+    }
+  }
+  
   async completeRegistration(
     sessionId: string,
   ) {
@@ -450,6 +734,7 @@ export class RegistrationService {
             const head =
               await tx.user.create({
                 data: {
+        brxUid: generateBrxUid(),
                   email:
                     session.ownerEmail,
 
@@ -554,3 +839,5 @@ export class RegistrationService {
     }
   }
 }
+
+

@@ -1,3 +1,4 @@
+import { generateBrxUid } from '../../../common/brx-uid.util';
 import {
   ConflictException,
   Injectable,
@@ -33,6 +34,7 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
+        brxUid: generateBrxUid(),
         email: dto.email,
         passwordHash,
         firstName: dto.firstName,

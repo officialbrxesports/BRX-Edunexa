@@ -1,4 +1,5 @@
-﻿import {
+import { generateBrxUid } from '../../../common/brx-uid.util';
+import {
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -41,6 +42,7 @@ export class TeachersService {
 
     return this.prisma.user.create({
       data: {
+        brxUid: generateBrxUid(),
         email: dto.email,
         passwordHash,
         firstName: dto.firstName,
@@ -215,6 +217,7 @@ export class TeachersService {
     await this.prisma.user.update({
       where: { id: teacherId },
       data: {
+        brxUid: generateBrxUid(),
         ...(dto.email !== undefined ? { email: dto.email } : {}),
         ...(dto.firstName !== undefined ? { firstName: dto.firstName } : {}),
         ...(dto.lastName !== undefined ? { lastName: dto.lastName } : {}),
@@ -238,7 +241,8 @@ export class TeachersService {
         institutionId: id,
         role: 'TEACHER',
       },
-      data: { status: 'DELETED' },
+      data: {
+        brxUid: generateBrxUid(), status: 'DELETED' },
     });
 
     if (!result.count) {
@@ -260,7 +264,8 @@ export class TeachersService {
         institutionId: id,
         role: 'TEACHER',
       },
-      data: { status: 'ACTIVE' },
+      data: {
+        brxUid: generateBrxUid(), status: 'ACTIVE' },
     });
 
     if (!result.count) {
@@ -270,3 +275,4 @@ export class TeachersService {
     return this.findOne(id, teacherId);
   }
 }
+

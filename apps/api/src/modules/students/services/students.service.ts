@@ -1,4 +1,5 @@
-﻿import {
+import { generateBrxUid } from '../../../common/brx-uid.util';
+import {
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -70,6 +71,7 @@ export class StudentsService {
     return this.prisma.$transaction(async (tx) => {
       const student = await tx.user.create({
         data: {
+        brxUid: generateBrxUid(),
           email: dto.email,
           passwordHash,
           firstName: dto.firstName,
@@ -95,8 +97,7 @@ export class StudentsService {
 
       if (dto.classId && dto.sectionId) {
         await tx.studentEnrollment.create({
-          data: {
-            studentId: student.id,
+          data: {studentId: student.id,
             classId: dto.classId,
             sectionId: dto.sectionId,
           },
@@ -307,6 +308,7 @@ export class StudentsService {
       await tx.user.update({
         where: { id: studentId },
         data: {
+        brxUid: generateBrxUid(),
           ...(dto.email !== undefined
             ? { email: dto.email }
             : {}),
@@ -333,8 +335,7 @@ export class StudentsService {
         });
 
         await tx.studentEnrollment.create({
-          data: {
-            studentId,
+          data: {studentId,
             classId: dto.classId,
             sectionId: dto.sectionId,
           },
@@ -358,6 +359,7 @@ export class StudentsService {
         role: 'STUDENT',
       },
       data: {
+        brxUid: generateBrxUid(),
         status: 'DELETED',
       },
     });
@@ -382,6 +384,7 @@ export class StudentsService {
         role: 'STUDENT',
       },
       data: {
+        brxUid: generateBrxUid(),
         status: 'ACTIVE',
       },
     });
@@ -393,3 +396,5 @@ export class StudentsService {
     return this.findOne(id, studentId);
   }
 }
+
+

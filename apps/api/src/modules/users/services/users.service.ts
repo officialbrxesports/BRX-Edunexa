@@ -1,3 +1,4 @@
+import { generateBrxUid } from '../../../common/brx-uid.util';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../dto/create-user.dto';
@@ -38,6 +39,7 @@ export class UsersService {
 
   return this.prisma.user.create({
     data: {
+        brxUid: generateBrxUid(),
       email: dto.email,
       passwordHash,
       firstName: dto.firstName,
@@ -118,6 +120,7 @@ export class UsersService {
         id: userId,
       },
       data: {
+        brxUid: generateBrxUid(),
         ...(dto.firstName !== undefined && {
           firstName: dto.firstName,
         }),
@@ -216,6 +219,7 @@ export class UsersService {
         id: userId,
       },
       data: {
+        brxUid: generateBrxUid(),
         ...(dto.firstName !== undefined && {
           firstName: dto.firstName,
         }),
@@ -290,8 +294,7 @@ export class UsersService {
     }
 
     return this.prisma.teacherStudent.create({
-      data: {
-        teacherId,
+      data: {teacherId,
         studentId,
       },
       select: {
@@ -390,3 +393,4 @@ export class UsersService {
     });
   }
 }
+

@@ -11,6 +11,8 @@ import { CreateRegistrationDto } from '../dto/create-registration.dto';
 
 import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
 
+import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
+
 @Controller('registration')
 export class RegistrationController {
   constructor(
@@ -44,7 +46,7 @@ export class RegistrationController {
   }
 
   // ============================================
-  // Complete registration
+  // Complete normal registration
   // ============================================
 
   @Post('complete')
@@ -53,6 +55,19 @@ export class RegistrationController {
   ) {
     return this.registrationService.completeRegistration(
       dto.sessionId,
+    );
+  }
+
+  // ============================================
+  // Google onboarding
+  // ============================================
+
+  @Post('google')
+  async googleOnboarding(
+    @Body() dto: GoogleOnboardingDto,
+  ) {
+    return this.registrationService.completeGoogleOnboarding(
+      dto,
     );
   }
 }
