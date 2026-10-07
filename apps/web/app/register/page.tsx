@@ -5,40 +5,40 @@ import { useRouter } from "next/navigation";
 
 const types = [
   {
-    id: "COACHING",
-    icon: "📚",
-    title: "Coaching",
-    text: "Coaching institute & competitive classes",
-  },
-  {
-    id: "TUITION",
-    icon: "👨‍🏫",
-    title: "Tuition",
-    text: "Private tuition & home tuition",
-  },
-  {
-    id: "PRIVATE_SCHOOL",
+    id: "SCHOOL",
     icon: "🏫",
-    title: "Private School",
-    text: "School management & academics",
-  },
-  {
-    id: "INSTITUTE",
-    icon: "🏢",
-    title: "Institute",
-    text: "Training & educational institute",
+    title: "School",
+    text: "Manage school students, teachers and academics.",
   },
   {
     id: "COLLEGE",
     icon: "🎓",
     title: "College",
-    text: "College & higher education",
+    text: "Manage college departments, students and faculty.",
   },
   {
     id: "UNIVERSITY",
     icon: "🏛️",
     title: "University",
-    text: "University-level management",
+    text: "Manage university programs, departments and students.",
+  },
+  {
+    id: "COACHING",
+    icon: "📚",
+    title: "Coaching",
+    text: "Manage batches, students, teachers and fees.",
+  },
+  {
+    id: "INSTITUTE",
+    icon: "🏢",
+    title: "Institute",
+    text: "Manage institute courses and learners.",
+  },
+  {
+    id: "OTHER",
+    icon: "📖",
+    title: "Other",
+    text: "Use BRX EduNexa for another education organization.",
   },
 ];
 
@@ -58,7 +58,7 @@ export default function RegisterPage() {
       selected,
     );
 
-    router.push("/register/institution");
+    router.push("/register/owner");
   };
 
   return (
