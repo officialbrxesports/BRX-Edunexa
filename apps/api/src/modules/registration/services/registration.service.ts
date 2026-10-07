@@ -9,6 +9,8 @@ import {
 
 import * as crypto from 'crypto';
 
+import { JwtService } from '@nestjs/jwt';
+
 import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
 
 import * as bcrypt from 'bcrypt';
@@ -27,6 +29,7 @@ import { CreateRegistrationDto } from '../dto/create-registration.dto';
 export class RegistrationService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
   ) {}
 
   // ============================================
@@ -506,55 +509,97 @@ export class RegistrationService {
           },
         );
 
-      return {
-        success: true,
+      const accessToken =
+  await this.jwtService.signAsync({
+    sub: result.head.id,
+    email: result.head.email,
+    role: result.head.role,
+    institutionId:
+      result.head.institutionId,
+  });
 
-        message:
-          'Google onboarding completed successfully',
+    return {
+      success: true,
 
-        institution: {
-          id:
-            result.institution.id,
+      message:
+        'Google onboarding completed successfully',
 
-          code:
-            result.institution.code,
+      accessToken,
 
-          name:
-            result.institution.name,
+      tokenType: 'Bearer',
 
-          type:
-            result.institution.type,
+      user: {
+        id:
+          result.head.id,
 
-          status:
-            result.institution.status,
-        },
+        brxUid:
+          result.head.brxUid,
 
-        head: {
-          id:
-            result.head.id,
+        email:
+          result.head.email,
 
-          brxUid:
-            result.head.brxUid,
+        firstName:
+          result.head.firstName,
 
-          email:
-            result.head.email,
+        lastName:
+          result.head.lastName,
 
-          firstName:
-            result.head.firstName,
+        phone:
+          result.head.phone,
 
-          lastName:
-            result.head.lastName,
+        role:
+          result.head.role,
 
-          phone:
-            result.head.phone,
+        status:
+          result.head.status,
 
-          role:
-            result.head.role,
+        institutionId:
+          result.head.institutionId,
+      },
 
-          status:
-            result.head.status,
-        },
-      };
+      institution: {
+        id:
+          result.institution.id,
+
+        code:
+          result.institution.code,
+
+        name:
+          result.institution.name,
+
+        type:
+          result.institution.type,
+
+        status:
+          result.institution.status,
+      },
+
+      head: {
+        id:
+          result.head.id,
+
+        brxUid:
+          result.head.brxUid,
+
+        email:
+          result.head.email,
+
+        firstName:
+          result.head.firstName,
+
+        lastName:
+          result.head.lastName,
+
+        phone:
+          result.head.phone,
+
+        role:
+          result.head.role,
+
+        status:
+          result.head.status,
+      },
+    };
     } catch (error) {
       if (
         error instanceof ConflictException

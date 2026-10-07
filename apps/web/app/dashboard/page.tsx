@@ -56,8 +56,21 @@ export default function DashboardPage() {
         const usersData = await usersResponse.json();
 
         if (!meResponse.ok) {
+          if (
+            meResponse.status === 401 ||
+            meResponse.status === 403
+          ) {
+            localStorage.removeItem("brx_access_token");
+            document.cookie =
+              "brx_access_token=; path=/; max-age=0; SameSite=Lax";
+
+            window.location.href = "/login";
+            return;
+          }
+
           throw new Error(
-            meData.message || "Failed to load account information",
+            meData.message ||
+              "Failed to load account information",
           );
         }
 

@@ -391,6 +391,23 @@ export default function OwnerRegistrationPage() {
         // Google onboarding completed
         // ======================================
 
+        if (!data?.accessToken) {
+          throw new Error(
+            "Account was created, but login token was not returned.",
+          );
+        }
+
+        // Save authenticated session
+        localStorage.setItem(
+          "brx_access_token",
+          data.accessToken,
+        );
+
+        document.cookie = `brx_access_token=${encodeURIComponent(
+          data.accessToken,
+        )}; path=/; max-age=${60 * 60}; SameSite=Lax`;
+
+        // Save onboarding result for success page
         sessionStorage.setItem(
           "brx_google_onboarding_result",
           JSON.stringify({
@@ -398,6 +415,8 @@ export default function OwnerRegistrationPage() {
               data.institution,
             head:
               data.head,
+            user:
+              data.user,
           }),
         );
 
@@ -415,7 +434,7 @@ export default function OwnerRegistrationPage() {
         );
 
         router.push(
-          "/register/success",
+          "/dashboard",
         );
 
         return;
