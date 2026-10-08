@@ -256,7 +256,7 @@ export default function LoginPage() {
           );
 
           router.push(
-            "/register/institution",
+            "/register",
           );
 
           return;

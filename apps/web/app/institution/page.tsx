@@ -237,7 +237,7 @@ export default function InstitutionPage() {
                   University
                 </option>
                 <option value="COACHING">Coaching</option>
-                <option value="PRIVATE_SCHOOL">
+                <option value="SCHOOL">
                   Private School
                 </option>
                 <option value="INSTITUTE">Institute</option>

@@ -721,12 +721,6 @@ export class RegistrationService {
     // Verification check
     // ----------------------------------------------------------
 
-    if (!session.mobileVerified) {
-      throw new BadRequestException(
-        'Mobile number is not verified',
-      );
-    }
-
     if (!session.emailVerified) {
       throw new BadRequestException(
         'Email is not verified',

@@ -1,10 +1,8 @@
 export type InstitutionType =
   | "SCHOOL"
-  | "PRIVATE_SCHOOL"
   | "COLLEGE"
   | "UNIVERSITY"
   | "COACHING"
-  | "TUITION"
   | "INSTITUTE"
   | "OTHER";
 

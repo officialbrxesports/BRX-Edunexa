@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
+
 import { OtpController } from './controllers/otp.controller';
 import { OtpService } from './services/otp.service';
-import { SmsService } from './services/sms.service';
+
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
+  imports: [NotificationsModule],
+
   controllers: [OtpController],
-  providers: [OtpService, SmsService],
-  exports: [OtpService, SmsService],
+
+  providers: [OtpService],
+
+  exports: [OtpService],
 })
 export class OtpModule {}

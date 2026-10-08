@@ -22,14 +22,11 @@ export function normalizeInstitutionType(
   value?: string,
 ): InstitutionType {
   const normalized =
-    value?.toUpperCase();
+    value?.trim().toUpperCase();
 
   switch (normalized) {
     case "SCHOOL":
       return "SCHOOL";
-
-    case "PRIVATE_SCHOOL":
-      return "PRIVATE_SCHOOL";
 
     case "COLLEGE":
       return "COLLEGE";
@@ -40,11 +37,11 @@ export function normalizeInstitutionType(
     case "COACHING":
       return "COACHING";
 
-    case "TUITION":
-      return "TUITION";
-
     case "INSTITUTE":
       return "INSTITUTE";
+
+    case "OTHER":
+      return "OTHER";
 
     default:
       return "OTHER";

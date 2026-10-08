@@ -8,9 +8,10 @@ import { EmailConfig } from '../email/email.config';
 import { passwordResetOtpEmailTemplate } from '../templates/password-reset-otp-email.template';
 import { welcomeEmailTemplate } from '../templates/welcome-email.template';
 import { loginAlertEmailTemplate } from '../templates/login-alert-email.template';
+import { registrationOtpEmailTemplate } from '../templates/registration-otp-email.template';
 
 @Injectable()
-export class EmailService { 
+export class EmailService {
   private readonly logger = new Logger(
     EmailService.name,
   );
@@ -18,6 +19,10 @@ export class EmailService {
   constructor(
     private readonly emailConfig: EmailConfig,
   ) {}
+
+  // ============================================================
+  // Common email sender
+  // ============================================================
 
   private async sendEmail(params: {
     to: string;
@@ -42,10 +47,12 @@ export class EmailService {
         'https://api.resend.com/emails',
         {
           method: 'POST',
+
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
+
           body: JSON.stringify({
             from: this.emailConfig.from,
             to: [params.to],
@@ -88,6 +95,10 @@ export class EmailService {
     }
   }
 
+  // ============================================================
+  // Welcome email
+  // ============================================================
+
   async sendWelcomeEmail(params: {
     firstName: string;
     brxUid: string;
@@ -106,6 +117,10 @@ export class EmailService {
       html: template.html,
     });
   }
+
+  // ============================================================
+  // Login alert email
+  // ============================================================
 
   async sendLoginAlertEmail(params: {
     firstName: string;
@@ -132,6 +147,10 @@ export class EmailService {
     });
   }
 
+  // ============================================================
+  // Password reset OTP email
+  // ============================================================
+
   async sendPasswordResetOtpEmail(params: {
     firstName: string;
     email: string;
@@ -140,10 +159,47 @@ export class EmailService {
   }) {
     const template =
       passwordResetOtpEmailTemplate({
-        firstName: params.firstName,
-        otp: params.otp,
+        firstName:
+          params.firstName,
+
+        otp:
+          params.otp,
+
         expiresInMinutes:
           params.expiresInMinutes,
+
+        appUrl:
+          this.emailConfig.appUrl,
+      });
+
+    return this.sendEmail({
+      to: params.email,
+      subject: template.subject,
+      html: template.html,
+    });
+  }
+
+  // ============================================================
+  // Registration email verification OTP
+  // ============================================================
+
+  async sendRegistrationOtpEmail(params: {
+    firstName: string;
+    email: string;
+    otp: string;
+    expiresInMinutes: number;
+  }) {
+    const template =
+      registrationOtpEmailTemplate({
+        firstName:
+          params.firstName,
+
+        otp:
+          params.otp,
+
+        expiresInMinutes:
+          params.expiresInMinutes,
+
         appUrl:
           this.emailConfig.appUrl,
       });

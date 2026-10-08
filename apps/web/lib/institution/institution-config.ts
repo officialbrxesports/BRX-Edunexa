@@ -19,23 +19,6 @@ export const INSTITUTION_MODULES: Record<
   InstitutionType,
   ModuleKey[]
 > = {
-  PRIVATE_SCHOOL: [
-    ...COMMON,
-    "parents",
-    "classes",
-    "sections",
-    "subjects",
-    "homework",
-    "assignments",
-    "exams",
-    "results",
-    "fees",
-    "timetable",
-    "library",
-    "transport",
-    "certificates",
-  ],
-
   SCHOOL: [
     ...COMMON,
     "parents",
@@ -107,19 +90,6 @@ export const INSTITUTION_MODULES: Record<
     "homework",
     "timetable",
     "certificates",
-  ],
-
-  TUITION: [
-    ...COMMON,
-    "subjects",
-    "batches",
-    "fees",
-    "homework",
-    "assignments",
-    "exams",
-    "results",
-    "study-material",
-    "timetable",
   ],
 
   INSTITUTE: [

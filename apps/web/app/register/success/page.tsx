@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type RegistrationResult = {
+  accessToken?: string;
+
   institution?: {
     id?: string;
     code?: string;
@@ -11,6 +13,7 @@ type RegistrationResult = {
     type?: string;
     status?: string;
   };
+
   head?: {
     id?: string;
     brxUid?: string;
@@ -18,6 +21,20 @@ type RegistrationResult = {
     firstName?: string;
     lastName?: string;
     role?: string;
+  };
+
+  user?: {
+    id?: string;
+    brxUid?: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+  };
+
+  data?: {
+    institution?: RegistrationResult["institution"];
+    head?: RegistrationResult["head"];
   };
 };
 
@@ -31,6 +48,8 @@ export default function RegistrationSuccessPage() {
     useState(false);
 
   useEffect(() => {
+    let foundResult = false;
+
     // ============================================
     // GOOGLE ONBOARDING RESULT
     // ============================================
@@ -41,9 +60,12 @@ export default function RegistrationSuccessPage() {
 
     if (googleRaw) {
       try {
-        setResult(JSON.parse(googleRaw));
+        const parsed =
+          JSON.parse(googleRaw) as RegistrationResult;
+
+        setResult(parsed);
         setIsGoogleOnboarding(true);
-        return;
+        foundResult = true;
       } catch {
         sessionStorage.removeItem(
           "brx_google_onboarding_result",
@@ -52,27 +74,51 @@ export default function RegistrationSuccessPage() {
     }
 
     // ============================================
-    // NORMAL REGISTRATION RESULT
+    // NORMAL / CURRENT REGISTRATION RESULT
     // ============================================
 
-    const normalRaw = localStorage.getItem(
-      "brx_registration_result",
-    );
+    if (!foundResult) {
+      const normalRaw = localStorage.getItem(
+        "brx_registration_result",
+      );
 
-    if (normalRaw) {
-      try {
-        setResult(JSON.parse(normalRaw));
-        return;
-      } catch {
-        localStorage.removeItem(
-          "brx_registration_result",
-        );
+      if (normalRaw) {
+        try {
+          const parsed =
+            JSON.parse(normalRaw) as RegistrationResult;
+
+          setResult(parsed);
+
+          if (parsed.accessToken) {
+            setIsGoogleOnboarding(true);
+          }
+
+          foundResult = true;
+        } catch {
+          localStorage.removeItem(
+            "brx_registration_result",
+          );
+        }
       }
     }
 
-    // No registration result
-    router.replace("/login");
+    // ============================================
+    // NO RESULT
+    // ============================================
+
+    if (!foundResult) {
+      router.replace("/login");
+    }
   }, [router]);
+
+  const institution =
+    result?.institution ??
+    result?.data?.institution;
+
+  const head =
+    result?.head ??
+    result?.data?.head ??
+    result?.user;
 
   function goToLogin() {
     const localStorageKeys = [
@@ -86,9 +132,9 @@ export default function RegistrationSuccessPage() {
       "brx_setup",
     ];
 
-    localStorageKeys.forEach((key) =>
-      localStorage.removeItem(key),
-    );
+    localStorageKeys.forEach((key) => {
+      localStorage.removeItem(key);
+    });
 
     const sessionStorageKeys = [
       "brx_google_onboarding_result",
@@ -97,9 +143,9 @@ export default function RegistrationSuccessPage() {
       "brx_institution_type",
     ];
 
-    sessionStorageKeys.forEach((key) =>
-      sessionStorage.removeItem(key),
-    );
+    sessionStorageKeys.forEach((key) => {
+      sessionStorage.removeItem(key);
+    });
 
     router.push("/login");
   }
@@ -114,9 +160,8 @@ export default function RegistrationSuccessPage() {
 
       <div className="relative flex min-h-screen items-center justify-center px-5 py-10">
         <div className="w-full max-w-2xl text-center">
-
           {/* Success icon */}
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 text-4xl shadow-2xl shadow-emerald-900/20">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-500/10 text-4xl text-emerald-400 shadow-2xl shadow-emerald-900/20">
             ✓
           </div>
 
@@ -134,7 +179,6 @@ export default function RegistrationSuccessPage() {
           </p>
 
           <div className="mt-8 rounded-[28px] border border-white/10 bg-white/[0.06] p-6 text-left shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-8">
-
             {/* Google account badge */}
             {isGoogleOnboarding && (
               <div className="mb-6 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
@@ -142,15 +186,14 @@ export default function RegistrationSuccessPage() {
                   ✓ Google account connected
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
-                  Your Google account is now connected
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Your verified Google account is connected
                   with your BRX Head account.
                 </p>
               </div>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-
               {/* Institution */}
               <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
                 <p className="text-xs uppercase tracking-wider text-slate-500">
@@ -158,13 +201,13 @@ export default function RegistrationSuccessPage() {
                 </p>
 
                 <p className="mt-2 text-lg font-semibold">
-                  {result?.institution?.name ||
+                  {institution?.name ||
                     "Your Institution"}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500">
                   Type:{" "}
-                  {result?.institution?.type ||
+                  {institution?.type ||
                     "Institution"}
                 </p>
               </div>
@@ -175,8 +218,8 @@ export default function RegistrationSuccessPage() {
                   Institution Code
                 </p>
 
-                <p className="mt-2 text-2xl font-bold tracking-wider text-blue-400">
-                  {result?.institution?.code ||
+                <p className="mt-2 break-all text-2xl font-bold tracking-wider text-blue-400">
+                  {institution?.code ||
                     "BRX----"}
                 </p>
 
@@ -192,13 +235,13 @@ export default function RegistrationSuccessPage() {
                 </p>
 
                 <p className="mt-2 break-all text-2xl font-bold tracking-wider text-blue-400">
-                  {result?.head?.brxUid ||
+                  {head?.brxUid ||
                     "BRX-UID-PENDING"}
                 </p>
 
-                <p className="mt-2 text-xs text-slate-500">
-                  This unique ID identifies your BRX
-                  EduNexa Head account.
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  This permanent unique ID identifies
+                  your BRX EduNexa Head account.
                 </p>
               </div>
 
@@ -209,24 +252,38 @@ export default function RegistrationSuccessPage() {
                 </p>
 
                 <p className="mt-2 font-semibold">
-                  {result?.head?.firstName || ""}{" "}
-                  {result?.head?.lastName || ""}
+                  {head?.firstName || ""}{" "}
+                  {head?.lastName || ""}
                 </p>
 
-                <p className="mt-1 text-sm text-slate-400">
-                  {result?.head?.email ||
+                <p className="mt-1 break-all text-sm text-slate-400">
+                  {head?.email ||
                     "Email not available"}
                 </p>
 
                 <p className="mt-2 text-xs text-blue-400">
                   Role:{" "}
-                  {result?.head?.role || "HEAD"}
+                  {head?.role || "HEAD"}
                 </p>
               </div>
             </div>
 
+            {/* Important BRX UID note */}
+            <div className="mt-6 rounded-2xl border border-amber-400/10 bg-amber-400/[0.04] p-5">
+              <p className="font-semibold text-amber-300">
+                🔐 Save your BRX UID
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Your BRX UID is permanent and can be
+                used to identify your Head account.
+                Keep it safe for future login and
+                account-related activities.
+              </p>
+            </div>
+
             {/* Next step */}
-            <div className="mt-6 rounded-2xl border border-blue-500/10 bg-blue-500/5 p-5">
+            <div className="mt-4 rounded-2xl border border-blue-500/10 bg-blue-500/5 p-5">
               <p className="font-semibold text-blue-300">
                 🎯 Your next step
               </p>
@@ -243,7 +300,7 @@ export default function RegistrationSuccessPage() {
             <button
               type="button"
               onClick={goToLogin}
-              className="mt-7 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-4 font-semibold shadow-xl shadow-blue-900/20 transition hover:scale-[1.01]"
+              className="mt-7 w-full rounded-2xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 py-4 font-semibold shadow-xl shadow-blue-900/20 transition hover:scale-[1.01] hover:shadow-blue-900/30"
             >
               Go to Head Login →
             </button>
