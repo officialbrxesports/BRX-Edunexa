@@ -124,3 +124,8 @@ export type Exam = Prisma.ExamModel
  * 
  */
 export type Result = Prisma.ResultModel
+/**
+ * Model LoginSession
+ * 
+ */
+export type LoginSession = Prisma.LoginSessionModel

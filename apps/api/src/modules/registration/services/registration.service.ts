@@ -1,4 +1,5 @@
 import { generateBrxUid } from '../../../common/brx-uid.util';
+
 import {
   BadRequestException,
   ConflictException,
@@ -8,12 +9,14 @@ import {
 } from '@nestjs/common';
 
 import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 import { JwtService } from '@nestjs/jwt';
 
-import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
+import { EmailService } from '../../notifications/services/email.service';
 
-import * as bcrypt from 'bcrypt';
+import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
+import { CreateRegistrationDto } from '../dto/create-registration.dto';
 
 import { PrismaService } from '../../../database/prisma.service';
 
@@ -23,18 +26,30 @@ import {
   UserStatus,
 } from '../../../generated/prisma/enums';
 
-import { CreateRegistrationDto } from '../dto/create-registration.dto';
-
 @Injectable()
 export class RegistrationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly emailService: EmailService,
   ) {}
 
-  // ============================================
+  // ============================================================
+  // Prisma unique constraint helper
+  // ============================================================
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    );
+  }
+
+  // ============================================================
   // Generate unique institution code
-  // ============================================
+  // ============================================================
 
   private async generateInstitutionCode(
     name: string,
@@ -73,9 +88,9 @@ export class RegistrationService {
     );
   }
 
-  // ============================================
+  // ============================================================
   // Create registration session
-  // ============================================
+  // ============================================================
 
   async createRegistrationSession(
     dto: CreateRegistrationDto,
@@ -92,9 +107,9 @@ export class RegistrationService {
     const ownerPhone =
       dto.ownerPhone.trim();
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Existing institution
-    // ==========================================
+    // ----------------------------------------------------------
 
     const existingInstitution =
       await this.prisma.institution.findFirst({
@@ -120,9 +135,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Existing user
-    // ==========================================
+    // ----------------------------------------------------------
 
     const existingUser =
       await this.prisma.user.findUnique({
@@ -137,163 +152,169 @@ export class RegistrationService {
 
     if (existingUser) {
       throw new ConflictException(
-        'An account with this email already exists',
+        'An account with this email already exists. Please login instead.',
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Hash password
-    // ==========================================
+    // ----------------------------------------------------------
 
-    const passwordHash =
-      await bcrypt.hash(
-        dto.password,
-        12,
-      );
-
-    // ==========================================
-    // Session expires in 30 minutes
-    // ==========================================
-
-    const expiresAt = new Date(
-      Date.now() +
-        30 * 60 * 1000,
+    const passwordHash = await bcrypt.hash(
+      dto.password,
+      12,
     );
 
-    // ==========================================
-    // Create session
-    // ==========================================
+    // ----------------------------------------------------------
+    // Registration session expires in 30 minutes
+    // ----------------------------------------------------------
 
-    const session =
-      await this.prisma.registrationSession.create({
-        data: {institutionType:
-            dto.institutionType,
+    const expiresAt = new Date(
+      Date.now() + 30 * 60 * 1000,
+    );
+
+    // ----------------------------------------------------------
+    // Create registration session
+    // ----------------------------------------------------------
+
+    try {
+      const session =
+        await this.prisma.registrationSession.create({
+          data: {
+            institutionType:
+              dto.institutionType,
+
+            institutionName:
+              dto.institutionName.trim(),
+
+            institutionEmail,
+
+            institutionPhone,
+
+            country:
+              dto.country.trim(),
+
+            state:
+              dto.state.trim(),
+
+            city:
+              dto.city?.trim() || null,
+
+            address:
+              dto.address?.trim() || null,
+
+            website:
+              dto.website?.trim() || null,
+
+            firstName:
+              dto.firstName.trim(),
+
+            lastName:
+              dto.lastName?.trim() || null,
+
+            ownerEmail,
+
+            ownerPhone,
+
+            passwordHash,
+
+            establishedYear:
+              dto.establishedYear ?? null,
+
+            registrationNumber:
+              dto.registrationNumber?.trim() || null,
+
+            gstin:
+              dto.gstin?.trim() || null,
+
+            expiresAt,
+
+            mobileVerified: false,
+
+            emailVerified: false,
+          },
+
+          select: {
+            id: true,
+
+            institutionType: true,
+
+            institutionName: true,
+
+            institutionEmail: true,
+
+            institutionPhone: true,
+
+            ownerEmail: true,
+
+            ownerPhone: true,
+
+            mobileVerified: true,
+
+            emailVerified: true,
+
+            expiresAt: true,
+
+            createdAt: true,
+          },
+        });
+
+      return {
+        success: true,
+
+        message:
+          'Registration session created successfully',
+
+        session: {
+          id: session.id,
+
+          institutionType:
+            session.institutionType,
 
           institutionName:
-            dto.institutionName.trim(),
+            session.institutionName,
 
-          institutionEmail,
+          institutionEmail:
+            session.institutionEmail,
 
-          institutionPhone,
+          institutionPhone:
+            session.institutionPhone,
 
-          country:
-            dto.country.trim(),
+          ownerEmail:
+            session.ownerEmail,
 
-          state:
-            dto.state.trim(),
+          ownerPhone:
+            session.ownerPhone,
 
-          city:
-            dto.city?.trim() || null,
+          mobileVerified:
+            session.mobileVerified,
 
-          address:
-            dto.address?.trim() || null,
+          emailVerified:
+            session.emailVerified,
 
-          website:
-            dto.website?.trim() || null,
+          expiresAt:
+            session.expiresAt,
 
-          firstName:
-            dto.firstName.trim(),
-
-          lastName:
-            dto.lastName?.trim() || null,
-
-          ownerEmail,
-
-          ownerPhone,
-
-          passwordHash,
-
-          establishedYear:
-            dto.establishedYear ?? null,
-
-          registrationNumber:
-            dto.registrationNumber?.trim() ||
-            null,
-
-          gstin:
-            dto.gstin?.trim() || null,
-
-          expiresAt,
-
-          mobileVerified: false,
-
-          emailVerified: false,
+          createdAt:
+            session.createdAt,
         },
+      };
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'An account or registration with these details already exists',
+        );
+      }
 
-        select: {
-          id: true,
-
-          institutionType: true,
-
-          institutionName: true,
-
-          institutionEmail: true,
-
-          institutionPhone: true,
-
-          ownerEmail: true,
-
-          ownerPhone: true,
-
-          mobileVerified: true,
-
-          emailVerified: true,
-
-          expiresAt: true,
-
-          createdAt: true,
-        },
-      });
-
-    return {
-      success: true,
-
-      message:
-        'Registration session created successfully',
-
-      session: {
-        id: session.id,
-
-        institutionType:
-          session.institutionType,
-
-        institutionName:
-          session.institutionName,
-
-        institutionEmail:
-          session.institutionEmail,
-
-        institutionPhone:
-          session.institutionPhone,
-
-        ownerEmail:
-          session.ownerEmail,
-
-        ownerPhone:
-          session.ownerPhone,
-
-        mobileVerified:
-          session.mobileVerified,
-
-        emailVerified:
-          session.emailVerified,
-
-        expiresAt:
-          session.expiresAt,
-
-        createdAt:
-          session.createdAt,
-      },
-    };
+      throw new InternalServerErrorException(
+        'Unable to create registration session',
+      );
+    }
   }
 
-  // ============================================
-  // Complete registration
-  // ============================================
-
-    // ============================================
+  // ============================================================
   // Google onboarding
-  // ============================================
+  // ============================================================
 
   async completeGoogleOnboarding(
     dto: GoogleOnboardingDto,
@@ -307,9 +328,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Verify Google credential
-    // ==========================================
+    // ----------------------------------------------------------
 
     const { OAuth2Client } =
       await import('google-auth-library');
@@ -344,9 +365,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
-    // Check existing user
-    // ==========================================
+    // ----------------------------------------------------------
+    // Existing account check
+    // ----------------------------------------------------------
 
     const existingUser =
       await this.prisma.user.findUnique({
@@ -355,6 +376,7 @@ export class RegistrationService {
         },
         select: {
           id: true,
+          email: true,
         },
       });
 
@@ -364,9 +386,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
-    // Check institution
-    // ==========================================
+    // ----------------------------------------------------------
+    // Institution details
+    // ----------------------------------------------------------
 
     const institutionEmail =
       dto.institutionEmail
@@ -375,6 +397,10 @@ export class RegistrationService {
 
     const institutionPhone =
       dto.institutionPhone.trim();
+
+    // ----------------------------------------------------------
+    // Existing institution check
+    // ----------------------------------------------------------
 
     const existingInstitution =
       await this.prisma.institution.findFirst({
@@ -399,21 +425,18 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
-    // Institution code
-    // ==========================================
+    // ----------------------------------------------------------
+    // Generate institution code
+    // ----------------------------------------------------------
 
     const institutionCode =
       await this.generateInstitutionCode(
         dto.institutionName.trim(),
       );
 
-    // ==========================================
-    // Google accounts still need a passwordHash
-    //
-    // We generate an unusable random password.
-    // Google authentication remains the login method.
-    // ==========================================
+    // ----------------------------------------------------------
+    // Google account still gets a password hash
+    // ----------------------------------------------------------
 
     const randomPassword =
       `${crypto.randomUUID()}-${crypto.randomUUID()}`;
@@ -424,9 +447,9 @@ export class RegistrationService {
         12,
       );
 
-    // ==========================================
-    // Create Institution + HEAD
-    // ==========================================
+    // ----------------------------------------------------------
+    // Create institution + HEAD
+    // ----------------------------------------------------------
 
     try {
       const result =
@@ -485,8 +508,7 @@ export class RegistrationService {
                     dto.firstName.trim(),
 
                   lastName:
-                    dto.lastName?.trim() ||
-                    null,
+                    dto.lastName?.trim() || null,
 
                   phone:
                     dto.ownerPhone.trim(),
@@ -509,101 +531,146 @@ export class RegistrationService {
           },
         );
 
+      // --------------------------------------------------------
+      // Generate login token
+      // --------------------------------------------------------
+
       const accessToken =
-  await this.jwtService.signAsync({
-    sub: result.head.id,
-    email: result.head.email,
-    role: result.head.role,
-    institutionId:
-      result.head.institutionId,
-  });
+        await this.jwtService.signAsync({
+          sub:
+            result.head.id,
 
-    return {
-      success: true,
+          email:
+            result.head.email,
 
-      message:
-        'Google onboarding completed successfully',
+          brxUid:
+            result.head.brxUid,
 
-      accessToken,
+          role:
+            result.head.role,
 
-      tokenType: 'Bearer',
+          institutionId:
+            result.head.institutionId,
+        });
 
-      user: {
-        id:
-          result.head.id,
+      // --------------------------------------------------------
+      // Send automatic BRX UID welcome email
+      //
+      // Email failure MUST NOT break account creation.
+      // --------------------------------------------------------
 
-        brxUid:
-          result.head.brxUid,
+      try {
+        await this.emailService.sendWelcomeEmail({
+          firstName:
+            result.head.firstName,
 
-        email:
-          result.head.email,
+          brxUid:
+            result.head.brxUid,
 
-        firstName:
-          result.head.firstName,
+          email:
+            result.head.email,
+        });
+      } catch (emailError) {
+        console.error(
+          'Welcome email failed after Google onboarding:',
+          emailError,
+        );
+      }
 
-        lastName:
-          result.head.lastName,
+      // --------------------------------------------------------
+      // Success response
+      // --------------------------------------------------------
 
-        phone:
-          result.head.phone,
+      return {
+        success: true,
 
-        role:
-          result.head.role,
+        message:
+          'Google onboarding completed successfully',
 
-        status:
-          result.head.status,
+        accessToken,
 
-        institutionId:
-          result.head.institutionId,
-      },
+        tokenType: 'Bearer',
 
-      institution: {
-        id:
-          result.institution.id,
+        user: {
+          id:
+            result.head.id,
 
-        code:
-          result.institution.code,
+          brxUid:
+            result.head.brxUid,
 
-        name:
-          result.institution.name,
+          email:
+            result.head.email,
 
-        type:
-          result.institution.type,
+          firstName:
+            result.head.firstName,
 
-        status:
-          result.institution.status,
-      },
+          lastName:
+            result.head.lastName,
 
-      head: {
-        id:
-          result.head.id,
+          phone:
+            result.head.phone,
 
-        brxUid:
-          result.head.brxUid,
+          role:
+            result.head.role,
 
-        email:
-          result.head.email,
+          status:
+            result.head.status,
 
-        firstName:
-          result.head.firstName,
+          institutionId:
+            result.head.institutionId,
+        },
 
-        lastName:
-          result.head.lastName,
+        institution: {
+          id:
+            result.institution.id,
 
-        phone:
-          result.head.phone,
+          code:
+            result.institution.code,
 
-        role:
-          result.head.role,
+          name:
+            result.institution.name,
 
-        status:
-          result.head.status,
-      },
-    };
+          type:
+            result.institution.type,
+
+          status:
+            result.institution.status,
+        },
+
+        head: {
+          id:
+            result.head.id,
+
+          brxUid:
+            result.head.brxUid,
+
+          email:
+            result.head.email,
+
+          firstName:
+            result.head.firstName,
+
+          lastName:
+            result.head.lastName,
+
+          phone:
+            result.head.phone,
+
+          role:
+            result.head.role,
+
+          status:
+            result.head.status,
+        },
+      };
     } catch (error) {
-      if (
-        error instanceof ConflictException
-      ) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'An account or institution with these details already exists',
+        );
+      }
+
+      if (error instanceof ConflictException) {
         throw error;
       }
 
@@ -612,10 +679,18 @@ export class RegistrationService {
       );
     }
   }
-  
+
+  // ============================================================
+  // Complete normal registration
+  // ============================================================
+
   async completeRegistration(
     sessionId: string,
   ) {
+    // ----------------------------------------------------------
+    // Find registration session
+    // ----------------------------------------------------------
+
     const session =
       await this.prisma.registrationSession.findUnique({
         where: {
@@ -629,9 +704,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Session expired
-    // ==========================================
+    // ----------------------------------------------------------
 
     if (
       session.expiresAt.getTime() <=
@@ -642,9 +717,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Verification check
-    // ==========================================
+    // ----------------------------------------------------------
 
     if (!session.mobileVerified) {
       throw new BadRequestException(
@@ -658,9 +733,9 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Already completed
-    // ==========================================
+    // ----------------------------------------------------------
 
     if (session.completedAt) {
       throw new BadRequestException(
@@ -668,25 +743,31 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
-    // Double-check email conflicts
-    // ==========================================
+    // ----------------------------------------------------------
+    // Final email conflict check
+    // ----------------------------------------------------------
 
     const existingUser =
       await this.prisma.user.findUnique({
         where: {
-          email: session.ownerEmail,
+          email:
+            session.ownerEmail,
         },
         select: {
           id: true,
+          email: true,
         },
       });
 
     if (existingUser) {
       throw new ConflictException(
-        'An account with this email already exists',
+        'An account with this email already exists. Please login instead.',
       );
     }
+
+    // ----------------------------------------------------------
+    // Final institution conflict check
+    // ----------------------------------------------------------
 
     const existingInstitution =
       await this.prisma.institution.findFirst({
@@ -713,26 +794,26 @@ export class RegistrationService {
       );
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Generate institution code
-    // ==========================================
+    // ----------------------------------------------------------
 
     const institutionCode =
       await this.generateInstitutionCode(
         session.institutionName,
       );
 
-    // ==========================================
+    // ----------------------------------------------------------
     // Final transaction
-    // ==========================================
+    // ----------------------------------------------------------
 
     try {
       const result =
         await this.prisma.$transaction(
           async (tx) => {
-            // ------------------------------------
-            // Institution
-            // ------------------------------------
+            // ----------------------------------------------
+            // Create institution
+            // ----------------------------------------------
 
             const institution =
               await tx.institution.create({
@@ -772,14 +853,16 @@ export class RegistrationService {
                 },
               });
 
-            // ------------------------------------
-            // HEAD
-            // ------------------------------------
+            // ----------------------------------------------
+            // Create HEAD
+            // ----------------------------------------------
 
             const head =
               await tx.user.create({
                 data: {
-        brxUid: generateBrxUid(),
+                  brxUid:
+                    generateBrxUid(),
+
                   email:
                     session.ownerEmail,
 
@@ -806,13 +889,14 @@ export class RegistrationService {
                 },
               });
 
-            // ------------------------------------
-            // Complete session
-            // ------------------------------------
+            // ----------------------------------------------
+            // Mark registration completed
+            // ----------------------------------------------
 
             await tx.registrationSession.update({
               where: {
-                id: session.id,
+                id:
+                  session.id,
               },
 
               data: {
@@ -827,6 +911,34 @@ export class RegistrationService {
             };
           },
         );
+
+      // ------------------------------------------------------
+      // Automatic BRX UID welcome email
+      //
+      // Account creation remains successful even if email fails.
+      // ------------------------------------------------------
+
+      try {
+        await this.emailService.sendWelcomeEmail({
+          firstName:
+            result.head.firstName,
+
+          brxUid:
+            result.head.brxUid,
+
+          email:
+            result.head.email,
+        });
+      } catch (emailError) {
+        console.error(
+          'Welcome email failed after normal registration:',
+          emailError,
+        );
+      }
+
+      // ------------------------------------------------------
+      // Success
+      // ------------------------------------------------------
 
       return {
         success: true,
@@ -855,6 +967,9 @@ export class RegistrationService {
           id:
             result.head.id,
 
+          brxUid:
+            result.head.brxUid,
+
           email:
             result.head.email,
 
@@ -872,9 +987,13 @@ export class RegistrationService {
         },
       };
     } catch (error) {
-      if (
-        error instanceof ConflictException
-      ) {
+      if (this.isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'An account or institution with these details already exists',
+        );
+      }
+
+      if (error instanceof ConflictException) {
         throw error;
       }
 
@@ -884,5 +1003,3 @@ export class RegistrationService {
     }
   }
 }
-
-

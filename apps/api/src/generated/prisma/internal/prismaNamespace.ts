@@ -413,7 +413,8 @@ export const ModelName = {
   RegistrationSession: 'RegistrationSession',
   RegistrationOtpVerification: 'RegistrationOtpVerification',
   Exam: 'Exam',
-  Result: 'Result'
+  Result: 'Result',
+  LoginSession: 'LoginSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "institution" | "class" | "section" | "teacherStudent" | "assignment" | "studentEnrollment" | "attendance" | "studentFee" | "feePlan" | "feePayment" | "notification" | "passwordResetOtp" | "registrationSession" | "registrationOtpVerification" | "exam" | "result"
+    modelProps: "user" | "institution" | "class" | "section" | "teacherStudent" | "assignment" | "studentEnrollment" | "attendance" | "studentFee" | "feePlan" | "feePayment" | "notification" | "passwordResetOtp" | "registrationSession" | "registrationOtpVerification" | "exam" | "result" | "loginSession"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1691,6 +1692,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    LoginSession: {
+      payload: Prisma.$LoginSessionPayload<ExtArgs>
+      fields: Prisma.LoginSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LoginSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LoginSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.LoginSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LoginSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        findMany: {
+          args: Prisma.LoginSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        create: {
+          args: Prisma.LoginSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        createMany: {
+          args: Prisma.LoginSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LoginSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.LoginSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        update: {
+          args: Prisma.LoginSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.LoginSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LoginSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LoginSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.LoginSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LoginSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.LoginSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLoginSession>
+        }
+        groupBy: {
+          args: Prisma.LoginSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LoginSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LoginSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LoginSessionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2012,6 +2087,24 @@ export const ResultScalarFieldEnum = {
 } as const
 
 export type ResultScalarFieldEnum = (typeof ResultScalarFieldEnum)[keyof typeof ResultScalarFieldEnum]
+
+
+export const LoginSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  deviceType: 'deviceType',
+  deviceName: 'deviceName',
+  browser: 'browser',
+  operatingSystem: 'operatingSystem',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt',
+  lastActiveAt: 'lastActiveAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt'
+} as const
+
+export type LoginSessionScalarFieldEnum = (typeof LoginSessionScalarFieldEnum)[keyof typeof LoginSessionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2484,6 +2577,7 @@ export type GlobalOmitConfig = {
   registrationOtpVerification?: Prisma.RegistrationOtpVerificationOmit
   exam?: Prisma.ExamOmit
   result?: Prisma.ResultOmit
+  loginSession?: Prisma.LoginSessionOmit
 }
 
 /* Types for Logging */

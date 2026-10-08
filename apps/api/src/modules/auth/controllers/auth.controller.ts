@@ -24,12 +24,15 @@ import { AuthService } from '../services/auth.service';
 import { PasswordResetService } from '../services/password-reset.service';
 import { GoogleAuthService } from '../google/google-auth.service';
 
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest
+  extends Request {
   user: {
     userId: string;
     email: string;
+    brxUid: string | null;
     role: string;
     institutionId: string | null;
+    sessionId: string;
   };
 }
 
@@ -37,13 +40,13 @@ interface AuthenticatedRequest extends Request {
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly passwordResetService: PasswordResetService,
-    private readonly googleAuthService: GoogleAuthService,
-  ) {}
 
-  // ============================================
-  // Legacy registration endpoint
-  // ============================================
+    private readonly passwordResetService:
+      PasswordResetService,
+
+    private readonly googleAuthService:
+      GoogleAuthService,
+  ) {}
 
   @Post('register')
   async register(
@@ -52,33 +55,47 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  // ============================================
-  // Existing email/password login
-  // ============================================
-
   @Post('login')
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
   ) {
-    return this.authService.login(dto);
-  }
+    return this.authService.login(
+      dto,
+      {
+        ip:
+          req.ip ??
+          req.socket.remoteAddress ??
+          undefined,
 
-  // ============================================
-  // Google Login
-  // ============================================
+        userAgent:
+          req.headers[
+            'user-agent'
+          ] ?? undefined,
+      },
+    );
+  }
 
   @Post('google')
   async googleLogin(
     @Body() dto: GoogleLoginDto,
+    @Req() req: Request,
   ) {
     return this.googleAuthService.loginWithGoogle(
       dto.credential,
+      {
+        ip:
+          req.ip ??
+          req.socket.remoteAddress ??
+          undefined,
+
+        userAgent:
+          req.headers[
+            'user-agent'
+          ] ?? undefined,
+      },
     );
   }
-
-  // ============================================
-  // Forgot Password
-  // ============================================
 
   @Post('forgot-password')
   async forgotPassword(
@@ -89,10 +106,6 @@ export class AuthController {
     );
   }
 
-  // ============================================
-  // Verify Password Reset OTP
-  // ============================================
-
   @Post('verify-reset-otp')
   async verifyResetOtp(
     @Body() dto: VerifyResetOtpDto,
@@ -102,10 +115,6 @@ export class AuthController {
     );
   }
 
-  // ============================================
-  // Reset Password
-  // ============================================
-
   @Post('reset-password')
   async resetPassword(
     @Body() dto: ResetPasswordDto,
@@ -114,10 +123,6 @@ export class AuthController {
       dto,
     );
   }
-
-  // ============================================
-  // Current authenticated user
-  // ============================================
 
   @UseGuards(JwtAuthGuard)
   @Get('me')

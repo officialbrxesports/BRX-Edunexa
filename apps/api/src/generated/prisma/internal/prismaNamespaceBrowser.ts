@@ -67,7 +67,8 @@ export const ModelName = {
   RegistrationSession: 'RegistrationSession',
   RegistrationOtpVerification: 'RegistrationOtpVerification',
   Exam: 'Exam',
-  Result: 'Result'
+  Result: 'Result',
+  LoginSession: 'LoginSession'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -368,6 +369,24 @@ export const ResultScalarFieldEnum = {
 } as const
 
 export type ResultScalarFieldEnum = (typeof ResultScalarFieldEnum)[keyof typeof ResultScalarFieldEnum]
+
+
+export const LoginSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  deviceType: 'deviceType',
+  deviceName: 'deviceName',
+  browser: 'browser',
+  operatingSystem: 'operatingSystem',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt',
+  lastActiveAt: 'lastActiveAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt'
+} as const
+
+export type LoginSessionScalarFieldEnum = (typeof LoginSessionScalarFieldEnum)[keyof typeof LoginSessionScalarFieldEnum]
 
 
 export const SortOrder = {

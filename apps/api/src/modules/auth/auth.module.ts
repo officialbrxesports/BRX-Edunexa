@@ -1,6 +1,9 @@
 ﻿import { Module } from '@nestjs/common';
+
 import { JwtModule } from '@nestjs/jwt';
+
 import { PassportModule } from '@nestjs/passport';
+
 import {
   ConfigModule,
   ConfigService,
@@ -16,6 +19,10 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 import { GoogleAuthService } from './google/google-auth.service';
 
+import { SessionsModule } from '../sessions/sessions.module';
+
+import { NotificationsModule } from '../notifications/notifications.module';
+
 @Module({
   imports: [
     ConfigModule,
@@ -26,6 +33,7 @@ import { GoogleAuthService } from './google/google-auth.service';
 
     JwtModule.registerAsync({
       imports: [ConfigModule],
+
       inject: [ConfigService],
 
       useFactory: (
@@ -41,6 +49,10 @@ import { GoogleAuthService } from './google/google-auth.service';
         },
       }),
     }),
+
+    SessionsModule,
+
+    NotificationsModule,
   ],
 
   controllers: [

@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
+import { SessionsModule } from './modules/sessions/sessions.module';
 import { DatabaseModule } from './database/database.module';
 import { AssignmentsModule } from './modules/assignments/assignments.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -32,6 +32,7 @@ import { ExamsModule } from './modules/exams/exams.module';
 
     DatabaseModule,
     AuthModule,
+    SessionsModule,
     UsersModule,
     InstitutionsModule,
     AcademicsModule,

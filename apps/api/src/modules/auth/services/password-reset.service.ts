@@ -12,6 +12,9 @@ import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { VerifyResetOtpDto } from '../dto/verify-reset-otp.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
 
+import { EmailService } from '../../notifications/services/email.service';
+import { SessionsService } from '../../sessions/services/sessions.service';
+
 @Injectable()
 export class PasswordResetService {
   private readonly OTP_EXPIRY_MINUTES = 5;
@@ -20,6 +23,8 @@ export class PasswordResetService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly sessionsService: SessionsService,
   ) {}
 
   private generateOtp(): string {
@@ -33,6 +38,10 @@ export class PasswordResetService {
       where: { email },
     });
 
+    /*
+     * Always return the same response when the email
+     * does not exist. This prevents account enumeration.
+     */
     if (!user) {
       return {
         success: true,
@@ -53,7 +62,9 @@ export class PasswordResetService {
 
     if (latestOtp) {
       const secondsSinceCreation = Math.floor(
-        (Date.now() - latestOtp.createdAt.getTime()) / 1000,
+        (Date.now() -
+          latestOtp.createdAt.getTime()) /
+          1000,
       );
 
       if (
@@ -70,6 +81,9 @@ export class PasswordResetService {
       }
     }
 
+    /*
+     * Expire all previous unused OTPs.
+     */
     await this.prisma.passwordResetOtp.updateMany({
       where: {
         userId: user.id,
@@ -82,11 +96,16 @@ export class PasswordResetService {
 
     const otp = this.generateOtp();
 
-    const otpHash = await bcrypt.hash(otp, 10);
+    const otpHash = await bcrypt.hash(
+      otp,
+      10,
+    );
 
     const expiresAt = new Date(
       Date.now() +
-        this.OTP_EXPIRY_MINUTES * 60 * 1000,
+        this.OTP_EXPIRY_MINUTES *
+          60 *
+          1000,
     );
 
     await this.prisma.passwordResetOtp.create({
@@ -98,9 +117,17 @@ export class PasswordResetService {
       },
     });
 
-    console.log(
-      `[BRX PASSWORD RESET OTP] ${email}: ${otp}`,
-    );
+    /*
+     * Send OTP through the configured email provider.
+     * Never log the actual OTP.
+     */
+    await this.emailService.sendPasswordResetOtpEmail({
+      firstName: user.firstName,
+      email: user.email,
+      otp,
+      expiresInMinutes:
+        this.OTP_EXPIRY_MINUTES,
+    });
 
     return {
       success: true,
@@ -268,11 +295,16 @@ export class PasswordResetService {
       );
     }
 
-    const passwordHash = await bcrypt.hash(
-      dto.password,
-      12,
-    );
+    const passwordHash =
+      await bcrypt.hash(
+        dto.password,
+        12,
+      );
 
+    /*
+     * Change password and consume the OTP
+     * atomically.
+     */
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: {
@@ -306,9 +338,18 @@ export class PasswordResetService {
       }),
     ]);
 
+    /*
+     * Password reset invalidates all existing
+     * login sessions.
+     */
+    await this.sessionsService.revokeAllSessions(
+      user.id,
+    );
+
     return {
       success: true,
-      message: 'Password reset successfully',
+      message:
+        'Password reset successfully. Please log in again.',
     };
   }
 }

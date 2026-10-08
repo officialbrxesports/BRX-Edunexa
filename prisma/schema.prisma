@@ -136,6 +136,8 @@ model User {
 
   passwordResetOtps PasswordResetOtp[]
 
+  loginSessions LoginSession[]
+
   sentNotifications     Notification[] @relation("NotificationSender")
   receivedNotifications Notification[] @relation("NotificationRecipient")
 
@@ -196,7 +198,7 @@ model Class {
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[] @relation("AssignmentClass")
+  assignments        Assignment[]        @relation("AssignmentClass")
   exams              Exam[]
 
   createdAt DateTime @default(now())
@@ -213,13 +215,13 @@ model Section {
   code String
 
   classId String
-  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class   Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   studentEnrollments StudentEnrollment[]
   attendances        Attendance[]
   fees               StudentFee[]
   feePlans           FeePlan[]
-  assignments        Assignment[] @relation("AssignmentSection")
+  assignments        Assignment[]        @relation("AssignmentSection")
   exams              Exam[]
 
   createdAt DateTime @default(now())
@@ -580,12 +582,12 @@ model Exam {
 }
 
 model Result {
-  id            String       @id @default(uuid())
-  marks         Float
-  maxMarks      Float
-  grade         String?
-  remarks       String?
-  status        ResultStatus @default(DRAFT)
+  id       String       @id @default(uuid())
+  marks    Float
+  maxMarks Float
+  grade    String?
+  remarks  String?
+  status   ResultStatus @default(DRAFT)
 
   examId        String
   studentId     String
@@ -604,4 +606,32 @@ model Result {
   @@index([examId])
   @@index([status])
   @@map("results")
+}
+
+model LoginSession {
+  id String @id @default(uuid())
+
+  userId String
+
+  deviceType      String?
+  deviceName      String?
+  browser         String?
+  operatingSystem String?
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@index([createdAt])
+  @@map("login_sessions")
 }
