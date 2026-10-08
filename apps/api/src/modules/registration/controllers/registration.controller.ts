@@ -9,6 +9,8 @@ import { RegistrationService } from '../services/registration.service';
 
 import { CreateRegistrationDto } from '../dto/create-registration.dto';
 
+import { CreateRegistrationPasswordDto } from '../dto/create-registration-password.dto';
+
 import { CompleteRegistrationDto } from '../dto/complete-registration.dto';
 
 import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
@@ -19,9 +21,9 @@ export class RegistrationController {
     private readonly registrationService: RegistrationService,
   ) {}
 
-  // ============================================
-  // Health
-  // ============================================
+  // ============================================================
+  // HEALTH
+  // ============================================================
 
   @Get('health')
   health() {
@@ -32,9 +34,9 @@ export class RegistrationController {
     };
   }
 
-  // ============================================
-  // Create registration session
-  // ============================================
+  // ============================================================
+  // CREATE NORMAL REGISTRATION SESSION
+  // ============================================================
 
   @Post('session')
   async createSession(
@@ -45,9 +47,22 @@ export class RegistrationController {
     );
   }
 
-  // ============================================
-  // Complete normal registration
-  // ============================================
+  // ============================================================
+  // CREATE REGISTRATION PASSWORD
+  // ============================================================
+
+  @Post('password')
+  async createPassword(
+    @Body() dto: CreateRegistrationPasswordDto,
+  ) {
+    return this.registrationService.createRegistrationPassword(
+      dto,
+    );
+  }
+
+  // ============================================================
+  // COMPLETE REGISTRATION
+  // ============================================================
 
   @Post('complete')
   async completeRegistration(
@@ -58,9 +73,9 @@ export class RegistrationController {
     );
   }
 
-  // ============================================
-  // Google onboarding
-  // ============================================
+  // ============================================================
+  // GOOGLE ONBOARDING
+  // ============================================================
 
   @Post('google')
   async googleOnboarding(

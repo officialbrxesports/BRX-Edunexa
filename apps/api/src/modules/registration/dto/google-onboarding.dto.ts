@@ -11,17 +11,17 @@ import {
 import { InstitutionType } from '../../../generated/prisma/enums';
 
 export class GoogleOnboardingDto {
-  // ================================
+  // ============================================================
   // Google identity
-  // ================================
+  // ============================================================
 
   @IsString()
   @IsNotEmpty()
   credential!: string;
 
-  // ================================
+  // ============================================================
   // Institution
-  // ================================
+  // ============================================================
 
   @IsEnum(InstitutionType)
   institutionType!: InstitutionType;
@@ -47,7 +47,39 @@ export class GoogleOnboardingDto {
 
   @IsOptional()
   @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsString()
   city?: string;
+
+  @IsOptional()
+  @IsString()
+  pinCode?: string;
+
+  @IsOptional()
+  @IsString()
+  postOffice?: string;
+
+  @IsOptional()
+  @IsString()
+  policeStation?: string;
+
+  @IsOptional()
+  @IsString()
+  area?: string;
+
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @IsOptional()
+  @IsString()
+  building?: string;
+
+  @IsOptional()
+  @IsString()
+  landmark?: string;
 
   @IsOptional()
   @IsString()
@@ -57,9 +89,25 @@ export class GoogleOnboardingDto {
   @IsUrl()
   website?: string;
 
-  // ================================
-  // HEAD
-  // ================================
+  @IsOptional()
+  @IsString()
+  establishedYear?: string;
+
+  @IsOptional()
+  @IsString()
+  registrationNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  gstin?: string;
+
+  // ============================================================
+  // Primary Authority / HEAD
+  // ============================================================
+
+  @IsString()
+  @MinLength(2)
+  designation!: string;
 
   @IsString()
   @MinLength(2)

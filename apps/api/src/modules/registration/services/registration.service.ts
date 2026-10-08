@@ -1,696 +1,360 @@
-import { generateBrxUid } from '../../../common/brx-uid.util';
-
 import {
   BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-
-import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
-import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../../../database/prisma.service';
+import { generateBrxUid } from '../../../common/brx-uid.util';
 
 import { EmailService } from '../../notifications/services/email.service';
 
-import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
 import { CreateRegistrationDto } from '../dto/create-registration.dto';
-
-import { PrismaService } from '../../../database/prisma.service';
-
-import {
-  InstitutionStatus,
-  UserRole,
-  UserStatus,
-} from '../../../generated/prisma/enums';
+import { CreateRegistrationPasswordDto } from '../dto/create-registration-password.dto';
+import { GoogleOnboardingDto } from '../dto/google-onboarding.dto';
 
 @Injectable()
 export class RegistrationService {
+  private readonly sessionDurationMs = 30 * 60 * 1000;
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
   ) {}
 
   // ============================================================
-  // Prisma unique constraint helper
+  // Helpers
   // ============================================================
 
-  private isUniqueConstraintError(error: unknown): boolean {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      (error as { code?: string }).code === 'P2002'
-    );
+  private generateInstitutionCode(name: string): string {
+    const prefix =
+      name
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 6)
+        .toUpperCase() || 'BRX';
+
+    const suffix = randomBytes(4)
+      .toString('hex')
+      .toUpperCase();
+
+    return `${prefix}-${suffix}`;
   }
 
-  // ============================================================
-  // Generate unique institution code
-  // ============================================================
-
-  private async generateInstitutionCode(
-    name: string,
-  ): Promise<string> {
-    const cleanedName = name
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .toUpperCase()
-      .slice(0, 5);
-
-    const prefix = cleanedName || 'BRX';
-
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const random = Math.floor(
-        1000 + Math.random() * 9000,
-      );
-
-      const code = `${prefix}${random}`;
-
-      const existing =
-        await this.prisma.institution.findUnique({
-          where: {
-            code,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-      if (!existing) {
-        return code;
-      }
+  private parseEstablishedYear(
+    value?: number | string | null,
+  ): number | null {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ''
+    ) {
+      return null;
     }
 
-    throw new InternalServerErrorException(
-      'Unable to generate unique institution code',
-    );
+    const year = Number(value);
+
+    if (
+      !Number.isInteger(year) ||
+      year < 2000 ||
+      year > 2100
+    ) {
+      throw new BadRequestException(
+        'Established year must be between 2000 and 2100',
+      );
+    }
+
+    return year;
   }
 
   // ============================================================
-  // Create registration session
+  // NORMAL REGISTRATION
   // ============================================================
 
   async createRegistrationSession(
     dto: CreateRegistrationDto,
   ) {
     const institutionEmail =
-      dto.email.trim().toLowerCase();
+      dto.institutionEmail.trim().toLowerCase();
 
     const ownerEmail =
       dto.ownerEmail.trim().toLowerCase();
 
     const institutionPhone =
-      dto.phone.trim();
+      dto.institutionPhone.trim();
 
     const ownerPhone =
       dto.ownerPhone.trim();
 
-    // ----------------------------------------------------------
-    // Existing institution
-    // ----------------------------------------------------------
-
-    const existingInstitution =
-      await this.prisma.institution.findFirst({
+    const [
+      existingInstitutionEmail,
+      existingInstitutionPhone,
+      existingOwnerEmail,
+      existingOwnerPhone,
+    ] = await Promise.all([
+      this.prisma.institution.findFirst({
         where: {
-          OR: [
-            {
-              email: institutionEmail,
-            },
-            {
-              phone: institutionPhone,
-            },
-          ],
+          email: institutionEmail,
         },
         select: {
           id: true,
-          name: true,
         },
-      });
+      }),
 
-    if (existingInstitution) {
-      throw new ConflictException(
-        'An institution with this email or phone already exists',
-      );
-    }
+      this.prisma.institution.findFirst({
+        where: {
+          phone: institutionPhone,
+        },
+        select: {
+          id: true,
+        },
+      }),
 
-    // ----------------------------------------------------------
-    // Existing user
-    // ----------------------------------------------------------
-
-    const existingUser =
-      await this.prisma.user.findUnique({
+      this.prisma.user.findFirst({
         where: {
           email: ownerEmail,
         },
         select: {
           id: true,
-          email: true,
+        },
+      }),
+
+      this.prisma.user.findFirst({
+        where: {
+          phone: ownerPhone,
+        },
+        select: {
+          id: true,
+        },
+      }),
+    ]);
+
+    if (existingInstitutionEmail) {
+      throw new ConflictException(
+        'An institution with this official email already exists',
+      );
+    }
+
+    if (existingInstitutionPhone) {
+      throw new ConflictException(
+        'An institution with this official mobile number already exists',
+      );
+    }
+
+    if (existingOwnerEmail) {
+      throw new ConflictException(
+        'An account with this email already exists',
+      );
+    }
+
+    if (existingOwnerPhone) {
+      throw new ConflictException(
+        'An account with this mobile number already exists',
+      );
+    }
+
+    const session =
+      await this.prisma.registrationSession.create({
+        data: {
+          institutionType: dto.institutionType,
+
+          institutionName:
+            dto.institutionName.trim(),
+
+          institutionEmail,
+
+          institutionPhone,
+
+          country:
+            dto.country.trim(),
+
+          state:
+            dto.state.trim(),
+
+          district:
+            dto.district?.trim() || null,
+
+          city:
+            dto.city?.trim() || null,
+
+          pinCode:
+            dto.pinCode?.trim() || null,
+
+          postOffice:
+            dto.postOffice?.trim() || null,
+
+          policeStation:
+            dto.policeStation?.trim() || null,
+
+          area:
+            dto.area?.trim() || null,
+
+          street:
+            dto.street?.trim() || null,
+
+          building:
+            dto.building?.trim() || null,
+
+          landmark:
+            dto.landmark?.trim() || null,
+
+          address:
+            dto.address?.trim() || null,
+
+          website:
+            dto.website?.trim() || null,
+
+          designation:
+            dto.designation.trim(),
+
+          firstName:
+            dto.firstName.trim(),
+
+          lastName:
+            dto.lastName?.trim() || null,
+
+          ownerEmail,
+
+          ownerPhone,
+
+          establishedYear:
+            dto.establishedYear ?? null,
+
+          registrationNumber:
+            dto.registrationNumber?.trim() || null,
+
+          gstin:
+            dto.gstin?.trim() || null,
+
+          passwordHash: null,
+
+          mobileVerified: false,
+
+          emailVerified: false,
+
+          expiresAt:
+            new Date(
+              Date.now() +
+                this.sessionDurationMs,
+            ),
+        },
+
+        select: {
+          id: true,
+          institutionType: true,
+          institutionName: true,
+          institutionEmail: true,
+          ownerEmail: true,
+          expiresAt: true,
+          emailVerified: true,
         },
       });
 
-    if (existingUser) {
-      throw new ConflictException(
-        'An account with this email already exists. Please login instead.',
-      );
-    }
+    return {
+      success: true,
 
-    // ----------------------------------------------------------
-    // Hash password
-    // ----------------------------------------------------------
+      message:
+        'Registration session created. Please verify your email to continue.',
 
-    const passwordHash = await bcrypt.hash(
-      dto.password,
-      12,
-    );
+      session,
 
-    // ----------------------------------------------------------
-    // Registration session expires in 30 minutes
-    // ----------------------------------------------------------
-
-    const expiresAt = new Date(
-      Date.now() + 30 * 60 * 1000,
-    );
-
-    // ----------------------------------------------------------
-    // Create registration session
-    // ----------------------------------------------------------
-
-    try {
-      const session =
-        await this.prisma.registrationSession.create({
-          data: {
-            institutionType:
-              dto.institutionType,
-
-            institutionName:
-              dto.institutionName.trim(),
-
-            institutionEmail,
-
-            institutionPhone,
-
-            country:
-              dto.country.trim(),
-
-            state:
-              dto.state.trim(),
-
-            city:
-              dto.city?.trim() || null,
-
-            address:
-              dto.address?.trim() || null,
-
-            website:
-              dto.website?.trim() || null,
-
-            firstName:
-              dto.firstName.trim(),
-
-            lastName:
-              dto.lastName?.trim() || null,
-
-            ownerEmail,
-
-            ownerPhone,
-
-            passwordHash,
-
-            establishedYear:
-              dto.establishedYear ?? null,
-
-            registrationNumber:
-              dto.registrationNumber?.trim() || null,
-
-            gstin:
-              dto.gstin?.trim() || null,
-
-            expiresAt,
-
-            mobileVerified: false,
-
-            emailVerified: false,
-          },
-
-          select: {
-            id: true,
-
-            institutionType: true,
-
-            institutionName: true,
-
-            institutionEmail: true,
-
-            institutionPhone: true,
-
-            ownerEmail: true,
-
-            ownerPhone: true,
-
-            mobileVerified: true,
-
-            emailVerified: true,
-
-            expiresAt: true,
-
-            createdAt: true,
-          },
-        });
-
-      return {
-        success: true,
-
-        message:
-          'Registration session created successfully',
-
-        session: {
-          id: session.id,
-
-          institutionType:
-            session.institutionType,
-
-          institutionName:
-            session.institutionName,
-
-          institutionEmail:
-            session.institutionEmail,
-
-          institutionPhone:
-            session.institutionPhone,
-
-          ownerEmail:
-            session.ownerEmail,
-
-          ownerPhone:
-            session.ownerPhone,
-
-          mobileVerified:
-            session.mobileVerified,
-
-          emailVerified:
-            session.emailVerified,
-
-          expiresAt:
-            session.expiresAt,
-
-          createdAt:
-            session.createdAt,
-        },
-      };
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException(
-          'An account or registration with these details already exists',
-        );
-      }
-
-      throw new InternalServerErrorException(
-        'Unable to create registration session',
-      );
-    }
+      requiresEmailVerification: true,
+    };
   }
 
   // ============================================================
-  // Google onboarding
+  // CREATE REGISTRATION PASSWORD
   // ============================================================
 
-  async completeGoogleOnboarding(
-    dto: GoogleOnboardingDto,
+  async createRegistrationPassword(
+    dto: CreateRegistrationPasswordDto,
   ) {
-    const clientId =
-      process.env.GOOGLE_CLIENT_ID;
-
-    if (!clientId) {
-      throw new InternalServerErrorException(
-        'GOOGLE_CLIENT_ID is not configured',
-      );
-    }
-
-    // ----------------------------------------------------------
-    // Verify Google credential
-    // ----------------------------------------------------------
-
-    const { OAuth2Client } =
-      await import('google-auth-library');
-
-    const googleClient =
-      new OAuth2Client(clientId);
-
-    const ticket =
-      await googleClient.verifyIdToken({
-        idToken: dto.credential,
-        audience: clientId,
-      });
-
-    const payload =
-      ticket.getPayload();
-
-    if (!payload) {
-      throw new BadRequestException(
-        'Invalid Google credential',
-      );
-    }
-
-    const googleEmail =
-      payload.email?.trim().toLowerCase();
-
     if (
-      !googleEmail ||
-      !payload.email_verified
+      dto.password !==
+      dto.confirmPassword
     ) {
       throw new BadRequestException(
-        'Google email is not verified',
+        'Password and confirm password do not match',
       );
     }
 
-    // ----------------------------------------------------------
-    // Existing account check
-    // ----------------------------------------------------------
-
-    const existingUser =
-      await this.prisma.user.findUnique({
+    const session =
+      await this.prisma.registrationSession.findUnique({
         where: {
-          email: googleEmail,
-        },
-        select: {
-          id: true,
-          email: true,
+          id: dto.sessionId,
         },
       });
 
-    if (existingUser) {
-      throw new ConflictException(
-        'An account with this Google email already exists. Please login with Google.',
+    if (!session) {
+      throw new NotFoundException(
+        'Registration session not found',
       );
     }
 
-    // ----------------------------------------------------------
-    // Institution details
-    // ----------------------------------------------------------
-
-    const institutionEmail =
-      dto.institutionEmail
-        .trim()
-        .toLowerCase();
-
-    const institutionPhone =
-      dto.institutionPhone.trim();
-
-    // ----------------------------------------------------------
-    // Existing institution check
-    // ----------------------------------------------------------
-
-    const existingInstitution =
-      await this.prisma.institution.findFirst({
-        where: {
-          OR: [
-            {
-              email: institutionEmail,
-            },
-            {
-              phone: institutionPhone,
-            },
-          ],
-        },
-        select: {
-          id: true,
-        },
-      });
-
-    if (existingInstitution) {
-      throw new ConflictException(
-        'An institution with this email or phone already exists',
+    if (session.completedAt) {
+      throw new BadRequestException(
+        'This registration has already been completed',
       );
     }
 
-    // ----------------------------------------------------------
-    // Generate institution code
-    // ----------------------------------------------------------
-
-    const institutionCode =
-      await this.generateInstitutionCode(
-        dto.institutionName.trim(),
+    if (
+      session.expiresAt.getTime() <
+      Date.now()
+    ) {
+      throw new BadRequestException(
+        'Registration session has expired. Please start again.',
       );
+    }
 
-    // ----------------------------------------------------------
-    // Google account still gets a password hash
-    // ----------------------------------------------------------
+    if (!session.emailVerified) {
+      throw new BadRequestException(
+        'Please verify your email before creating a password',
+      );
+    }
 
-    const randomPassword =
-      `${crypto.randomUUID()}-${crypto.randomUUID()}`;
+    if (session.passwordHash) {
+      throw new BadRequestException(
+        'Password has already been created for this registration',
+      );
+    }
 
     const passwordHash =
       await bcrypt.hash(
-        randomPassword,
+        dto.password,
         12,
       );
 
-    // ----------------------------------------------------------
-    // Create institution + HEAD
-    // ----------------------------------------------------------
+    await this.prisma.registrationSession.update({
+      where: {
+        id: session.id,
+      },
 
-    try {
-      const result =
-        await this.prisma.$transaction(
-          async (tx) => {
-            const institution =
-              await tx.institution.create({
-                data: {
-                  name:
-                    dto.institutionName.trim(),
+      data: {
+        passwordHash,
+      },
+    });
 
-                  code:
-                    institutionCode,
+    return {
+      success: true,
 
-                  type:
-                    dto.institutionType,
+      message:
+        'Password created successfully. You can now complete registration.',
 
-                  status:
-                    InstitutionStatus.ACTIVE,
+      sessionId: session.id,
 
-                  country:
-                    dto.country.trim(),
-
-                  state:
-                    dto.state.trim(),
-
-                  city:
-                    dto.city?.trim() || null,
-
-                  address:
-                    dto.address?.trim() || null,
-
-                  email:
-                    institutionEmail,
-
-                  phone:
-                    institutionPhone,
-
-                  website:
-                    dto.website?.trim() || null,
-                },
-              });
-
-            const head =
-              await tx.user.create({
-                data: {
-                  brxUid:
-                    generateBrxUid(),
-
-                  email:
-                    googleEmail,
-
-                  passwordHash,
-
-                  firstName:
-                    dto.firstName.trim(),
-
-                  lastName:
-                    dto.lastName?.trim() || null,
-
-                  phone:
-                    dto.ownerPhone.trim(),
-
-                  role:
-                    UserRole.HEAD,
-
-                  status:
-                    UserStatus.ACTIVE,
-
-                  institutionId:
-                    institution.id,
-                },
-              });
-
-            return {
-              institution,
-              head,
-            };
-          },
-        );
-
-      // --------------------------------------------------------
-      // Generate login token
-      // --------------------------------------------------------
-
-      const accessToken =
-        await this.jwtService.signAsync({
-          sub:
-            result.head.id,
-
-          email:
-            result.head.email,
-
-          brxUid:
-            result.head.brxUid,
-
-          role:
-            result.head.role,
-
-          institutionId:
-            result.head.institutionId,
-        });
-
-      // --------------------------------------------------------
-      // Send automatic BRX UID welcome email
-      //
-      // Email failure MUST NOT break account creation.
-      // --------------------------------------------------------
-
-      try {
-        await this.emailService.sendWelcomeEmail({
-          firstName:
-            result.head.firstName,
-
-          brxUid:
-            result.head.brxUid,
-
-          email:
-            result.head.email,
-        });
-      } catch (emailError) {
-        console.error(
-          'Welcome email failed after Google onboarding:',
-          emailError,
-        );
-      }
-
-      // --------------------------------------------------------
-      // Success response
-      // --------------------------------------------------------
-
-      return {
-        success: true,
-
-        message:
-          'Google onboarding completed successfully',
-
-        accessToken,
-
-        tokenType: 'Bearer',
-
-        user: {
-          id:
-            result.head.id,
-
-          brxUid:
-            result.head.brxUid,
-
-          email:
-            result.head.email,
-
-          firstName:
-            result.head.firstName,
-
-          lastName:
-            result.head.lastName,
-
-          phone:
-            result.head.phone,
-
-          role:
-            result.head.role,
-
-          status:
-            result.head.status,
-
-          institutionId:
-            result.head.institutionId,
-        },
-
-        institution: {
-          id:
-            result.institution.id,
-
-          code:
-            result.institution.code,
-
-          name:
-            result.institution.name,
-
-          type:
-            result.institution.type,
-
-          status:
-            result.institution.status,
-        },
-
-        head: {
-          id:
-            result.head.id,
-
-          brxUid:
-            result.head.brxUid,
-
-          email:
-            result.head.email,
-
-          firstName:
-            result.head.firstName,
-
-          lastName:
-            result.head.lastName,
-
-          phone:
-            result.head.phone,
-
-          role:
-            result.head.role,
-
-          status:
-            result.head.status,
-        },
-      };
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException(
-          'An account or institution with these details already exists',
-        );
-      }
-
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        'Unable to complete Google onboarding',
-      );
-    }
+      passwordCreated: true,
+    };
   }
 
   // ============================================================
-  // Complete normal registration
+  // COMPLETE REGISTRATION
   // ============================================================
 
   async completeRegistration(
     sessionId: string,
   ) {
-    // ----------------------------------------------------------
-    // Find registration session
-    // ----------------------------------------------------------
-
     const session =
       await this.prisma.registrationSession.findUnique({
         where: {
@@ -704,295 +368,594 @@ export class RegistrationService {
       );
     }
 
-    // ----------------------------------------------------------
-    // Session expired
-    // ----------------------------------------------------------
+    if (session.completedAt) {
+      throw new BadRequestException(
+        'This registration has already been completed',
+      );
+    }
 
     if (
-      session.expiresAt.getTime() <=
+      session.expiresAt.getTime() <
       Date.now()
     ) {
       throw new BadRequestException(
-        'Registration session has expired',
+        'Registration session has expired. Please start again.',
       );
     }
-
-    // ----------------------------------------------------------
-    // Verification check
-    // ----------------------------------------------------------
 
     if (!session.emailVerified) {
       throw new BadRequestException(
-        'Email is not verified',
+        'Please verify your email before completing registration',
       );
     }
 
-    // ----------------------------------------------------------
-    // Already completed
-    // ----------------------------------------------------------
-
-    if (session.completedAt) {
+    if (!session.passwordHash) {
       throw new BadRequestException(
-        'Registration has already been completed',
+        'Please create your password before completing registration',
       );
     }
 
-    // ----------------------------------------------------------
-    // Final email conflict check
-    // ----------------------------------------------------------
+    const passwordHash =
+      session.passwordHash;
 
-    const existingUser =
-      await this.prisma.user.findUnique({
+    const [
+      existingInstitutionEmail,
+      existingInstitutionPhone,
+      existingOwnerEmail,
+      existingOwnerPhone,
+    ] = await Promise.all([
+      this.prisma.institution.findFirst({
+        where: {
+          email:
+            session.institutionEmail,
+        },
+        select: {
+          id: true,
+        },
+      }),
+
+      this.prisma.institution.findFirst({
+        where: {
+          phone:
+            session.institutionPhone,
+        },
+        select: {
+          id: true,
+        },
+      }),
+
+      this.prisma.user.findFirst({
         where: {
           email:
             session.ownerEmail,
         },
         select: {
           id: true,
-          email: true,
         },
-      });
+      }),
 
-    if (existingUser) {
-      throw new ConflictException(
-        'An account with this email already exists. Please login instead.',
-      );
-    }
-
-    // ----------------------------------------------------------
-    // Final institution conflict check
-    // ----------------------------------------------------------
-
-    const existingInstitution =
-      await this.prisma.institution.findFirst({
+      this.prisma.user.findFirst({
         where: {
-          OR: [
-            {
-              email:
-                session.institutionEmail,
-            },
-            {
-              phone:
-                session.institutionPhone,
-            },
-          ],
+          phone:
+            session.ownerPhone,
         },
         select: {
           id: true,
         },
-      });
+      }),
+    ]);
 
-    if (existingInstitution) {
+    if (existingInstitutionEmail) {
       throw new ConflictException(
-        'This institution is already registered',
+        'An institution with this official email already exists',
       );
     }
 
-    // ----------------------------------------------------------
-    // Generate institution code
-    // ----------------------------------------------------------
+    if (existingInstitutionPhone) {
+      throw new ConflictException(
+        'An institution with this official mobile number already exists',
+      );
+    }
+
+    if (existingOwnerEmail) {
+      throw new ConflictException(
+        'An account with this email already exists',
+      );
+    }
+
+    if (existingOwnerPhone) {
+      throw new ConflictException(
+        'An account with this mobile number already exists',
+      );
+    }
 
     const institutionCode =
-      await this.generateInstitutionCode(
+      this.generateInstitutionCode(
         session.institutionName,
       );
 
-    // ----------------------------------------------------------
-    // Final transaction
-    // ----------------------------------------------------------
+    const brxUid =
+      generateBrxUid();
 
-    try {
-      const result =
-        await this.prisma.$transaction(
-          async (tx) => {
-            // ----------------------------------------------
-            // Create institution
-            // ----------------------------------------------
-
-            const institution =
-              await tx.institution.create({
-                data: {
-                  name:
-                    session.institutionName,
-
-                  code:
-                    institutionCode,
-
-                  type:
-                    session.institutionType,
-
-                  status:
-                    InstitutionStatus.ACTIVE,
-
-                  country:
-                    session.country,
-
-                  state:
-                    session.state,
-
-                  city:
-                    session.city,
-
-                  address:
-                    session.address,
-
-                  email:
-                    session.institutionEmail,
-
-                  phone:
-                    session.institutionPhone,
-
-                  website:
-                    session.website,
-                },
-              });
-
-            // ----------------------------------------------
-            // Create HEAD
-            // ----------------------------------------------
-
-            const head =
-              await tx.user.create({
-                data: {
-                  brxUid:
-                    generateBrxUid(),
-
-                  email:
-                    session.ownerEmail,
-
-                  passwordHash:
-                    session.passwordHash,
-
-                  firstName:
-                    session.firstName,
-
-                  lastName:
-                    session.lastName,
-
-                  phone:
-                    session.ownerPhone,
-
-                  role:
-                    UserRole.HEAD,
-
-                  status:
-                    UserStatus.ACTIVE,
-
-                  institutionId:
-                    institution.id,
-                },
-              });
-
-            // ----------------------------------------------
-            // Mark registration completed
-            // ----------------------------------------------
-
-            await tx.registrationSession.update({
-              where: {
-                id:
-                  session.id,
-              },
-
+    const result =
+      await this.prisma.$transaction(
+        async (tx) => {
+          const institution =
+            await tx.institution.create({
               data: {
-                completedAt:
-                  new Date(),
+                name:
+                  session.institutionName,
+
+                code:
+                  institutionCode,
+
+                type:
+                  session.institutionType,
+
+                status:
+                  'ACTIVE',
+
+                email:
+                  session.institutionEmail,
+
+                phone:
+                  session.institutionPhone,
+
+                country:
+                  session.country,
+
+                state:
+                  session.state,
+
+                city:
+                  session.city,
+
+                address:
+                  session.address,
+
+                website:
+                  session.website,
               },
             });
 
-            return {
-              institution,
-              head,
-            };
-          },
-        );
+          const head =
+            await tx.user.create({
+              data: {
+                email:
+                  session.ownerEmail,
 
-      // ------------------------------------------------------
-      // Automatic BRX UID welcome email
-      //
-      // Account creation remains successful even if email fails.
-      // ------------------------------------------------------
+                passwordHash,
 
-      try {
-        await this.emailService.sendWelcomeEmail({
-          firstName:
-            result.head.firstName,
+                firstName:
+                  session.firstName,
 
-          brxUid:
-            result.head.brxUid,
+                lastName:
+                  session.lastName,
 
-          email:
-            result.head.email,
-        });
-      } catch (emailError) {
-        console.error(
-          'Welcome email failed after normal registration:',
-          emailError,
-        );
-      }
+                phone:
+                  session.ownerPhone,
 
-      // ------------------------------------------------------
-      // Success
-      // ------------------------------------------------------
+                role:
+                  'HEAD',
 
-      return {
-        success: true,
+                status:
+                  'ACTIVE',
 
-        message:
-          'Registration completed successfully',
+                institutionId:
+                  institution.id,
 
-        institution: {
-          id:
-            result.institution.id,
+                brxUid,
+              },
 
-          code:
-            result.institution.code,
+              select: {
+                id: true,
+                brxUid: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                role: true,
+                status: true,
+                institutionId: true,
+              },
+            });
 
-          name:
-            result.institution.name,
+          await tx.registrationSession.update({
+            where: {
+              id: session.id,
+            },
 
-          type:
-            result.institution.type,
+            data: {
+              completedAt:
+                new Date(),
+            },
+          });
 
-          status:
-            result.institution.status,
+          return {
+            institution,
+            head,
+          };
+        },
+      );
+
+    await this.emailService.sendWelcomeEmail({
+      email:
+        result.head.email,
+
+      firstName:
+        result.head.firstName,
+
+      brxUid:
+        result.head.brxUid,
+    });
+
+    return {
+      success: true,
+
+      message:
+        'Registration completed successfully. Your BRX UID has been generated.',
+
+      institution: {
+        id:
+          result.institution.id,
+
+        name:
+          result.institution.name,
+
+        code:
+          result.institution.code,
+
+        type:
+          result.institution.type,
+      },
+
+      head: {
+        id:
+          result.head.id,
+
+        brxUid:
+          result.head.brxUid,
+
+        email:
+          result.head.email,
+
+        firstName:
+          result.head.firstName,
+
+        lastName:
+          result.head.lastName,
+
+        phone:
+          result.head.phone,
+
+        role:
+          result.head.role,
+
+        status:
+          result.head.status,
+      },
+
+      requiresLogin: true,
+    };
+  }
+
+  // ============================================================
+  // GOOGLE ONBOARDING
+  // ============================================================
+
+  async completeGoogleOnboarding(
+    dto: GoogleOnboardingDto,
+  ) {
+    const googleProfile =
+      await this.verifyGoogleCredential(
+        dto.credential,
+      );
+
+    const googleEmail =
+      googleProfile.email
+        .trim()
+        .toLowerCase();
+
+    const institutionEmail =
+      dto.institutionEmail
+        .trim()
+        .toLowerCase();
+
+    const institutionPhone =
+      dto.institutionPhone.trim();
+
+    const ownerPhone =
+      dto.ownerPhone.trim();
+
+    const existingGoogleUser =
+      await this.prisma.user.findFirst({
+        where: {
+          email: googleEmail,
         },
 
-        head: {
-          id:
-            result.head.id,
+        select: {
+          id: true,
+          status: true,
+        },
+      });
 
-          brxUid:
-            result.head.brxUid,
+    if (existingGoogleUser) {
+      throw new ConflictException(
+        'An account with this Google email already exists. Please login instead.',
+      );
+    }
 
+    const [
+      existingInstitutionEmail,
+      existingInstitutionPhone,
+      existingOwnerPhone,
+    ] = await Promise.all([
+      this.prisma.institution.findFirst({
+        where: {
           email:
-            result.head.email,
+            institutionEmail,
+        },
+
+        select: {
+          id: true,
+        },
+      }),
+
+      this.prisma.institution.findFirst({
+        where: {
+          phone:
+            institutionPhone,
+        },
+
+        select: {
+          id: true,
+        },
+      }),
+
+      this.prisma.user.findFirst({
+        where: {
+          phone:
+            ownerPhone,
+        },
+
+        select: {
+          id: true,
+        },
+      }),
+    ]);
+
+    if (existingInstitutionEmail) {
+      throw new ConflictException(
+        'An institution with this official email already exists',
+      );
+    }
+
+    if (existingInstitutionPhone) {
+      throw new ConflictException(
+        'An institution with this official mobile number already exists',
+      );
+    }
+
+    if (existingOwnerPhone) {
+      throw new ConflictException(
+        'An account with this mobile number already exists',
+      );
+    }
+
+    const establishedYear =
+      this.parseEstablishedYear(
+        dto.establishedYear,
+      );
+
+    const session =
+      await this.prisma.registrationSession.create({
+        data: {
+          institutionType:
+            dto.institutionType,
+
+          institutionName:
+            dto.institutionName.trim(),
+
+          institutionEmail,
+
+          institutionPhone,
+
+          country:
+            dto.country.trim(),
+
+          state:
+            dto.state.trim(),
+
+          district:
+            dto.district?.trim() || null,
+
+          city:
+            dto.city?.trim() || null,
+
+          pinCode:
+            dto.pinCode?.trim() || null,
+
+          postOffice:
+            dto.postOffice?.trim() || null,
+
+          policeStation:
+            dto.policeStation?.trim() || null,
+
+          area:
+            dto.area?.trim() || null,
+
+          street:
+            dto.street?.trim() || null,
+
+          building:
+            dto.building?.trim() || null,
+
+          landmark:
+            dto.landmark?.trim() || null,
+
+          address:
+            dto.address?.trim() || null,
+
+          website:
+            dto.website?.trim() || null,
+
+          designation:
+            dto.designation.trim(),
 
           firstName:
-            result.head.firstName,
+            dto.firstName.trim(),
 
           lastName:
-            result.head.lastName,
+            dto.lastName?.trim() || null,
 
-          role:
-            result.head.role,
+          // Google verified email
+          ownerEmail:
+            googleEmail,
 
-          status:
-            result.head.status,
+          ownerPhone,
+
+          passwordHash:
+            null,
+
+          establishedYear,
+
+          registrationNumber:
+            dto.registrationNumber?.trim() ||
+            null,
+
+          gstin:
+            dto.gstin?.trim() || null,
+
+          // Google already verified the email.
+          emailVerified:
+            true,
+
+          mobileVerified:
+            false,
+
+          expiresAt:
+            new Date(
+              Date.now() +
+                this.sessionDurationMs,
+            ),
         },
-      };
-    } catch (error) {
-      if (this.isUniqueConstraintError(error)) {
-        throw new ConflictException(
-          'An account or institution with these details already exists',
+
+        select: {
+          id: true,
+          institutionType: true,
+          institutionName: true,
+          institutionEmail: true,
+          ownerEmail: true,
+          firstName: true,
+          lastName: true,
+          expiresAt: true,
+          emailVerified: true,
+        },
+      });
+
+    return {
+      success: true,
+
+      message:
+        'Google verification successful. Create your password to continue.',
+
+      session,
+
+      requiresPassword: true,
+
+      emailVerified: true,
+
+      googleVerified: true,
+    };
+  }
+
+  // ============================================================
+  // GOOGLE CREDENTIAL VERIFICATION
+  // ============================================================
+
+  private async verifyGoogleCredential(
+    credential: string,
+  ) {
+    const clientId =
+      process.env.GOOGLE_CLIENT_ID;
+
+    if (!clientId) {
+      throw new BadRequestException(
+        'Google authentication is not configured',
+      );
+    }
+
+    try {
+      const response =
+        await fetch(
+          `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(
+            credential,
+          )}`,
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          'Google token verification failed',
         );
       }
 
-      if (error instanceof ConflictException) {
-        throw error;
+      const payload =
+        (await response.json()) as {
+          sub?: string;
+          email?: string;
+          email_verified?:
+            | string
+            | boolean;
+          name?: string;
+          picture?: string;
+          aud?: string;
+        };
+
+      if (
+        !payload.sub ||
+        !payload.email
+      ) {
+        throw new Error(
+          'Invalid Google profile',
+        );
       }
 
-      throw new InternalServerErrorException(
-        'Unable to complete registration',
+      if (
+        payload.aud !==
+        clientId
+      ) {
+        throw new Error(
+          'Google client ID mismatch',
+        );
+      }
+
+      const emailVerified =
+        payload.email_verified === true ||
+        payload.email_verified ===
+          'true';
+
+      if (!emailVerified) {
+        throw new Error(
+          'Google email is not verified',
+        );
+      }
+
+      return {
+        sub:
+          payload.sub,
+
+        email:
+          payload.email,
+
+        name:
+          payload.name ?? '',
+
+        picture:
+          payload.picture ?? null,
+      };
+    } catch {
+      throw new BadRequestException(
+        'Google verification failed. Please try again.',
       );
     }
   }

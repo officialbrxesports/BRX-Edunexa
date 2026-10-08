@@ -13,9 +13,9 @@ import {
 import { InstitutionType } from '../../../generated/prisma/enums';
 
 export class CreateRegistrationDto {
-  // ================================
+  // ============================================================
   // Institution
-  // ================================
+  // ============================================================
 
   @IsEnum(InstitutionType)
   institutionType!: InstitutionType;
@@ -26,10 +26,14 @@ export class CreateRegistrationDto {
 
   @IsString()
   @MinLength(10)
-  phone!: string;
+  institutionPhone!: string;
 
   @IsEmail()
-  email!: string;
+  institutionEmail!: string;
+
+  // ============================================================
+  // Institution Location
+  // ============================================================
 
   @IsString()
   @MinLength(2)
@@ -39,56 +43,88 @@ export class CreateRegistrationDto {
   @MinLength(2)
   state!: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsString()
   city?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
+  pinCode?: string;
+
+  @IsOptional()
+  @IsString()
+  postOffice?: string;
+
+  @IsOptional()
+  @IsString()
+  policeStation?: string;
+
+  @IsOptional()
+  @IsString()
+  area?: string;
+
+  @IsOptional()
+  @IsString()
+  street?: string;
+
+  @IsOptional()
+  @IsString()
+  building?: string;
+
+  @IsOptional()
+  @IsString()
+  landmark?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
 
-  @IsUrl()
   @IsOptional()
+  @IsUrl()
   website?: string;
 
-  // ================================
-  // Owner / HEAD
-  // ================================
+  // ============================================================
+  // Primary Authority / HEAD
+  // ============================================================
+
+  @IsString()
+  @MinLength(2)
+  designation!: string;
 
   @IsString()
   @MinLength(2)
   firstName!: string;
 
-  @IsString()
   @IsOptional()
-  lastName?: string;
-
   @IsString()
-  @MinLength(10)
-  ownerPhone!: string;
+  lastName?: string;
 
   @IsEmail()
   ownerEmail!: string;
 
   @IsString()
-  @MinLength(8)
-  password!: string;
+  @MinLength(10)
+  ownerPhone!: string;
 
-  // ================================
-  // Optional setup
-  // ================================
+  // ============================================================
+  // Optional Institution Details
+  // ============================================================
 
+  @IsOptional()
   @IsInt()
   @Min(2000)
   @Max(2100)
-  @IsOptional()
   establishedYear?: number;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   registrationNumber?: string;
 
-  @IsString()
   @IsOptional()
+  @IsString()
   gstin?: string;
 }
