@@ -487,31 +487,42 @@ model RegistrationSession {
   id String @id @default(uuid())
 
   institutionType InstitutionType
-
-  institutionName  String
+  institutionName String
   institutionEmail String
   institutionPhone String
 
   country String
-  state   String
-  city    String?
+  state String
+  district String?
+  city String?
+  pinCode String?
+  postOffice String?
+  policeStation String?
+  area String?
+  street String?
+  building String?
+  landmark String?
   address String?
   website String?
 
-  firstName    String
-  lastName     String?
-  ownerEmail   String
-  ownerPhone   String
-  passwordHash String
+  designation String
 
-  establishedYear    Int?
+  firstName String
+  lastName String?
+  ownerEmail String
+  ownerPhone String
+
+  // Password is created only after email/Google verification.
+  passwordHash String?
+
+  establishedYear Int?
   registrationNumber String?
-  gstin              String?
+  gstin String?
 
   mobileVerified Boolean @default(false)
-  emailVerified  Boolean @default(false)
+  emailVerified Boolean @default(false)
 
-  expiresAt   DateTime
+  expiresAt DateTime
   completedAt DateTime?
 
   otpVerifications RegistrationOtpVerification[]

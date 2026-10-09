@@ -42,9 +42,18 @@ export type RegistrationSessionMinAggregateOutputType = {
   institutionPhone: string | null
   country: string | null
   state: string | null
+  district: string | null
   city: string | null
+  pinCode: string | null
+  postOffice: string | null
+  policeStation: string | null
+  area: string | null
+  street: string | null
+  building: string | null
+  landmark: string | null
   address: string | null
   website: string | null
+  designation: string | null
   firstName: string | null
   lastName: string | null
   ownerEmail: string | null
@@ -69,9 +78,18 @@ export type RegistrationSessionMaxAggregateOutputType = {
   institutionPhone: string | null
   country: string | null
   state: string | null
+  district: string | null
   city: string | null
+  pinCode: string | null
+  postOffice: string | null
+  policeStation: string | null
+  area: string | null
+  street: string | null
+  building: string | null
+  landmark: string | null
   address: string | null
   website: string | null
+  designation: string | null
   firstName: string | null
   lastName: string | null
   ownerEmail: string | null
@@ -96,9 +114,18 @@ export type RegistrationSessionCountAggregateOutputType = {
   institutionPhone: number
   country: number
   state: number
+  district: number
   city: number
+  pinCode: number
+  postOffice: number
+  policeStation: number
+  area: number
+  street: number
+  building: number
+  landmark: number
   address: number
   website: number
+  designation: number
   firstName: number
   lastName: number
   ownerEmail: number
@@ -133,9 +160,18 @@ export type RegistrationSessionMinAggregateInputType = {
   institutionPhone?: true
   country?: true
   state?: true
+  district?: true
   city?: true
+  pinCode?: true
+  postOffice?: true
+  policeStation?: true
+  area?: true
+  street?: true
+  building?: true
+  landmark?: true
   address?: true
   website?: true
+  designation?: true
   firstName?: true
   lastName?: true
   ownerEmail?: true
@@ -160,9 +196,18 @@ export type RegistrationSessionMaxAggregateInputType = {
   institutionPhone?: true
   country?: true
   state?: true
+  district?: true
   city?: true
+  pinCode?: true
+  postOffice?: true
+  policeStation?: true
+  area?: true
+  street?: true
+  building?: true
+  landmark?: true
   address?: true
   website?: true
+  designation?: true
   firstName?: true
   lastName?: true
   ownerEmail?: true
@@ -187,9 +232,18 @@ export type RegistrationSessionCountAggregateInputType = {
   institutionPhone?: true
   country?: true
   state?: true
+  district?: true
   city?: true
+  pinCode?: true
+  postOffice?: true
+  policeStation?: true
+  area?: true
+  street?: true
+  building?: true
+  landmark?: true
   address?: true
   website?: true
+  designation?: true
   firstName?: true
   lastName?: true
   ownerEmail?: true
@@ -301,14 +355,23 @@ export type RegistrationSessionGroupByOutputType = {
   institutionPhone: string
   country: string
   state: string
+  district: string | null
   city: string | null
+  pinCode: string | null
+  postOffice: string | null
+  policeStation: string | null
+  area: string | null
+  street: string | null
+  building: string | null
+  landmark: string | null
   address: string | null
   website: string | null
+  designation: string
   firstName: string
   lastName: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash: string | null
   establishedYear: number | null
   registrationNumber: string | null
   gstin: string | null
@@ -351,14 +414,23 @@ export type RegistrationSessionWhereInput = {
   institutionPhone?: Prisma.StringFilter<"RegistrationSession"> | string
   country?: Prisma.StringFilter<"RegistrationSession"> | string
   state?: Prisma.StringFilter<"RegistrationSession"> | string
+  district?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   city?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  pinCode?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  postOffice?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  policeStation?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  area?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  street?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  building?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  landmark?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   address?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   website?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  designation?: Prisma.StringFilter<"RegistrationSession"> | string
   firstName?: Prisma.StringFilter<"RegistrationSession"> | string
   lastName?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   ownerEmail?: Prisma.StringFilter<"RegistrationSession"> | string
   ownerPhone?: Prisma.StringFilter<"RegistrationSession"> | string
-  passwordHash?: Prisma.StringFilter<"RegistrationSession"> | string
+  passwordHash?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   establishedYear?: Prisma.IntNullableFilter<"RegistrationSession"> | number | null
   registrationNumber?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   gstin?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
@@ -379,14 +451,23 @@ export type RegistrationSessionOrderByWithRelationInput = {
   institutionPhone?: Prisma.SortOrder
   country?: Prisma.SortOrder
   state?: Prisma.SortOrder
+  district?: Prisma.SortOrderInput | Prisma.SortOrder
   city?: Prisma.SortOrderInput | Prisma.SortOrder
+  pinCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  postOffice?: Prisma.SortOrderInput | Prisma.SortOrder
+  policeStation?: Prisma.SortOrderInput | Prisma.SortOrder
+  area?: Prisma.SortOrderInput | Prisma.SortOrder
+  street?: Prisma.SortOrderInput | Prisma.SortOrder
+  building?: Prisma.SortOrderInput | Prisma.SortOrder
+  landmark?: Prisma.SortOrderInput | Prisma.SortOrder
   address?: Prisma.SortOrderInput | Prisma.SortOrder
   website?: Prisma.SortOrderInput | Prisma.SortOrder
+  designation?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerEmail?: Prisma.SortOrder
   ownerPhone?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   establishedYear?: Prisma.SortOrderInput | Prisma.SortOrder
   registrationNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   gstin?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -410,14 +491,23 @@ export type RegistrationSessionWhereUniqueInput = Prisma.AtLeast<{
   institutionPhone?: Prisma.StringFilter<"RegistrationSession"> | string
   country?: Prisma.StringFilter<"RegistrationSession"> | string
   state?: Prisma.StringFilter<"RegistrationSession"> | string
+  district?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   city?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  pinCode?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  postOffice?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  policeStation?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  area?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  street?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  building?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  landmark?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   address?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   website?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
+  designation?: Prisma.StringFilter<"RegistrationSession"> | string
   firstName?: Prisma.StringFilter<"RegistrationSession"> | string
   lastName?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   ownerEmail?: Prisma.StringFilter<"RegistrationSession"> | string
   ownerPhone?: Prisma.StringFilter<"RegistrationSession"> | string
-  passwordHash?: Prisma.StringFilter<"RegistrationSession"> | string
+  passwordHash?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   establishedYear?: Prisma.IntNullableFilter<"RegistrationSession"> | number | null
   registrationNumber?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
   gstin?: Prisma.StringNullableFilter<"RegistrationSession"> | string | null
@@ -438,14 +528,23 @@ export type RegistrationSessionOrderByWithAggregationInput = {
   institutionPhone?: Prisma.SortOrder
   country?: Prisma.SortOrder
   state?: Prisma.SortOrder
+  district?: Prisma.SortOrderInput | Prisma.SortOrder
   city?: Prisma.SortOrderInput | Prisma.SortOrder
+  pinCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  postOffice?: Prisma.SortOrderInput | Prisma.SortOrder
+  policeStation?: Prisma.SortOrderInput | Prisma.SortOrder
+  area?: Prisma.SortOrderInput | Prisma.SortOrder
+  street?: Prisma.SortOrderInput | Prisma.SortOrder
+  building?: Prisma.SortOrderInput | Prisma.SortOrder
+  landmark?: Prisma.SortOrderInput | Prisma.SortOrder
   address?: Prisma.SortOrderInput | Prisma.SortOrder
   website?: Prisma.SortOrderInput | Prisma.SortOrder
+  designation?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerEmail?: Prisma.SortOrder
   ownerPhone?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   establishedYear?: Prisma.SortOrderInput | Prisma.SortOrder
   registrationNumber?: Prisma.SortOrderInput | Prisma.SortOrder
   gstin?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -473,14 +572,23 @@ export type RegistrationSessionScalarWhereWithAggregatesInput = {
   institutionPhone?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
   country?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
   state?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
+  district?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   city?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  pinCode?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  postOffice?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  policeStation?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  area?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  street?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  building?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  landmark?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   address?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   website?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
+  designation?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
   firstName?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
   lastName?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   ownerEmail?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
   ownerPhone?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
-  passwordHash?: Prisma.StringWithAggregatesFilter<"RegistrationSession"> | string
+  passwordHash?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   establishedYear?: Prisma.IntNullableWithAggregatesFilter<"RegistrationSession"> | number | null
   registrationNumber?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
   gstin?: Prisma.StringNullableWithAggregatesFilter<"RegistrationSession"> | string | null
@@ -500,14 +608,23 @@ export type RegistrationSessionCreateInput = {
   institutionPhone: string
   country: string
   state: string
+  district?: string | null
   city?: string | null
+  pinCode?: string | null
+  postOffice?: string | null
+  policeStation?: string | null
+  area?: string | null
+  street?: string | null
+  building?: string | null
+  landmark?: string | null
   address?: string | null
   website?: string | null
+  designation: string
   firstName: string
   lastName?: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash?: string | null
   establishedYear?: number | null
   registrationNumber?: string | null
   gstin?: string | null
@@ -528,14 +645,23 @@ export type RegistrationSessionUncheckedCreateInput = {
   institutionPhone: string
   country: string
   state: string
+  district?: string | null
   city?: string | null
+  pinCode?: string | null
+  postOffice?: string | null
+  policeStation?: string | null
+  area?: string | null
+  street?: string | null
+  building?: string | null
+  landmark?: string | null
   address?: string | null
   website?: string | null
+  designation: string
   firstName: string
   lastName?: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash?: string | null
   establishedYear?: number | null
   registrationNumber?: string | null
   gstin?: string | null
@@ -556,14 +682,23 @@ export type RegistrationSessionUpdateInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -584,14 +719,23 @@ export type RegistrationSessionUncheckedUpdateInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -612,14 +756,23 @@ export type RegistrationSessionCreateManyInput = {
   institutionPhone: string
   country: string
   state: string
+  district?: string | null
   city?: string | null
+  pinCode?: string | null
+  postOffice?: string | null
+  policeStation?: string | null
+  area?: string | null
+  street?: string | null
+  building?: string | null
+  landmark?: string | null
   address?: string | null
   website?: string | null
+  designation: string
   firstName: string
   lastName?: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash?: string | null
   establishedYear?: number | null
   registrationNumber?: string | null
   gstin?: string | null
@@ -639,14 +792,23 @@ export type RegistrationSessionUpdateManyMutationInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -666,14 +828,23 @@ export type RegistrationSessionUncheckedUpdateManyInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -693,9 +864,18 @@ export type RegistrationSessionCountOrderByAggregateInput = {
   institutionPhone?: Prisma.SortOrder
   country?: Prisma.SortOrder
   state?: Prisma.SortOrder
+  district?: Prisma.SortOrder
   city?: Prisma.SortOrder
+  pinCode?: Prisma.SortOrder
+  postOffice?: Prisma.SortOrder
+  policeStation?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  street?: Prisma.SortOrder
+  building?: Prisma.SortOrder
+  landmark?: Prisma.SortOrder
   address?: Prisma.SortOrder
   website?: Prisma.SortOrder
+  designation?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrder
   ownerEmail?: Prisma.SortOrder
@@ -724,9 +904,18 @@ export type RegistrationSessionMaxOrderByAggregateInput = {
   institutionPhone?: Prisma.SortOrder
   country?: Prisma.SortOrder
   state?: Prisma.SortOrder
+  district?: Prisma.SortOrder
   city?: Prisma.SortOrder
+  pinCode?: Prisma.SortOrder
+  postOffice?: Prisma.SortOrder
+  policeStation?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  street?: Prisma.SortOrder
+  building?: Prisma.SortOrder
+  landmark?: Prisma.SortOrder
   address?: Prisma.SortOrder
   website?: Prisma.SortOrder
+  designation?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrder
   ownerEmail?: Prisma.SortOrder
@@ -751,9 +940,18 @@ export type RegistrationSessionMinOrderByAggregateInput = {
   institutionPhone?: Prisma.SortOrder
   country?: Prisma.SortOrder
   state?: Prisma.SortOrder
+  district?: Prisma.SortOrder
   city?: Prisma.SortOrder
+  pinCode?: Prisma.SortOrder
+  postOffice?: Prisma.SortOrder
+  policeStation?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  street?: Prisma.SortOrder
+  building?: Prisma.SortOrder
+  landmark?: Prisma.SortOrder
   address?: Prisma.SortOrder
   website?: Prisma.SortOrder
+  designation?: Prisma.SortOrder
   firstName?: Prisma.SortOrder
   lastName?: Prisma.SortOrder
   ownerEmail?: Prisma.SortOrder
@@ -801,14 +999,23 @@ export type RegistrationSessionCreateWithoutOtpVerificationsInput = {
   institutionPhone: string
   country: string
   state: string
+  district?: string | null
   city?: string | null
+  pinCode?: string | null
+  postOffice?: string | null
+  policeStation?: string | null
+  area?: string | null
+  street?: string | null
+  building?: string | null
+  landmark?: string | null
   address?: string | null
   website?: string | null
+  designation: string
   firstName: string
   lastName?: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash?: string | null
   establishedYear?: number | null
   registrationNumber?: string | null
   gstin?: string | null
@@ -828,14 +1035,23 @@ export type RegistrationSessionUncheckedCreateWithoutOtpVerificationsInput = {
   institutionPhone: string
   country: string
   state: string
+  district?: string | null
   city?: string | null
+  pinCode?: string | null
+  postOffice?: string | null
+  policeStation?: string | null
+  area?: string | null
+  street?: string | null
+  building?: string | null
+  landmark?: string | null
   address?: string | null
   website?: string | null
+  designation: string
   firstName: string
   lastName?: string | null
   ownerEmail: string
   ownerPhone: string
-  passwordHash: string
+  passwordHash?: string | null
   establishedYear?: number | null
   registrationNumber?: string | null
   gstin?: string | null
@@ -871,14 +1087,23 @@ export type RegistrationSessionUpdateWithoutOtpVerificationsInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -898,14 +1123,23 @@ export type RegistrationSessionUncheckedUpdateWithoutOtpVerificationsInput = {
   institutionPhone?: Prisma.StringFieldUpdateOperationsInput | string
   country?: Prisma.StringFieldUpdateOperationsInput | string
   state?: Prisma.StringFieldUpdateOperationsInput | string
+  district?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   city?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pinCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  postOffice?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  policeStation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  street?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  building?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  landmark?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   website?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  designation?: Prisma.StringFieldUpdateOperationsInput | string
   firstName?: Prisma.StringFieldUpdateOperationsInput | string
   lastName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ownerEmail?: Prisma.StringFieldUpdateOperationsInput | string
   ownerPhone?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   establishedYear?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   registrationNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   gstin?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -956,9 +1190,18 @@ export type RegistrationSessionSelect<ExtArgs extends runtime.Types.Extensions.I
   institutionPhone?: boolean
   country?: boolean
   state?: boolean
+  district?: boolean
   city?: boolean
+  pinCode?: boolean
+  postOffice?: boolean
+  policeStation?: boolean
+  area?: boolean
+  street?: boolean
+  building?: boolean
+  landmark?: boolean
   address?: boolean
   website?: boolean
+  designation?: boolean
   firstName?: boolean
   lastName?: boolean
   ownerEmail?: boolean
@@ -985,9 +1228,18 @@ export type RegistrationSessionSelectCreateManyAndReturn<ExtArgs extends runtime
   institutionPhone?: boolean
   country?: boolean
   state?: boolean
+  district?: boolean
   city?: boolean
+  pinCode?: boolean
+  postOffice?: boolean
+  policeStation?: boolean
+  area?: boolean
+  street?: boolean
+  building?: boolean
+  landmark?: boolean
   address?: boolean
   website?: boolean
+  designation?: boolean
   firstName?: boolean
   lastName?: boolean
   ownerEmail?: boolean
@@ -1012,9 +1264,18 @@ export type RegistrationSessionSelectUpdateManyAndReturn<ExtArgs extends runtime
   institutionPhone?: boolean
   country?: boolean
   state?: boolean
+  district?: boolean
   city?: boolean
+  pinCode?: boolean
+  postOffice?: boolean
+  policeStation?: boolean
+  area?: boolean
+  street?: boolean
+  building?: boolean
+  landmark?: boolean
   address?: boolean
   website?: boolean
+  designation?: boolean
   firstName?: boolean
   lastName?: boolean
   ownerEmail?: boolean
@@ -1039,9 +1300,18 @@ export type RegistrationSessionSelectScalar = {
   institutionPhone?: boolean
   country?: boolean
   state?: boolean
+  district?: boolean
   city?: boolean
+  pinCode?: boolean
+  postOffice?: boolean
+  policeStation?: boolean
+  area?: boolean
+  street?: boolean
+  building?: boolean
+  landmark?: boolean
   address?: boolean
   website?: boolean
+  designation?: boolean
   firstName?: boolean
   lastName?: boolean
   ownerEmail?: boolean
@@ -1058,7 +1328,7 @@ export type RegistrationSessionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type RegistrationSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "institutionType" | "institutionName" | "institutionEmail" | "institutionPhone" | "country" | "state" | "city" | "address" | "website" | "firstName" | "lastName" | "ownerEmail" | "ownerPhone" | "passwordHash" | "establishedYear" | "registrationNumber" | "gstin" | "mobileVerified" | "emailVerified" | "expiresAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["registrationSession"]>
+export type RegistrationSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "institutionType" | "institutionName" | "institutionEmail" | "institutionPhone" | "country" | "state" | "district" | "city" | "pinCode" | "postOffice" | "policeStation" | "area" | "street" | "building" | "landmark" | "address" | "website" | "designation" | "firstName" | "lastName" | "ownerEmail" | "ownerPhone" | "passwordHash" | "establishedYear" | "registrationNumber" | "gstin" | "mobileVerified" | "emailVerified" | "expiresAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["registrationSession"]>
 export type RegistrationSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   otpVerifications?: boolean | Prisma.RegistrationSession$otpVerificationsArgs<ExtArgs>
   _count?: boolean | Prisma.RegistrationSessionCountOutputTypeDefaultArgs<ExtArgs>
@@ -1079,14 +1349,23 @@ export type $RegistrationSessionPayload<ExtArgs extends runtime.Types.Extensions
     institutionPhone: string
     country: string
     state: string
+    district: string | null
     city: string | null
+    pinCode: string | null
+    postOffice: string | null
+    policeStation: string | null
+    area: string | null
+    street: string | null
+    building: string | null
+    landmark: string | null
     address: string | null
     website: string | null
+    designation: string
     firstName: string
     lastName: string | null
     ownerEmail: string
     ownerPhone: string
-    passwordHash: string
+    passwordHash: string | null
     establishedYear: number | null
     registrationNumber: string | null
     gstin: string | null
@@ -1527,9 +1806,18 @@ export interface RegistrationSessionFieldRefs {
   readonly institutionPhone: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly country: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly state: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly district: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly city: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly pinCode: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly postOffice: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly policeStation: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly area: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly street: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly building: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly landmark: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly address: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly website: Prisma.FieldRef<"RegistrationSession", 'String'>
+  readonly designation: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly firstName: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly lastName: Prisma.FieldRef<"RegistrationSession", 'String'>
   readonly ownerEmail: Prisma.FieldRef<"RegistrationSession", 'String'>

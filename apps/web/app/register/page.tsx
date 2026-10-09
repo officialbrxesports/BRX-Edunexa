@@ -1,468 +1,424 @@
-'use client';
+"use client";
 
-import { FormEvent, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? '/api';
+type InstitutionType =
+  | "SCHOOL"
+  | "COLLEGE"
+  | "UNIVERSITY"
+  | "COACHING"
+  | "INSTITUTE"
+  | "OTHER";
 
-const SESSION_KEY =
-  'brx_registration_session_id';
+const INSTITUTION_TYPE_KEY = "brx_institution_type";
+const REGISTRATION_TYPE_KEY = "brx_registration_type";
 
-const INSTITUTION_KEY =
-  'brx_institution_details';
+const institutionTypes: {
+  value: InstitutionType;
+  title: string;
+  description: string;
+  icon: string;
+}[] = [
+  {
+    value: "SCHOOL",
+    title: "School",
+    description: "School, private school, public school or similar",
+    icon: "🏫",
+  },
+  {
+    value: "COLLEGE",
+    title: "College",
+    description: "Degree college or higher education college",
+    icon: "🎓",
+  },
+  {
+    value: "UNIVERSITY",
+    title: "University",
+    description: "University or university-level institution",
+    icon: "🏛️",
+  },
+  {
+    value: "COACHING",
+    title: "Coaching",
+    description: "Coaching centre, academy or preparation centre",
+    icon: "📚",
+  },
+  {
+    value: "INSTITUTE",
+    title: "Institute",
+    description: "Training, skill, professional or other institute",
+    icon: "💼",
+  },
+  {
+    value: "OTHER",
+    title: "Other",
+    description: "Other education-related organization",
+    icon: "🏢",
+  },
+];
 
-const OWNER_KEY =
-  'brx_owner_details';
-
-const VERIFIED_KEY =
-  'brx_registration_verified';
-
-type VerificationResponse = {
-  success?: boolean;
-  message?: string;
-  verification?: {
-    mobileVerified?: boolean;
-    emailVerified?: boolean;
-    completed?: boolean;
-  };
-};
-
-export default function RegistrationVerifyPage() {
+export default function RegisterPage() {
   const router = useRouter();
 
-  const [sessionId, setSessionId] =
-    useState('');
+  const [selectedType, setSelectedType] =
+    useState<InstitutionType | "">("");
 
-  const [email, setEmail] =
-    useState('');
-
-  const [otp, setOtp] =
-    useState('');
+  const [googleMode, setGoogleMode] =
+    useState(false);
 
   const [loading, setLoading] =
-    useState(false);
-
-  const [sending, setSending] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState('');
-
-  const [error, setError] =
-    useState('');
-
-  const [resendSeconds, setResendSeconds] =
-    useState(0);
-
-  const [expiresSeconds, setExpiresSeconds] =
-    useState(0);
+    useState(true);
 
   useEffect(() => {
-    const storedSessionId =
-      localStorage.getItem(SESSION_KEY);
-
-    if (!storedSessionId) {
-      router.replace('/register/owner');
-      return;
-    }
-
-    setSessionId(storedSessionId);
-
-    try {
-      const institutionRaw =
-        localStorage.getItem(INSTITUTION_KEY);
-
-      const ownerRaw =
-        localStorage.getItem(OWNER_KEY);
-
-      const institution =
-        institutionRaw
-          ? JSON.parse(institutionRaw)
-          : {};
-
-      const owner =
-        ownerRaw
-          ? JSON.parse(ownerRaw)
-          : {};
-
-      const resolvedEmail =
-        institution?.institutionEmail ||
-        owner?.ownerEmail ||
-        '';
-
-      setEmail(resolvedEmail);
-    } catch {
-      setEmail('');
-    }
-  }, [router]);
-
-  useEffect(() => {
-    if (resendSeconds <= 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setResendSeconds((current) =>
-        current > 0 ? current - 1 : 0,
+    const googleCredential =
+      sessionStorage.getItem(
+        "brx_google_credential",
       );
-    }, 1000);
 
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [resendSeconds]);
-
-  useEffect(() => {
-    if (expiresSeconds <= 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setExpiresSeconds((current) =>
-        current > 0 ? current - 1 : 0,
+    const googleProfile =
+      sessionStorage.getItem(
+        "brx_google_profile",
       );
-    }, 1000);
 
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [expiresSeconds]);
+    const isGoogleOnboarding =
+      Boolean(
+        googleCredential &&
+          googleProfile,
+      );
 
-  const getErrorMessage = (
-    data: any,
-  ) => {
-    return (
-      data?.message ||
-      data?.error ||
-      'Something went wrong. Please try again.'
+    setGoogleMode(
+      isGoogleOnboarding,
     );
-  };
 
-  const sendOtp = async () => {
-    if (!sessionId) {
-      setError(
-        'Registration session not found.',
-      );
-      return;
-    }
-
-    if (resendSeconds > 0) {
-      return;
-    }
-
-    setSending(true);
-    setError('');
-    setMessage('');
-
-    try {
-      const response = await fetch(
-        `${API_URL}/otp/send`,
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-
-          body: JSON.stringify({
-            sessionId,
-            type: 'EMAIL',
-          }),
-        },
-      );
-
-      const data = await response
-        .json()
-        .catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(data),
+    if (isGoogleOnboarding) {
+      const existingGoogleType =
+        sessionStorage.getItem(
+          INSTITUTION_TYPE_KEY,
         );
-      }
-
-      setMessage(
-        data?.message ||
-          'Verification OTP sent to your email.',
-      );
-
-      setResendSeconds(
-        Number(
-          data?.resendAfterSeconds ?? 60,
-        ),
-      );
-
-      setExpiresSeconds(
-        Number(
-          data?.expiresInSeconds ?? 300,
-        ),
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to send OTP.',
-      );
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const verifyOtp = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-
-    if (!sessionId) {
-      setError(
-        'Registration session not found.',
-      );
-      return;
-    }
-
-    const cleanOtp =
-      otp.trim();
-
-    if (!/^\d{6}$/.test(cleanOtp)) {
-      setError(
-        'Please enter the 6-digit OTP.',
-      );
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      const response = await fetch(
-        `${API_URL}/otp/verify`,
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-
-          body: JSON.stringify({
-            sessionId,
-            type: 'EMAIL',
-            otp: cleanOtp,
-          }),
-        },
-      );
-
-      const data =
-        (await response
-          .json()
-          .catch(() => null)) as VerificationResponse | null;
-
-      if (!response.ok) {
-        throw new Error(
-          getErrorMessage(data),
-        );
-      }
-
-      const verification =
-        data?.verification;
-
-      localStorage.setItem(
-        VERIFIED_KEY,
-        JSON.stringify(
-          verification ?? {
-            emailVerified: true,
-            mobileVerified: false,
-            completed: true,
-          },
-        ),
-      );
-
-      setMessage(
-        data?.message ||
-          'Email verified successfully.',
-      );
-
-      setExpiresSeconds(0);
 
       if (
-        verification?.completed
+        existingGoogleType &&
+        institutionTypes.some(
+          (item) =>
+            item.value ===
+            existingGoogleType,
+        )
       ) {
-        window.setTimeout(() => {
-          router.push(
-            '/register/setup',
-          );
-        }, 500);
-
-        return;
+        setSelectedType(
+          existingGoogleType as InstitutionType,
+        );
       }
+    } else {
+      const existingType =
+        localStorage.getItem(
+          REGISTRATION_TYPE_KEY,
+        );
 
-      router.push(
-        '/register/setup',
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Unable to verify OTP.',
-      );
-    } finally {
-      setLoading(false);
+      if (
+        existingType &&
+        institutionTypes.some(
+          (item) =>
+            item.value === existingType,
+        )
+      ) {
+        setSelectedType(
+          existingType as InstitutionType,
+        );
+      }
     }
+
+    setLoading(false);
+  }, []);
+
+  const continueRegistration = () => {
+    if (!selectedType) {
+      return;
+    }
+
+    if (googleMode) {
+      sessionStorage.setItem(
+        INSTITUTION_TYPE_KEY,
+        selectedType,
+      );
+
+      sessionStorage.setItem(
+        "brx_google_registration_started",
+        "true",
+      );
+    } else {
+      localStorage.setItem(
+        REGISTRATION_TYPE_KEY,
+        selectedType,
+      );
+
+      localStorage.setItem(
+        INSTITUTION_TYPE_KEY,
+        selectedType,
+      );
+    }
+
+    router.push("/register/owner");
   };
 
-  if (!sessionId) {
+  const goToLogin = () => {
+    router.push("/login");
+  };
+
+  if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <p className="text-slate-500">
-          Loading verification...
-        </p>
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07112f] px-4">
+        <div className="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-500/20 blur-[100px]" />
+
+        <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-indigo-500/20 blur-[100px]" />
+
+        <div className="relative rounded-2xl border border-white/10 bg-white/[0.06] px-6 py-5 text-sm text-slate-300 backdrop-blur-xl">
+          Loading registration...
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white px-4 py-10">
-      <div className="mx-auto w-full max-w-md">
+    <main className="relative min-h-screen overflow-hidden bg-[#07112f] px-4 py-8 sm:px-6 sm:py-12">
+      {/* Background */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-blue-500/20 blur-[120px]" />
 
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/15 text-2xl">
-            ✉️
-          </div>
+        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-500/20 blur-[130px]" />
 
-          <h1 className="text-2xl font-bold">
-            Verify your email
-          </h1>
+        <div className="absolute left-1/2 top-1/2 h-[320px] w-[320px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[100px]" />
+      </div>
 
-          <p className="mt-2 text-sm text-slate-400">
-            We sent a 6-digit verification
-            code to your email address.
-          </p>
-        </div>
+      {/* Grid */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)",
+          backgroundSize: "45px 45px",
+        }}
+      />
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl">
-
-          <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-xs text-slate-500">
-              Verification email
-            </p>
-
-            <p className="mt-1 break-all font-medium text-white">
-              {email || 'Your registration email'}
-            </p>
-          </div>
-
-          {message && (
-            <div
-              className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-300"
-              role="status"
-            >
-              {message}
-            </div>
-          )}
-
-          {error && (
-            <div
-              className="mb-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300"
-              role="alert"
-            >
-              {error}
-            </div>
-          )}
-
-          <form
-            onSubmit={verifyOtp}
-            className="space-y-5"
-          >
-            <div>
-              <label
-                htmlFor="otp"
-                className="mb-2 block text-sm font-medium text-slate-200"
-              >
-                Email OTP
-              </label>
-
-              <input
-                id="otp"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={otp}
-                onChange={(event) =>
-                  setOtp(
-                    event.target.value
-                      .replace(/\D/g, '')
-                      .slice(0, 6),
-                  )
-                }
-                placeholder="Enter 6-digit OTP"
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-center text-xl tracking-[0.4em] text-white outline-none transition focus:border-indigo-400"
-              />
-            </div>
-
-            {expiresSeconds > 0 && (
-              <p className="text-center text-xs text-slate-400">
-                OTP expires in{' '}
-                <span className="font-semibold text-slate-200">
-                  {Math.floor(
-                    expiresSeconds / 60,
-                  )}
-                  :
-                  {String(
-                    expiresSeconds % 60,
-                  ).padStart(2, '0')}
-                </span>
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                otp.length !== 6
-              }
-              className="w-full rounded-xl bg-indigo-500 px-4 py-3 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading
-                ? 'Verifying...'
-                : 'Verify Email'}
-            </button>
-          </form>
-
-          <div className="mt-5 text-center">
-            <button
-              type="button"
-              disabled={
-                sending ||
-                resendSeconds > 0
-              }
-              onClick={sendOtp}
-              className="text-sm font-medium text-indigo-300 transition hover:text-indigo-200 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {sending
-                ? 'Sending...'
-                : resendSeconds > 0
-                  ? `Resend OTP in ${resendSeconds}s`
-                  : 'Send OTP again'}
-            </button>
-          </div>
-
+      <div className="relative mx-auto w-full max-w-5xl">
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between gap-4">
           <button
             type="button"
             onClick={() =>
-              router.push(
-                '/register/owner',
-              )
+              router.push("/")
             }
-            className="mt-6 w-full text-sm text-slate-500 transition hover:text-slate-300"
+            className="flex items-center gap-3"
           >
-            ← Back to registration
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur-xl">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 text-xs font-black text-white">
+                B
+              </div>
+            </div>
+
+            <div className="text-left">
+              <p className="text-base font-bold text-white">
+                BRX EduNexa
+              </p>
+
+              <p className="text-xs text-blue-200/60">
+                Education Management
+              </p>
+            </div>
           </button>
+
+          <button
+            type="button"
+            onClick={goToLogin}
+            className="rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            Already have an account?
+            <span className="ml-1 text-blue-300">
+              Sign in
+            </span>
+          </button>
+        </div>
+
+        {/* Main Card */}
+        <div className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] shadow-[0_30px_100px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+          <div className="p-6 sm:p-10 lg:p-12">
+            {/* Progress */}
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                1
+              </div>
+
+              <div className="h-px flex-1 bg-white/10" />
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm font-bold text-slate-500">
+                2
+              </div>
+
+              <div className="h-px flex-1 bg-white/10" />
+
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-sm font-bold text-slate-500">
+                3
+              </div>
+            </div>
+
+            {/* Heading */}
+            <div className="mb-8">
+              <p className="text-xs font-bold tracking-[0.2em] text-blue-300">
+                CREATE YOUR ACCOUNT
+              </p>
+
+              <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                {googleMode
+                  ? "Complete your BRX EduNexa setup"
+                  : "Create your institution"}
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+                {googleMode
+                  ? "Your Google account is verified. First choose what type of institution you are creating."
+                  : "Tell us what type of institution or education organization you want to manage with BRX EduNexa."}
+              </p>
+            </div>
+
+            {/* Google verified banner */}
+            {googleMode && (
+              <div className="mb-7 flex items-start gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
+                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+                  ✓
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-emerald-200">
+                    Google account verified
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-emerald-200/60">
+                    Continue with your institution
+                    details below. Your Google
+                    verification will be used later
+                    in the account creation process.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Institution Types */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {institutionTypes.map(
+                (item) => {
+                  const active =
+                    selectedType ===
+                    item.value;
+
+                  return (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() =>
+                        setSelectedType(
+                          item.value,
+                        )
+                      }
+                      className={`group relative min-h-[170px] rounded-3xl border p-5 text-left transition ${
+                        active
+                          ? "border-blue-400/60 bg-blue-500/10 shadow-[0_0_35px_rgba(59,130,246,0.12)]"
+                          : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      {/* Selected */}
+                      {active && (
+                        <span className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+                          ✓
+                        </span>
+                      )}
+
+                      {/* Icon */}
+                      <div
+                        className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl text-2xl transition ${
+                          active
+                            ? "bg-blue-500/15"
+                            : "bg-white/[0.06] group-hover:bg-white/[0.09]"
+                        }`}
+                      >
+                        {item.icon}
+                      </div>
+
+                      <h2
+                        className={`text-lg font-bold ${
+                          active
+                            ? "text-white"
+                            : "text-slate-200"
+                        }`}
+                      >
+                        {item.title}
+                      </h2>
+
+                      <p className="mt-2 text-xs leading-5 text-slate-500">
+                        {item.description}
+                      </p>
+                    </button>
+                  );
+                },
+              )}
+            </div>
+
+            {/* Selected type */}
+            {selectedType && (
+              <div className="mt-6 rounded-2xl border border-blue-400/15 bg-blue-500/[0.06] px-4 py-3">
+                <p className="text-xs text-slate-500">
+                  Selected organization type
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-blue-200">
+                  {
+                    institutionTypes.find(
+                      (item) =>
+                        item.value ===
+                        selectedType,
+                    )?.title
+                  }
+                </p>
+              </div>
+            )}
+
+            {/* Continue */}
+            <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={goToLogin}
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={continueRegistration}
+                disabled={!selectedType}
+                className="rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Continue
+                <span className="ml-2">
+                  →
+                </span>
+              </button>
+            </div>
+
+            {/* Footer note */}
+            <div className="mt-8 border-t border-white/10 pt-6">
+              <p className="text-center text-xs leading-5 text-slate-500">
+                Teachers, staff and students are
+                <span className="font-semibold text-slate-400">
+                  {" "}not created during registration.
+                </span>
+                {" "}
+                They will be managed later from
+                your institution dashboard.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   );
-} 
+}

@@ -195,127 +195,141 @@ export default function LoginPage() {
           }, [resendCountdown]);
 
 
-  // ============================================
-  // GOOGLE LOGIN
-  // ============================================
+          // ============================================
+          // GOOGLE LOGIN
+          // ============================================
 
-  const handleGoogleLogin =
-    async (
-      credential: string,
-    ) => {
-      setLoading(true);
-      setError("");
+            const handleGoogleLogin = async (
+            credential: string,
+          ) => {
+            if (loading) {
+              return;
+            }
 
-      try {
-        const response =
-          await fetch(
-            `${API_URL}/auth/google`,
-            {
-              method: "POST",
+            setLoading(true);
+            setError("");
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+            try {
+              const response = await fetch(
+                `${API_URL}/auth/google`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    credential,
+                  }),
+                },
+              );
 
-              body: JSON.stringify({
-                credential,
-              }),
-            },
-          );
+              const data = await response.json();
 
-        const data =
-          await response.json();
+              if (!response.ok) {
+                throw new Error(
+                  getErrorMessage(
+                    data,
+                    "Google login failed.",
+                  ),
+                );
+              }
 
-        if (!response.ok) {
-          throw new Error(
-            getErrorMessage(
-              data,
-              "Google login failed",
-            ),
-          );
-        }
+              /*
+              * ==========================================
+              * NEW GOOGLE USER
+              * ==========================================
+              */
 
-        // ========================================
-        // NEW GOOGLE USER
-        // ========================================
+              if (data?.requiresOnboarding) {
+                sessionStorage.setItem(
+                  "brx_google_credential",
+                  credential,
+                );
 
-        if (
-          data.requiresOnboarding
-        ) {
-          sessionStorage.setItem(
-            "brx_google_credential",
-            credential,
-          );
+                sessionStorage.setItem(
+                  "brx_google_profile",
+                  JSON.stringify(
+                    data.googleProfile ?? {},
+                  ),
+                );
 
-          sessionStorage.setItem(
-            "brx_google_profile",
-            JSON.stringify(
-              data.googleProfile ?? {},
-            ),
-          );
+                /*
+                * New Google users must complete
+                * institution/owner registration.
+                */
+                router.push("/register");
 
-          router.push(
-            "/register",
-          );
+                return;
+              }
 
-          return;
-        }
+              /*
+              * ==========================================
+              * EXISTING GOOGLE USER
+              * ==========================================
+              */
 
-        // ========================================
-        // EXISTING GOOGLE USER
-        // ========================================
+              const token =
+                data?.accessToken;
 
-        const token =
-          data.accessToken;
+              if (!token) {
+                throw new Error(
+                  "BRX did not receive an access token.",
+                );
+              }
 
-        if (!token) {
-          throw new Error(
-            "BRX did not receive an access token.",
-          );
-        }
+              const user =
+                data?.user;
 
-        saveAuthToken(token);
+              if (!user?.role) {
+                throw new Error(
+                  "BRX could not determine your account role.",
+                );
+              }
 
-        clearGoogleOnboardingStorage();
+              /*
+              * Save authenticated session.
+              */
+              saveAuthToken(token);
 
-        const profileResponse =
-          await fetch(
-            `${API_URL}/users/me`,
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            },
-          );
+              /*
+              * Remove any unfinished Google
+              * onboarding state.
+              */
+              clearGoogleOnboardingStorage();
 
-        const profileData =
-          await profileResponse.json();
+              /*
+              * Make sure the account is active.
+              */
+              if (user.status !== "ACTIVE") {
+                localStorage.removeItem(
+                  "brx_access_token",
+                );
 
-        if (!profileResponse.ok) {
-          throw new Error(
-            getErrorMessage(
-              profileData,
-              "Unable to load user profile",
-            ),
-          );
-        }
+                document.cookie =
+                  "brx_access_token=; path=/; Max-Age=0; SameSite=Lax";
 
-        redirectByRole(
-          router,
-          profileData?.role,
-        );
-      } catch (error) {
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Google login failed",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+                throw new Error(
+                  "Your BRX EduNexa account is not active.",
+                );
+              }
+
+              /*
+              * Role-based dashboard redirect.
+              */
+              redirectByRole(
+                router,
+                user.role,
+              );
+            } catch (error) {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Google login failed.",
+              );
+            } finally {
+              setLoading(false);
+            }
+          };
 
   // ============================================
   // EMAIL / BRX UID LOGIN

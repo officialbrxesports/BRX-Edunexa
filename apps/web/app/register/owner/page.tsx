@@ -3,8 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api";
+
+type InstitutionType =
+  | "SCHOOL"
+  | "COLLEGE"
+  | "UNIVERSITY"
+  | "COACHING"
+  | "INSTITUTE"
+  | "OTHER";
 
 type GoogleProfile = {
   email?: string;
@@ -13,7 +20,19 @@ type GoogleProfile = {
   name?: string;
 };
 
-const institutionLabels: Record<string, string> = {
+type RegistrationResponse = {
+  success?: boolean;
+  message?: string;
+  session?: {
+    id?: string;
+    emailVerified?: boolean;
+  };
+  sessionId?: string;
+  requiresPassword?: boolean;
+  googleVerified?: boolean;
+};
+
+const institutionLabels: Record<InstitutionType, string> = {
   SCHOOL: "School",
   COLLEGE: "College",
   UNIVERSITY: "University",
@@ -22,1068 +41,817 @@ const institutionLabels: Record<string, string> = {
   OTHER: "Other",
 };
 
+const designations = [
+  "Owner",
+  "Founder",
+  "Co-Founder",
+  "Director",
+  "Managing Director",
+  "Principal",
+  "Chairman",
+  "Chairperson",
+  "Administrator",
+  "Head",
+  "Dean",
+  "Registrar",
+  "Secretary",
+  "Manager",
+  "Proprietor",
+  "Trustee",
+  "Other",
+];
+
+const inputClass =
+  "mt-2 w-full rounded-2xl border border-white/10 bg-[#0b1227] px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/70 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60";
+
+const labelClass = "text-sm font-medium text-slate-300";
+
 export default function OwnerRegistrationPage() {
   const router = useRouter();
 
   const [institutionType, setInstitutionType] =
-    useState("");
+    useState<InstitutionType | "">("");
 
-  const [isGoogleOnboarding, setIsGoogleOnboarding] =
-    useState(false);
-
-  const [googleCredential, setGoogleCredential] =
-    useState("");
+  const [googleMode, setGoogleMode] = useState(false);
+  const [googleCredential, setGoogleCredential] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Institution
-  const [institutionName, setInstitutionName] =
-    useState("");
-  const [institutionPhone, setInstitutionPhone] =
-    useState("");
-  const [institutionEmail, setInstitutionEmail] =
-    useState("");
-  const [country, setCountry] =
-    useState("India");
-  const [state, setState] =
-    useState("");
-  const [city, setCity] =
-    useState("");
-  const [address, setAddress] =
-    useState("");
-  const [website, setWebsite] =
-    useState("");
+  // Institution details
+  const [institutionName, setInstitutionName] = useState("");
+  const [institutionPhone, setInstitutionPhone] = useState("");
+  const [institutionEmail, setInstitutionEmail] = useState("");
 
-  // Optional institution setup
-  const [establishedYear, setEstablishedYear] =
-    useState("");
-  const [registrationNumber, setRegistrationNumber] =
-    useState("");
-  const [gstin, setGstin] =
-    useState("");
+  const [country, setCountry] = useState("India");
+  const [state, setState] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("");
+  const [pinCode, setPinCode] = useState("");
 
-  // HEAD / Owner
-  const [firstName, setFirstName] =
-    useState("");
-  const [lastName, setLastName] =
-    useState("");
-  const [ownerPhone, setOwnerPhone] =
-    useState("");
-  const [ownerEmail, setOwnerEmail] =
-    useState("");
-  const [password, setPassword] =
-    useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [postOffice, setPostOffice] = useState("");
+  const [policeStation, setPoliceStation] = useState("");
+  const [area, setArea] = useState("");
+  const [street, setStreet] = useState("");
+  const [building, setBuilding] = useState("");
+  const [landmark, setLandmark] = useState("");
+
+  const [address, setAddress] = useState("");
+  const [website, setWebsite] = useState("");
+
+  const [establishedYear, setEstablishedYear] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [gstin, setGstin] = useState("");
+
+  // HEAD details
+  const [designation, setDesignation] = useState("Owner");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
 
   useEffect(() => {
-    try {
-      const storedType =
-        sessionStorage.getItem(
-          "brx_institution_type",
-        ) ||
-        localStorage.getItem(
-          "brx_registration_type",
-        );
+    const storedType =
+      sessionStorage.getItem("brx_institution_type") ||
+      localStorage.getItem("brx_registration_type");
 
-      if (!storedType) {
-        router.replace("/register");
-        return;
+    if (
+      !storedType ||
+      !Object.prototype.hasOwnProperty.call(
+        institutionLabels,
+        storedType.toUpperCase(),
+      )
+    ) {
+      router.replace("/register");
+      return;
+    }
+
+    setInstitutionType(storedType.toUpperCase() as InstitutionType);
+
+    const credential = sessionStorage.getItem("brx_google_credential");
+    const profileRaw = sessionStorage.getItem("brx_google_profile");
+
+    setGoogleMode(Boolean(credential && profileRaw));
+
+    if (credential) {
+      setGoogleCredential(credential);
+    }
+
+    if (profileRaw) {
+      try {
+        const profile: GoogleProfile = JSON.parse(profileRaw);
+
+        setFirstName((previous) => previous || profile.given_name || "");
+        setLastName((previous) => previous || profile.family_name || "");
+        setOwnerEmail((previous) => previous || profile.email || "");
+      } catch {
+        // Ignore invalid saved Google profile.
       }
+    }
 
-      setInstitutionType(
-        storedType.trim().toUpperCase(),
+    try {
+      const institutionRaw = localStorage.getItem(
+        "brx_institution_details",
       );
 
-      const credential =
-        sessionStorage.getItem(
-          "brx_google_credential",
+      if (institutionRaw) {
+        const data = JSON.parse(institutionRaw);
+
+        setInstitutionName(data.institutionName ?? "");
+        setInstitutionPhone(data.institutionPhone ?? data.phone ?? "");
+        setInstitutionEmail(data.institutionEmail ?? data.email ?? "");
+        setCountry(data.country ?? "India");
+        setState(data.state ?? "");
+        setDistrict(data.district ?? "");
+        setCity(data.city ?? "");
+        setPinCode(data.pinCode ?? "");
+        setPostOffice(data.postOffice ?? "");
+        setPoliceStation(data.policeStation ?? "");
+        setArea(data.area ?? "");
+        setStreet(data.street ?? "");
+        setBuilding(data.building ?? "");
+        setLandmark(data.landmark ?? "");
+        setAddress(data.address ?? "");
+        setWebsite(data.website ?? "");
+        setEstablishedYear(
+          data.establishedYear
+            ? String(data.establishedYear)
+            : "",
         );
-
-      const profileRaw =
-        sessionStorage.getItem(
-          "brx_google_profile",
-        );
-
-      const googleMode =
-        Boolean(credential && profileRaw);
-
-      setIsGoogleOnboarding(googleMode);
-
-      if (credential) {
-        setGoogleCredential(credential);
+        setRegistrationNumber(data.registrationNumber ?? "");
+        setGstin(data.gstin ?? "");
       }
 
-      if (profileRaw) {
-        try {
-          const profile: GoogleProfile =
-            JSON.parse(profileRaw);
+      const ownerRaw = localStorage.getItem("brx_owner_details");
 
-          if (profile.given_name) {
-            setFirstName(profile.given_name);
-          }
+      if (ownerRaw) {
+        const data = JSON.parse(ownerRaw);
 
-          if (profile.family_name) {
-            setLastName(profile.family_name);
-          }
-
-          if (
-            profile.email &&
-            !ownerEmail
-          ) {
-            setOwnerEmail(profile.email);
-          }
-        } catch {
-          // Ignore invalid Google profile.
-        }
-      }
-
-      const storedInstitution =
-        localStorage.getItem(
-          "brx_institution_details",
-        );
-
-      if (storedInstitution) {
-        try {
-          const data =
-            JSON.parse(storedInstitution);
-
-          setInstitutionName(
-            data.institutionName ?? "",
-          );
-          setInstitutionPhone(
-            data.phone ?? "",
-          );
-          setInstitutionEmail(
-            data.email ?? "",
-          );
-          setCountry(
-            data.country ?? "India",
-          );
-          setState(data.state ?? "");
-          setCity(data.city ?? "");
-          setAddress(data.address ?? "");
-          setWebsite(data.website ?? "");
-          setEstablishedYear(
-            data.establishedYear
-              ? String(data.establishedYear)
-              : "",
-          );
-          setRegistrationNumber(
-            data.registrationNumber ?? "",
-          );
-          setGstin(data.gstin ?? "");
-        } catch {
-          // Ignore invalid saved data.
-        }
-      }
-
-      const storedOwner =
-        localStorage.getItem(
-          "brx_owner_details",
-        );
-
-      if (storedOwner) {
-        try {
-          const data =
-            JSON.parse(storedOwner);
-
-          setFirstName(
-            data.firstName ?? "",
-          );
-          setLastName(
-            data.lastName ?? "",
-          );
-          setOwnerPhone(
-            data.phone ?? "",
-          );
-          setOwnerEmail(
-            data.email ?? "",
-          );
-        } catch {
-          // Ignore invalid saved data.
-        }
+        setDesignation(data.designation ?? "Owner");
+        setFirstName((previous) => previous || data.firstName || "");
+        setLastName((previous) => previous || data.lastName || "");
+        setOwnerPhone(data.ownerPhone ?? data.phone ?? "");
+        setOwnerEmail((previous) => previous || data.ownerEmail || data.email || "");
       }
     } catch {
-      router.replace("/register");
+      // Ignore invalid saved form data.
     }
   }, [router]);
 
-  const validateCommon = () => {
+  function validateForm(): string {
     if (!institutionType) {
       return "Please select an institution type.";
     }
 
     if (institutionName.trim().length < 2) {
-      return "Please enter your institution name.";
+      return "Please enter the institution name.";
     }
 
-    if (
-      institutionPhone.trim().length < 10
-    ) {
+    if (institutionPhone.replace(/\D/g, "").length < 10) {
       return "Please enter a valid institution phone number.";
     }
 
-    if (!institutionEmail.trim()) {
-      return "Please enter your institution email.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(institutionEmail.trim())) {
+      return "Please enter a valid institution email.";
+    }
+
+    if (country.trim().length < 2) {
+      return "Please enter the country.";
     }
 
     if (state.trim().length < 2) {
-      return "Please enter your state.";
+      return "Please enter the state.";
+    }
+
+    if (!designation.trim()) {
+      return "Please select the HEAD designation.";
     }
 
     if (firstName.trim().length < 2) {
       return "Please enter the HEAD first name.";
     }
 
-    if (
-      ownerPhone.trim().length < 10
-    ) {
-      return "Please enter the HEAD mobile number.";
+    if (ownerPhone.replace(/\D/g, "").length < 10) {
+      return "Please enter a valid HEAD mobile number.";
+    }
+
+    if (!googleMode) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail.trim())) {
+        return "Please enter a valid HEAD email.";
+      }
+
+      if (
+        ownerEmail.trim().toLowerCase() ===
+        institutionEmail.trim().toLowerCase()
+      ) {
+        return "Use a separate email for the institution and the HEAD account.";
+      }
+    }
+
+    if (website.trim()) {
+      try {
+        const parsed = new URL(website.trim());
+
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          return "Website must start with http:// or https://.";
+        }
+      } catch {
+        return "Please enter a valid website URL.";
+      }
+    }
+
+    if (establishedYear.trim()) {
+      const year = Number(establishedYear);
+
+      if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+        return "Established year must be between 2000 and 2100.";
+      }
     }
 
     return "";
-  };
+  }
 
-  const validateNormal = () => {
-    const commonError = validateCommon();
+  function saveDetails() {
+    const institution = {
+      institutionType,
+      institutionName: institutionName.trim(),
+      institutionPhone: institutionPhone.trim(),
+      institutionEmail: institutionEmail.trim().toLowerCase(),
+      country: country.trim(),
+      state: state.trim(),
+      district: district.trim(),
+      city: city.trim(),
+      pinCode: pinCode.trim(),
+      postOffice: postOffice.trim(),
+      policeStation: policeStation.trim(),
+      area: area.trim(),
+      street: street.trim(),
+      building: building.trim(),
+      landmark: landmark.trim(),
+      address: address.trim(),
+      website: website.trim(),
+      establishedYear: establishedYear
+        ? Number(establishedYear)
+        : undefined,
+      registrationNumber: registrationNumber.trim(),
+      gstin: gstin.trim().toUpperCase(),
+    };
 
-    if (commonError) {
-      return commonError;
-    }
+    const owner = {
+      designation,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      ownerPhone: ownerPhone.trim(),
+      ownerEmail: ownerEmail.trim().toLowerCase(),
+    };
 
-    if (!ownerEmail.trim()) {
-      return "Please enter the HEAD email.";
-    }
-
-    if (password.length < 8) {
-      return "Password must be at least 8 characters.";
-    }
-
-    if (password !== confirmPassword) {
-      return "Passwords do not match.";
-    }
-
-    return "";
-  };
-
-  const saveDetails = () => {
     localStorage.setItem(
       "brx_institution_details",
-      JSON.stringify({
-        institutionType,
-        institutionName:
-          institutionName.trim(),
-        phone:
-          institutionPhone.trim(),
-        email:
-          institutionEmail.trim().toLowerCase(),
-        country:
-          country.trim(),
-        state:
-          state.trim(),
-        city:
-          city.trim(),
-        address:
-          address.trim(),
-        website:
-          website.trim(),
-        establishedYear:
-          establishedYear
-            ? Number(establishedYear)
-            : undefined,
-        registrationNumber:
-          registrationNumber.trim(),
-        gstin:
-          gstin.trim(),
-      }),
+      JSON.stringify(institution),
     );
 
     localStorage.setItem(
       "brx_owner_details",
-      JSON.stringify({
-        firstName:
-          firstName.trim(),
-        lastName:
-          lastName.trim(),
-        phone:
-          ownerPhone.trim(),
-        email:
-          ownerEmail.trim().toLowerCase(),
-      }),
+      JSON.stringify(owner),
     );
-  };
 
-  const submitNormalRegistration =
-    async () => {
-      const validationError =
-        validateNormal();
+    return { institution, owner };
+  }
 
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      setLoading(true);
-      setError("");
-
-      try {
-        saveDetails();
-
-        const response = await fetch(
-          `${API_URL}/registration/session`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              institutionType,
-              institutionName:
-                institutionName.trim(),
-              phone:
-                institutionPhone.trim(),
-              email:
-                institutionEmail
-                  .trim()
-                  .toLowerCase(),
-              country:
-                country.trim(),
-              state:
-                state.trim(),
-              city:
-                city.trim() || undefined,
-              address:
-                address.trim() || undefined,
-              website:
-                website.trim() || undefined,
-
-              firstName:
-                firstName.trim(),
-              lastName:
-                lastName.trim() || undefined,
-              ownerPhone:
-                ownerPhone.trim(),
-              ownerEmail:
-                ownerEmail
-                  .trim()
-                  .toLowerCase(),
-              password,
-
-              establishedYear:
-                establishedYear
-                  ? Number(establishedYear)
-                  : undefined,
-              registrationNumber:
-                registrationNumber.trim() ||
-                undefined,
-              gstin:
-                gstin.trim() || undefined,
-            }),
-          },
-        );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              "Unable to create registration session.",
-          );
-        }
-
-        const sessionId =
-          data?.session?.id;
-
-        if (!sessionId) {
-          throw new Error(
-            "Registration session ID was not returned.",
-          );
-        }
-
-        localStorage.setItem(
-          "brx_registration_session_id",
-          sessionId,
-        );
-
-        localStorage.removeItem(
-          "brx_registration_verified",
-        );
-
-        router.push("/register/verify");
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to continue registration.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const submitGoogleOnboarding =
-    async () => {
-      const validationError =
-        validateCommon();
-
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      if (!googleCredential) {
-        setError(
-          "Google session expired. Please login with Google again.",
-        );
-        return;
-      }
-
-      setLoading(true);
-      setError("");
-
-      try {
-        saveDetails();
-
-        const response = await fetch(
-          `${API_URL}/registration/google`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              credential:
-                googleCredential,
-
-              institutionType,
-
-              institutionName:
-                institutionName.trim(),
-
-              institutionPhone:
-                institutionPhone.trim(),
-
-              institutionEmail:
-                institutionEmail
-                  .trim()
-                  .toLowerCase(),
-
-              country:
-                country.trim(),
-
-              state:
-                state.trim(),
-
-              city:
-                city.trim() || undefined,
-
-              address:
-                address.trim() || undefined,
-
-              website:
-                website.trim() || undefined,
-
-              firstName:
-                firstName.trim(),
-
-              lastName:
-                lastName.trim() || undefined,
-
-              ownerPhone:
-                ownerPhone.trim(),
-            }),
-          },
-        );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data?.message ||
-              "Unable to complete Google onboarding.",
-          );
-        }
-
-        if (data?.accessToken) {
-          localStorage.setItem(
-            "brx_access_token",
-            data.accessToken,
-          );
-
-          document.cookie = `brx_access_token=${encodeURIComponent(
-            data.accessToken,
-          )}; path=/; max-age=604800; samesite=lax`;
-        }
-
-        localStorage.setItem(
-          "brx_registration_result",
-          JSON.stringify(data),
-        );
-
-        sessionStorage.removeItem(
-          "brx_google_credential",
-        );
-
-        sessionStorage.removeItem(
-          "brx_google_profile",
-        );
-
-        sessionStorage.removeItem(
-          "brx_institution_type",
-        );
-
-        localStorage.removeItem(
-          "brx_registration_type",
-        );
-
-        router.push("/register/success");
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to complete Google onboarding.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const handleSubmit = async (
-    event: React.FormEvent,
-  ) => {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (loading) {
+    if (loading) return;
+
+    const validationError = validateForm();
+
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
-    if (isGoogleOnboarding) {
-      await submitGoogleOnboarding();
+    if (googleMode && !googleCredential) {
+      setError("Google session expired. Please start Google registration again.");
       return;
     }
 
-    await submitNormalRegistration();
-  };
+    setLoading(true);
+    setError("");
 
-  const backToInstitution =
-    () => {
-      if (loading) {
-        return;
+    try {
+      const { institution, owner } = saveDetails();
+
+      const commonPayload = {
+        institutionType,
+        institutionName: institution.institutionName,
+        institutionPhone: institution.institutionPhone,
+        institutionEmail: institution.institutionEmail,
+        country: institution.country,
+        state: institution.state,
+
+        district: institution.district || undefined,
+        city: institution.city || undefined,
+        pinCode: institution.pinCode || undefined,
+        postOffice: institution.postOffice || undefined,
+        policeStation: institution.policeStation || undefined,
+        area: institution.area || undefined,
+        street: institution.street || undefined,
+        building: institution.building || undefined,
+        landmark: institution.landmark || undefined,
+        address: institution.address || undefined,
+        website: institution.website || undefined,
+
+        establishedYear: institution.establishedYear,
+        registrationNumber: institution.registrationNumber || undefined,
+        gstin: institution.gstin || undefined,
+
+        designation: owner.designation,
+        firstName: owner.firstName,
+        lastName: owner.lastName || undefined,
+        ownerPhone: owner.ownerPhone,
+      };
+
+      const endpoint = googleMode
+        ? `${API_URL}/registration/google`
+        : `${API_URL}/registration/session`;
+
+      const payload = googleMode
+        ? {
+            ...commonPayload,
+            credential: googleCredential,
+          }
+        : {
+            ...commonPayload,
+            ownerEmail: owner.ownerEmail,
+          };
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data: RegistrationResponse = await response
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok) {
+        const message = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message;
+
+        throw new Error(
+          message || "Unable to create the registration session.",
+        );
       }
 
-      router.push("/register");
-    };
+      const sessionId = data.session?.id ?? data.sessionId;
 
-  const institutionLabel =
-    institutionLabels[
-      institutionType
-    ] ?? "Institution";
+      if (!sessionId) {
+        throw new Error(
+          "The API did not return a registration session ID.",
+        );
+      }
+
+      localStorage.setItem("brx_registration_session_id", sessionId);
+      localStorage.removeItem("brx_registration_verified");
+      localStorage.removeItem("brx_registration_result");
+
+      if (googleMode) {
+        // Google onboarding already verifies the Google email.
+        localStorage.setItem(
+          "brx_registration_verified",
+          JSON.stringify({
+            emailVerified: true,
+            mobileVerified: false,
+            completed: true,
+          }),
+        );
+      }
+
+      router.push("/register/verify");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const institutionLabel = institutionType
+    ? institutionLabels[institutionType]
+    : "Institution";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#07112f] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 h-[450px] w-[450px] rounded-full bg-blue-500/25 blur-[120px]" />
-
-        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-500/25 blur-[120px]" />
-
-        <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-40 -top-40 h-[450px] w-[450px] rounded-full bg-blue-500/20 blur-[120px]" />
+        <div className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full bg-indigo-500/20 blur-[120px]" />
       </div>
 
       <div className="relative mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            type="button"
-            onClick={backToInstitution}
-            disabled={loading}
-            className="mb-6 text-sm font-semibold text-slate-400 transition hover:text-white disabled:opacity-50"
-          >
-            ← Change institution type
-          </button>
+        <button
+          type="button"
+          onClick={() => router.push("/register")}
+          disabled={loading}
+          className="mb-6 text-sm font-semibold text-slate-400 transition hover:text-white disabled:opacity-50"
+        >
+          ← Change institution type
+        </button>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold tracking-[0.2em] text-blue-300">
-                BRX EDUNEXA
-              </p>
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold tracking-[0.2em] text-blue-300">
+              BRX EDUNEXA
+            </p>
 
-              <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-                Institution & HEAD Details
-              </h1>
+            <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
+              Institution & HEAD Details
+            </h1>
 
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                Enter the details of your institution
-                and the person who will manage it as
-                HEAD.
-              </p>
-            </div>
-
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-300">
-              <span className="text-base">
-                {institutionType === "SCHOOL"
-                  ? "🏫"
-                  : institutionType === "COLLEGE"
-                    ? "🎓"
-                    : institutionType ===
-                        "UNIVERSITY"
-                      ? "🏛️"
-                      : institutionType ===
-                          "COACHING"
-                        ? "📚"
-                        : institutionType ===
-                            "INSTITUTE"
-                          ? "🏢"
-                          : "📋"}
-              </span>
-
-              {institutionLabel}
-            </div>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              Register your institution and the primary authority who will
+              manage it. Teacher, staff and student accounts can be managed
+              later by the HEAD.
+            </p>
           </div>
-        </div>
 
-        {isGoogleOnboarding && (
+          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-300">
+            {institutionLabel}
+          </span>
+        </header>
+
+        {googleMode && (
           <div className="mb-6 rounded-2xl border border-blue-400/20 bg-blue-500/[0.08] p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold text-slate-700">
-                G
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-blue-200">
-                  Google account setup
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  Your verified Google account will
-                  become the HEAD account. No separate
-                  password is required.
-                </p>
-              </div>
-            </div>
+            <p className="text-sm font-semibold text-blue-200">
+              Google account setup
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Your Google email is verified. After this step, you will continue
+              to the password/registration flow.
+            </p>
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6"
-        >
-          {/* Institution Details */}
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
-            <div className="mb-7">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
+            <div className="mb-6">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">
-                Step 2A
+                STEP 1
               </p>
-
-              <h2 className="mt-2 text-xl font-bold">
-                Institution Details
-              </h2>
-
+              <h2 className="mt-2 text-xl font-bold">Institution details</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Basic information about your
-                institution.
+                Basic information and location.
               </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-slate-300">
-                  Institution Name *
-                </label>
-
+                <label className={labelClass}>Institution name *</label>
                 <input
+                  required
+                  minLength={2}
                   value={institutionName}
-                  onChange={(event) =>
-                    setInstitutionName(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setInstitutionName(e.target.value)}
                   placeholder="e.g. BRX Public School"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Institution Phone *
-                </label>
-
+                <label className={labelClass}>Institution phone *</label>
                 <input
+                  required
+                  type="tel"
+                  inputMode="numeric"
                   value={institutionPhone}
-                  onChange={(event) =>
-                    setInstitutionPhone(
-                      event.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 15),
-                    )
+                  onChange={(e) =>
+                    setInstitutionPhone(e.target.value.replace(/\D/g, "").slice(0, 15))
                   }
-                  inputMode="tel"
-                  placeholder="Institution phone"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  placeholder="Institution contact number"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Institution Email *
-                </label>
-
+                <label className={labelClass}>Official institution email *</label>
                 <input
+                  required
                   type="email"
                   value={institutionEmail}
-                  onChange={(event) =>
-                    setInstitutionEmail(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setInstitutionEmail(e.target.value)}
                   placeholder="institution@example.com"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Country
-                </label>
-
+                <label className={labelClass}>Country *</label>
                 <input
+                  required
                   value={country}
-                  onChange={(event) =>
-                    setCountry(
-                      event.target.value,
-                    )
-                  }
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  onChange={(e) => setCountry(e.target.value)}
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  State *
-                </label>
-
+                <label className={labelClass}>State *</label>
                 <input
+                  required
                   value={state}
-                  onChange={(event) =>
-                    setState(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setState(e.target.value)}
                   placeholder="e.g. Bihar"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  City
-                </label>
+                <label className={labelClass}>District</label>
+                <input
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="District"
+                  className={inputClass}
+                />
+              </div>
 
+              <div>
+                <label className={labelClass}>City / Town</label>
                 <input
                   value={city}
-                  onChange={(event) =>
-                    setCity(
-                      event.target.value,
-                    )
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City or town"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>PIN code</label>
+                <input
+                  inputMode="numeric"
+                  value={pinCode}
+                  onChange={(e) =>
+                    setPinCode(e.target.value.replace(/\D/g, "").slice(0, 10))
                   }
-                  placeholder="e.g. Patna"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  placeholder="PIN code"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Post office</label>
+                <input
+                  value={postOffice}
+                  onChange={(e) => setPostOffice(e.target.value)}
+                  placeholder="Post office"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Police station</label>
+                <input
+                  value={policeStation}
+                  onChange={(e) => setPoliceStation(e.target.value)}
+                  placeholder="Police station"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Area / Locality</label>
+                <input
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  placeholder="Area or locality"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Street / Road</label>
+                <input
+                  value={street}
+                  onChange={(e) => setStreet(e.target.value)}
+                  placeholder="Street or road"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Building</label>
+                <input
+                  value={building}
+                  onChange={(e) => setBuilding(e.target.value)}
+                  placeholder="Building name or number"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>Landmark</label>
+                <input
+                  value={landmark}
+                  onChange={(e) => setLandmark(e.target.value)}
+                  placeholder="Nearby landmark"
+                  className={inputClass}
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-slate-300">
-                  Address
-                </label>
-
+                <label className={labelClass}>Full address</label>
                 <textarea
-                  value={address}
-                  onChange={(event) =>
-                    setAddress(
-                      event.target.value,
-                    )
-                  }
                   rows={3}
-                  placeholder="Complete institution address"
-                  className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Complete address (optional if entered above)"
+                  className={inputClass}
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="text-sm font-medium text-slate-300">
-                  Website
-                </label>
-
+                <label className={labelClass}>Website (optional)</label>
                 <input
                   type="url"
                   value={website}
-                  onChange={(event) =>
-                    setWebsite(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setWebsite(e.target.value)}
                   placeholder="https://example.com"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
             </div>
           </section>
 
-          {/* Optional Institution Information */}
-          {!isGoogleOnboarding && (
-            <section className="rounded-[28px] border border-white/10 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
-              <div className="mb-7">
+          {!googleMode && (
+            <section className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
+              <div className="mb-6">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">
-                  Optional
+                  OPTIONAL
                 </p>
-
                 <h2 className="mt-2 text-xl font-bold">
-                  Registration Information
+                  Registration information
                 </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  You can provide these details now
-                  or later.
-                </p>
               </div>
 
               <div className="grid gap-5 sm:grid-cols-3">
                 <div>
-                  <label className="text-sm font-medium text-slate-300">
-                    Established Year
-                  </label>
-
+                  <label className={labelClass}>Established year</label>
                   <input
                     type="number"
                     min={2000}
                     max={2100}
                     value={establishedYear}
-                    onChange={(event) =>
-                      setEstablishedYear(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(e) => setEstablishedYear(e.target.value)}
                     placeholder="2020"
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                    className={inputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-300">
-                    Registration Number
-                  </label>
-
+                  <label className={labelClass}>Registration number</label>
                   <input
                     value={registrationNumber}
-                    onChange={(event) =>
-                      setRegistrationNumber(
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Registration no."
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                    onChange={(e) => setRegistrationNumber(e.target.value)}
+                    placeholder="Registration number"
+                    className={inputClass}
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-300">
-                    GSTIN
-                  </label>
-
+                  <label className={labelClass}>GSTIN</label>
                   <input
                     value={gstin}
-                    onChange={(event) =>
-                      setGstin(
-                        event.target.value
-                          .toUpperCase(),
-                      )
-                    }
+                    onChange={(e) => setGstin(e.target.value.toUpperCase())}
                     placeholder="GSTIN"
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                    className={inputClass}
                   />
                 </div>
               </div>
             </section>
           )}
 
-          {/* HEAD Details */}
-          <section className="rounded-[28px] border border-white/10 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
-            <div className="mb-7">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-2xl sm:p-8">
+            <div className="mb-6">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-300">
-                Step 2B
+                STEP 2
               </p>
-
-              <h2 className="mt-2 text-xl font-bold">
-                HEAD / Owner Details
-              </h2>
-
+              <h2 className="mt-2 text-xl font-bold">Primary authority / HEAD</h2>
               <p className="mt-1 text-sm text-slate-500">
-                This person will manage the institution
-                on BRX EduNexa.
+                This person will manage the institution.
               </p>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  First Name *
-                </label>
+                <label className={labelClass}>Designation *</label>
+                <select
+                  required
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  className={inputClass}
+                >
+                  {designations.map((item) => (
+                    <option key={item} value={item} className="bg-[#0b1227]">
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              <div>
+                <label className={labelClass}>First name *</label>
                 <input
+                  required
+                  minLength={2}
                   value={firstName}
-                  onChange={(event) =>
-                    setFirstName(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setFirstName(e.target.value)}
                   placeholder="First name"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  Last Name
-                </label>
-
+                <label className={labelClass}>Last name</label>
                 <input
                   value={lastName}
-                  onChange={(event) =>
-                    setLastName(
-                      event.target.value,
-                    )
-                  }
+                  onChange={(e) => setLastName(e.target.value)}
                   placeholder="Last name"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  HEAD Mobile *
-                </label>
-
+                <label className={labelClass}>HEAD mobile *</label>
                 <input
+                  required
+                  type="tel"
+                  inputMode="numeric"
                   value={ownerPhone}
-                  onChange={(event) =>
-                    setOwnerPhone(
-                      event.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 15),
-                    )
+                  onChange={(e) =>
+                    setOwnerPhone(e.target.value.replace(/\D/g, "").slice(0, 15))
                   }
-                  inputMode="tel"
                   placeholder="HEAD mobile number"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-slate-300">
-                  HEAD Email *
-                </label>
-
+                <label className={labelClass}>HEAD email *</label>
                 <input
+                  required
                   type="email"
                   value={ownerEmail}
-                  onChange={(event) =>
-                    setOwnerEmail(
-                      event.target.value,
-                    )
-                  }
-                  disabled={isGoogleOnboarding}
+                  onChange={(e) => setOwnerEmail(e.target.value)}
+                  disabled={googleMode}
                   placeholder="head@example.com"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
+                  className={inputClass}
                 />
 
-                {isGoogleOnboarding && (
+                {googleMode && (
                   <p className="mt-2 text-xs text-slate-500">
-                    Google verified email
+                    This email comes from your Google account.
                   </p>
                 )}
               </div>
-
-              {!isGoogleOnboarding && (
-                <>
-                  <div>
-                    <label className="text-sm font-medium text-slate-300">
-                      Password *
-                    </label>
-
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(event) =>
-                        setPassword(
-                          event.target.value,
-                        )
-                      }
-                      autoComplete="new-password"
-                      placeholder="Minimum 8 characters"
-                      className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-300">
-                      Confirm Password *
-                    </label>
-
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(event) =>
-                        setConfirmPassword(
-                          event.target.value,
-                        )
-                      }
-                      autoComplete="new-password"
-                      placeholder="Repeat password"
-                      className="mt-2 w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/60 focus:ring-4 focus:ring-blue-500/10"
-                    />
-                  </div>
-                </>
-              )}
             </div>
           </section>
 
-          {/* Error */}
           {error && (
-            <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-300">
+            <div
+              role="alert"
+              className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-300"
+            >
               {error}
             </div>
           )}
 
-          {/* Submit */}
-          <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl sm:p-6">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold">
-                  Ready to continue?
-                </p>
-
+                <p className="font-semibold">Ready to continue?</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
-                  {isGoogleOnboarding
-                    ? "Your verified Google account will be created as the HEAD account."
-                    : "Your registration will be saved as a temporary session before verification."}
+                  {googleMode
+                    ? "Your Google email is already verified."
+                    : "We will create a temporary registration session. Email verification and password setup come next."}
                 </p>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-4 text-sm font-bold shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-blue-600/30 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-4 text-sm font-bold shadow-xl shadow-blue-600/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading
-                  ? isGoogleOnboarding
-                    ? "Creating Account..."
-                    : "Creating Session..."
-                  : isGoogleOnboarding
-                    ? "Create BRX Account →"
-                    : "Continue to Verification →"}
+                  ? "Please wait..."
+                  : googleMode
+                    ? "Continue with Google →"
+                    : "Continue to Email Verification →"}
               </button>
             </div>
           </div>
