@@ -2,6 +2,8 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as nodemailer from 'nodemailer';
 
 import { EmailConfig } from '../email/email.config';
 
@@ -12,104 +14,87 @@ import { registrationOtpEmailTemplate } from '../templates/registration-otp-emai
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(
-    EmailService.name,
-  );
+  private readonly logger = new Logger(EmailService.name);
+
+  private readonly transporter!: nodemailer.Transporter;
 
   constructor(
     private readonly emailConfig: EmailConfig,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const host = this.configService.get<string>('EMAIL_HOST');
+    const port = Number(
+      this.configService.get<string>('EMAIL_PORT') ?? 465,
+    );
+    const user = this.configService.get<string>('EMAIL_USER');
+    const pass = this.configService.get<string>('EMAIL_PASS');
 
-  // ============================================================
-  // Common email sender
-  // ============================================================
+    if (!host || !user || !pass) {
+      this.logger.warn(
+        'Gmail SMTP configuration is incomplete. Email sending is disabled.',
+      );
+      return;
+    }
+
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: {
+        user,
+        pass,
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+    });
+  }
 
   private async sendEmail(params: {
     to: string;
     subject: string;
     html: string;
   }) {
-    const apiKey = this.emailConfig.apiKey;
-
-    if (!apiKey) {
-      this.logger.warn(
-        'RESEND_API_KEY is not configured. Email skipped.',
-      );
-
-      return {
-        sent: false,
-        skipped: true,
-      };
+    if (!this.transporter) {
+      this.logger.warn('Email skipped because Gmail SMTP is not configured.');
+      return { sent: false, skipped: true };
     }
+
+    const fromAddress = this.configService.get<string>('EMAIL_FROM')
+      || this.configService.get<string>('EMAIL_USER');
 
     try {
-      const response = await fetch(
-        'https://api.resend.com/emails',
-        {
-          method: 'POST',
+      const result = await this.transporter.sendMail({
+        from: fromAddress,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      });
 
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-
-          body: JSON.stringify({
-            from: this.emailConfig.from,
-            to: [params.to],
-            subject: params.subject,
-            html: params.html,
-          }),
-        },
+      this.logger.log(
+        `Email accepted by SMTP server. Message ID: ${result.messageId}`,
       );
 
-      if (!response.ok) {
-        const errorText =
-          await response.text();
-
-        this.logger.error(
-          `Email provider error: ${response.status} ${errorText}`,
-        );
-
-        return {
-          sent: false,
-          skipped: false,
-        };
-      }
-
-      return {
-        sent: true,
-        skipped: false,
-      };
+      return { sent: true, skipped: false };
     } catch (error) {
       this.logger.error(
-        'Failed to send email',
-        error instanceof Error
-          ? error.stack
-          : String(error),
+        'Gmail SMTP email delivery failed.',
+        error instanceof Error ? error.stack : String(error),
       );
 
-      return {
-        sent: false,
-        skipped: false,
-      };
+      return { sent: false, skipped: false };
     }
   }
-
-  // ============================================================
-  // Welcome email
-  // ============================================================
 
   async sendWelcomeEmail(params: {
     firstName: string;
     brxUid: string;
     email: string;
   }) {
-    const template =
-      welcomeEmailTemplate({
-        ...params,
-        appUrl:
-          this.emailConfig.appUrl,
-      });
+    const template = welcomeEmailTemplate({
+      ...params,
+      appUrl: this.emailConfig.appUrl,
+    });
 
     return this.sendEmail({
       to: params.email,
@@ -117,10 +102,6 @@ export class EmailService {
       html: template.html,
     });
   }
-
-  // ============================================================
-  // Login alert email
-  // ============================================================
 
   async sendLoginAlertEmail(params: {
     firstName: string;
@@ -133,12 +114,10 @@ export class EmailService {
     ipAddress: string;
     loginTime: string;
   }) {
-    const template =
-      loginAlertEmailTemplate({
-        ...params,
-        appUrl:
-          this.emailConfig.appUrl,
-      });
+    const template = loginAlertEmailTemplate({
+      ...params,
+      appUrl: this.emailConfig.appUrl,
+    });
 
     return this.sendEmail({
       to: params.email,
@@ -146,10 +125,6 @@ export class EmailService {
       html: template.html,
     });
   }
-
-  // ============================================================
-  // Password reset OTP email
-  // ============================================================
 
   async sendPasswordResetOtpEmail(params: {
     firstName: string;
@@ -157,20 +132,12 @@ export class EmailService {
     otp: string;
     expiresInMinutes: number;
   }) {
-    const template =
-      passwordResetOtpEmailTemplate({
-        firstName:
-          params.firstName,
-
-        otp:
-          params.otp,
-
-        expiresInMinutes:
-          params.expiresInMinutes,
-
-        appUrl:
-          this.emailConfig.appUrl,
-      });
+    const template = passwordResetOtpEmailTemplate({
+      firstName: params.firstName,
+      otp: params.otp,
+      expiresInMinutes: params.expiresInMinutes,
+      appUrl: this.emailConfig.appUrl,
+    });
 
     return this.sendEmail({
       to: params.email,
@@ -179,30 +146,18 @@ export class EmailService {
     });
   }
 
-  // ============================================================
-  // Registration email verification OTP
-  // ============================================================
-
   async sendRegistrationOtpEmail(params: {
     firstName: string;
     email: string;
     otp: string;
     expiresInMinutes: number;
   }) {
-    const template =
-      registrationOtpEmailTemplate({
-        firstName:
-          params.firstName,
-
-        otp:
-          params.otp,
-
-        expiresInMinutes:
-          params.expiresInMinutes,
-
-        appUrl:
-          this.emailConfig.appUrl,
-      });
+    const template = registrationOtpEmailTemplate({
+      firstName: params.firstName,
+      otp: params.otp,
+      expiresInMinutes: params.expiresInMinutes,
+      appUrl: this.emailConfig.appUrl,
+    });
 
     return this.sendEmail({
       to: params.email,
