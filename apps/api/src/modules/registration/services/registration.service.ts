@@ -228,7 +228,7 @@ export class RegistrationService {
           gstin:
             dto.gstin?.trim() || null,
 
-          passwordHash: null,
+          passwordHash: '',
 
           mobileVerified: false,
 
