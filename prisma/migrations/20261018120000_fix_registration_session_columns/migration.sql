@@ -1,4 +1,5 @@
 ALTER TABLE "registration_sessions"
+ALTER COLUMN "passwordHash" DROP NOT NULL;
 ADD COLUMN IF NOT EXISTS "district" TEXT,
 ADD COLUMN IF NOT EXISTS "city" TEXT,
 ADD COLUMN IF NOT EXISTS "pinCode" TEXT,
