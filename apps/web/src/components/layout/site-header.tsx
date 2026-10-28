@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { en } from '@/lib/i18n/en';
 
 export function SiteHeader() {
@@ -16,12 +16,12 @@ export function SiteHeader() {
       </nav>
 
       <div className="header-actions">
-        <Link href="/sign-in" className="sign-in-link">
+        <Link href="/login" className="sign-in-link">
           {en.navigation.signIn}
         </Link>
-        <Link href="/sign-in" className="button button-small">
+        <Link href="/login" className="button button-small">
           {en.navigation.getStarted}
-          <span aria-hidden="true"> ↗</span>
+          <span aria-hidden="true"> â†—</span>
         </Link>
       </div>
     </header>
