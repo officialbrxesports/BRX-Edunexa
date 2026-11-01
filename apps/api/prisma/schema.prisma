@@ -7,16 +7,465 @@ datasource db {
   provider = "postgresql"
 }
 
+model assignments {
+  id                                 String           @id
+  title                              String
+  description                        String?
+  status                             AssignmentStatus @default(DRAFT)
+  dueDate                            DateTime?
+  publishedAt                        DateTime?
+  institutionId                      String
+  teacherId                          String
+  classId                            String?
+  sectionId                          String?
+  studentId                          String?
+  createdAt                          DateTime         @default(now())
+  updatedAt                          DateTime
+  classes                            classes?         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  institutions                       institutions     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sections                           sections?        @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  users_assignments_studentIdTousers users?           @relation("assignments_studentIdTousers", fields: [studentId], references: [id], onDelete: Cascade)
+  users_assignments_teacherIdTousers users            @relation("assignments_teacherIdTousers", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([dueDate])
+  @@index([institutionId])
+  @@index([sectionId])
+  @@index([status])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+model attendance {
+  id        String           @id
+  studentId String
+  classId   String
+  sectionId String
+  markedBy  String
+  date      DateTime
+  status    AttendanceStatus
+  createdAt DateTime         @default(now())
+  updatedAt DateTime
+  classes   classes          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sections  sections         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  users     users            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId, sectionId, date])
+  @@index([classId])
+  @@index([date])
+  @@index([markedBy])
+  @@index([sectionId])
+  @@index([studentId])
+}
+
+model classes {
+  id                  String                @id
+  name                String
+  code                String
+  institutionId       String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  assignments         assignments[]
+  attendance          attendance[]
+  institutions        institutions          @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  exams               exams[]
+  fee_plans           fee_plans[]
+  sections            sections[]
+  student_enrollments student_enrollments[]
+  student_fees        student_fees[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+}
+
+model exams {
+  id            String       @id
+  title         String
+  description   String?
+  examDate      DateTime
+  totalMarks    Int
+  passingMarks  Int
+  status        ExamStatus   @default(DRAFT)
+  institutionId String
+  classId       String?
+  sectionId     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  classes       classes?     @relation(fields: [classId], references: [id])
+  institutions  institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sections      sections?    @relation(fields: [sectionId], references: [id])
+  results       results[]
+
+  @@index([classId])
+  @@index([examDate])
+  @@index([institutionId])
+  @@index([sectionId])
+  @@index([status])
+}
+
+model fee_payments {
+  id            String        @id
+  feeId         String
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentDate   DateTime      @default(now())
+  transactionId String?
+  note          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  student_fees  student_fees  @relation(fields: [feeId], references: [id], onDelete: Cascade)
+
+  @@index([feeId])
+  @@index([paymentDate])
+}
+
+model fee_plans {
+  id              String       @id
+  institutionId   String
+  classId         String
+  sectionId       String?
+  name            String
+  description     String?
+  amount          Decimal      @db.Decimal(10, 2)
+  frequency       FeeFrequency
+  customDays      Int?
+  dueDay          Int?
+  lateFeeType     LateFeeType  @default(NONE)
+  lateFeeAmount   Decimal      @default(0) @db.Decimal(10, 2)
+  discountAllowed Boolean      @default(false)
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  classes         classes      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  institutions    institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  sections        sections?    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([frequency])
+  @@index([institutionId])
+  @@index([isActive])
+  @@index([sectionId])
+}
+
+model institutions {
+  id            String            @id
+  name          String
+  code          String            @unique
+  type          InstitutionType
+  status        InstitutionStatus @default(PENDING)
+  country       String
+  state         String
+  city          String?
+  address       String?
+  email         String?
+  phone         String?
+  website       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime
+  details       Json              @default("{}")
+  assignments   assignments[]
+  classes       classes[]
+  exams         exams[]
+  fee_plans     fee_plans[]
+  notifications notifications[]
+  results       results[]
+  users         users[]
+
+  @@index([country])
+  @@index([state])
+  @@index([status])
+  @@index([type])
+}
+
+model login_sessions {
+  id              String    @id
+  userId          String
+  deviceType      String?
+  deviceName      String?
+  browser         String?
+  operatingSystem String?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime  @default(now())
+  lastActiveAt    DateTime  @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  users           users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@index([userId])
+}
+
+model notifications {
+  id                                     String           @id
+  institutionId                          String
+  senderId                               String?
+  recipientId                            String
+  title                                  String
+  message                                String
+  type                                   NotificationType @default(INFO)
+  isRead                                 Boolean          @default(false)
+  readAt                                 DateTime?
+  createdAt                              DateTime         @default(now())
+  updatedAt                              DateTime
+  institutions                           institutions     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  users_notifications_recipientIdTousers users            @relation("notifications_recipientIdTousers", fields: [recipientId], references: [id], onDelete: Cascade)
+  users_notifications_senderIdTousers    users?           @relation("notifications_senderIdTousers", fields: [senderId], references: [id])
+
+  @@index([createdAt])
+  @@index([institutionId])
+  @@index([institutionId, recipientId, isRead])
+  @@index([isRead])
+  @@index([recipientId])
+  @@index([senderId])
+}
+
+model password_reset_otps {
+  id         String    @id
+  userId     String
+  otpHash    String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  verifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+  users      users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model registration_otp_verifications {
+  id                    String                       @id
+  sessionId             String
+  type                  RegistrationVerificationType
+  otpHash               String
+  expiresAt             DateTime
+  attempts              Int                          @default(0)
+  verifiedAt            DateTime?
+  createdAt             DateTime                     @default(now())
+  registration_sessions registration_sessions        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([sessionId])
+  @@index([type])
+}
+
+model registration_sessions {
+  id                             String                           @id
+  institutionType                InstitutionType
+  institutionName                String
+  institutionEmail               String
+  institutionPhone               String
+  country                        String
+  state                          String
+  city                           String?
+  address                        String?
+  website                        String?
+  firstName                      String
+  lastName                       String?
+  ownerEmail                     String
+  ownerPhone                     String
+  passwordHash                   String
+  establishedYear                Int?
+  registrationNumber             String?
+  gstin                          String?
+  mobileVerified                 Boolean                          @default(false)
+  emailVerified                  Boolean                          @default(false)
+  expiresAt                      DateTime
+  completedAt                    DateTime?
+  createdAt                      DateTime                         @default(now())
+  updatedAt                      DateTime
+  registration_otp_verifications registration_otp_verifications[]
+
+  @@index([expiresAt])
+  @@index([institutionEmail])
+  @@index([institutionPhone])
+  @@index([ownerEmail])
+}
+
+model results {
+  id            String       @id
+  marks         Float
+  maxMarks      Float
+  grade         String?
+  remarks       String?
+  status        ResultStatus @default(DRAFT)
+  examId        String
+  studentId     String
+  institutionId String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  exams         exams        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  institutions  institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  users         users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+  @@index([examId])
+  @@index([institutionId])
+  @@index([status])
+  @@index([studentId])
+}
+
+model sections {
+  id                  String                @id
+  name                String
+  code                String
+  classId             String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  assignments         assignments[]
+  attendance          attendance[]
+  exams               exams[]
+  fee_plans           fee_plans[]
+  classes             classes               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student_enrollments student_enrollments[]
+  student_fees        student_fees[]
+
+  @@unique([classId, code])
+  @@index([classId])
+}
+
+model student_enrollments {
+  id        String   @id
+  studentId String
+  classId   String
+  sectionId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  classes   classes  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sections  sections @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId, sectionId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([studentId])
+}
+
+model student_fees {
+  id           String         @id
+  studentId    String
+  classId      String
+  sectionId    String
+  totalAmount  Decimal        @db.Decimal(10, 2)
+  paidAmount   Decimal        @default(0) @db.Decimal(10, 2)
+  dueAmount    Decimal        @db.Decimal(10, 2)
+  dueDate      DateTime
+  status       FeeStatus      @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  fee_payments fee_payments[]
+  classes      classes        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sections     sections       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  users        users          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@index([dueDate])
+  @@index([sectionId])
+  @@index([status])
+  @@index([studentId])
+}
+
+model teacher_students {
+  id                                      String   @id
+  teacherId                               String
+  studentId                               String
+  createdAt                               DateTime @default(now())
+  updatedAt                               DateTime
+  users_teacher_students_studentIdTousers users    @relation("teacher_students_studentIdTousers", fields: [studentId], references: [id], onDelete: Cascade)
+  users_teacher_students_teacherIdTousers users    @relation("teacher_students_teacherIdTousers", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, studentId])
+  @@index([studentId])
+  @@index([teacherId])
+}
+
+model users {
+  id                                                 String                @id
+  email                                              String                @unique
+  passwordHash                                       String
+  firstName                                          String
+  lastName                                           String?
+  phone                                              String?
+  role                                               UserRole
+  status                                             UserStatus            @default(ACTIVE)
+  institutionId                                      String?
+  createdAt                                          DateTime              @default(now())
+  updatedAt                                          DateTime
+  brxUid                                             String                @unique @db.VarChar(32)
+  assignments_assignments_studentIdTousers           assignments[]         @relation("assignments_studentIdTousers")
+  assignments_assignments_teacherIdTousers           assignments[]         @relation("assignments_teacherIdTousers")
+  attendance                                         attendance[]
+  login_sessions                                     login_sessions[]
+  notifications_notifications_recipientIdTousers     notifications[]       @relation("notifications_recipientIdTousers")
+  notifications_notifications_senderIdTousers        notifications[]       @relation("notifications_senderIdTousers")
+  password_reset_otps                                password_reset_otps[]
+  results                                            results[]
+  student_enrollments                                student_enrollments[]
+  student_fees                                       student_fees[]
+  teacher_students_teacher_students_studentIdTousers teacher_students[]    @relation("teacher_students_studentIdTousers")
+  teacher_students_teacher_students_teacherIdTousers teacher_students[]    @relation("teacher_students_teacherIdTousers")
+  institutions                                       institutions?         @relation(fields: [institutionId], references: [id])
+
+  @@index([institutionId])
+  @@index([role])
+  @@index([status])
+}
+
 enum UserRole {
   PLATFORM_ADMIN
   HEAD
   TEACHER
-  STUDENT
   STAFF
-  ADMIN
+  STUDENT
 }
 
-enum InstitutionCategory {
+enum InstitutionStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum AssignmentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
+  CANCELLED
+}
+
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum InstitutionType {
   SCHOOL
   COLLEGE
   UNIVERSITY
@@ -25,456 +474,43 @@ enum InstitutionCategory {
   OTHER
 }
 
-enum InstitutionStatus {
-  PENDING
-  ACTIVE
-  SUSPENDED
+enum LateFeeType {
+  NONE
+  FIXED
+  DAILY
+  PERCENTAGE
 }
 
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  CANCELLED
-  EXPIRED
+enum NotificationType {
+  INFO
+  ANNOUNCEMENT
+  REMINDER
+  SUCCESS
+  WARNING
+  ALERT
 }
 
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  LATE
-  EXCUSED
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  BANK_TRANSFER
+  OTHER
 }
 
-enum AssignmentStatus {
+enum RegistrationVerificationType {
+  MOBILE
+  EMAIL
+}
+
+enum ResultStatus {
   DRAFT
   PUBLISHED
-  CLOSED
 }
 
-enum AuditAction {
-  CREATE
-  UPDATE
-  DELETE
-  LOGIN
-  LOGOUT
-  INVITE
-  INVITE_ACCEPT
-  SUSPEND
-  ACTIVATE
-}
-
-model Institution {
-  id        String            @id
-  name      String
-  idPrefix  String            @unique @db.VarChar(3)
-  category  InstitutionCategory
-  status    InstitutionStatus @default(PENDING)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-
-  profile              InstitutionProfile?
-  users                User[]
-  invitations          Invitation[]
-  classes              ClassRoom[]
-  sections             Section[]
-  subjects             Subject[]
-  enrollments          Enrollment[]
-  teacherAssignments   TeacherAssignment[]
-  attendanceRecords    Attendance[]
-  assignments          Assignment[]
-  submissions          Submission[]
-  exams                Exam[]
-  examResults          ExamResult[]
-  notices              Notice[]
-  notifications        Notification[]
-  passwordResetTokens  PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  rolePermissions      RolePermission[]
-  auditEvents          AuditEvent[]
-
-  @@index([status])
-  @@index([category])
-}
-
-model InstitutionProfile {
-  id             String      @id
-  institutionId  String      @unique
-  address        String?
-  phone          String?
-  contactEmail   String?
-  website        String?
-  timezone       String      @default("Asia/Kolkata")
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-
-  @@index([institutionId])
-}
-
-model User {
-  id              String    @id
-  institutionId   String?
-  name            String
-  email           String    @unique
-  eduNexaId       String?   @unique @db.VarChar(12)
-  passwordHash    String?
-  role            UserRole
-  isActive        Boolean   @default(true)
-  emailVerifiedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  institution           Institution? @relation(fields: [institutionId], references: [id], onDelete: Restrict)
-  sessions              Session[]
-  sentInvitations       Invitation[] @relation("InvitationSender")
-  createdClasses        ClassRoom[]  @relation("ClassCreator")
-  enrollments           Enrollment[] @relation("EnrolledStudent")
-  teacherAssignments    TeacherAssignment[] @relation("AssignedTeacher")
-  attendanceRecords     Attendance[] @relation("AttendanceStudent")
-  markedAttendance      Attendance[] @relation("AttendanceMarker")
-  createdAssignments    Assignment[] @relation("AssignmentCreator")
-  submissions           Submission[] @relation("SubmissionStudent")
-  createdExams          Exam[] @relation("ExamCreator")
-  examResults           ExamResult[] @relation("ExamStudent")
-  createdNotices        Notice[] @relation("NoticeCreator")
-  notifications         Notification[]
-  passwordResetTokens   PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  auditEvents           AuditEvent[] @relation("AuditActor")
-
-  @@index([institutionId])
-  @@index([institutionId, role, isActive])
-}
-
-model Session {
-  id         String    @id
-  userId     String
-  tokenHash  String    @unique
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, expiresAt])
-}
-
-model Invitation {
-  id             String           @id
-  institutionId  String
-  invitedById    String
-  email          String
-  role           UserRole
-  tokenHash      String           @unique
-  status         InvitationStatus @default(PENDING)
-  expiresAt      DateTime
-  acceptedAt     DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  invitedBy   User        @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
-
-  @@index([institutionId])
-  @@index([institutionId, email, status])
-  @@index([expiresAt])
-}
-
-model ClassRoom {
-  id             String   @id
-  institutionId  String
-  name           String
-  createdById    String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  institution       Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  createdBy         User                @relation("ClassCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  sections          Section[]
-  enrollments       Enrollment[]
-  teacherAssignments TeacherAssignment[]
-  attendanceRecords Attendance[]
-  assignments       Assignment[]
-  exams             Exam[]
-
-  @@unique([institutionId, name])
-  @@index([institutionId])
-}
-
-model Section {
-  id             String   @id
-  institutionId  String
-  classRoomId    String
-  name           String
-  createdAt      DateTime @default(now())
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  classRoom   ClassRoom   @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  enrollments Enrollment[]
-
-  @@unique([classRoomId, name])
-  @@index([institutionId])
-}
-
-model Subject {
-  id             String   @id
-  institutionId  String
-  name           String
-  code           String?
-  createdAt      DateTime @default(now())
-
-  institution        Institution         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  teacherAssignments TeacherAssignment[]
-  assignments        Assignment[]
-  exams              Exam[]
-
-  @@unique([institutionId, name])
-  @@index([institutionId])
-}
-
-model Enrollment {
-  id             String   @id
-  institutionId  String
-  studentId      String
-  classRoomId    String
-  sectionId      String?
-  enrolledAt     DateTime @default(now())
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  student     User        @relation("EnrolledStudent", fields: [studentId], references: [id], onDelete: Restrict)
-  classRoom   ClassRoom   @relation(fields: [classRoomId], references: [id], onDelete: Restrict)
-  section     Section?    @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-
-  @@unique([studentId, classRoomId])
-  @@index([institutionId])
-  @@index([institutionId, classRoomId])
-}
-
-model TeacherAssignment {
-  id             String   @id
-  institutionId  String
-  teacherId      String
-  classRoomId    String
-  subjectId      String?
-  createdAt      DateTime @default(now())
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  teacher     User        @relation("AssignedTeacher", fields: [teacherId], references: [id], onDelete: Restrict)
-  classRoom   ClassRoom   @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  subject     Subject?    @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-
-  @@unique([teacherId, classRoomId, subjectId])
-  @@index([institutionId])
-  @@index([institutionId, teacherId])
-}
-
-model Attendance {
-  id             String           @id
-  institutionId  String
-  studentId      String
-  classRoomId    String
-  markedById     String
-  date           DateTime         @db.Date
-  status         AttendanceStatus
-  note           String?
-  createdAt      DateTime         @default(now())
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  student     User        @relation("AttendanceStudent", fields: [studentId], references: [id], onDelete: Restrict)
-  classRoom   ClassRoom   @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  markedBy    User        @relation("AttendanceMarker", fields: [markedById], references: [id], onDelete: Restrict)
-
-  @@unique([studentId, classRoomId, date])
-  @@index([institutionId])
-  @@index([institutionId, date])
-}
-
-model Assignment {
-  id             String           @id
-  institutionId  String
-  classRoomId    String
-  subjectId      String?
-  createdById    String
-  title          String
-  description    String?
-  status         AssignmentStatus @default(DRAFT)
-  dueAt          DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  institution Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  classRoom   ClassRoom    @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  subject     Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  createdBy   User         @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  submissions Submission[]
-
-  @@index([institutionId])
-  @@index([institutionId, classRoomId, status])
-}
-
-model Submission {
-  id             String   @id
-  institutionId  String
-  assignmentId   String
-  studentId      String
-  content        String?
-  submittedAt    DateTime @default(now())
-  score          Decimal? @db.Decimal(7, 2)
-  feedback       String?
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  assignment  Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student     User        @relation("SubmissionStudent", fields: [studentId], references: [id], onDelete: Restrict)
-
-  @@unique([assignmentId, studentId])
-  @@index([institutionId])
-}
-
-model Exam {
-  id             String   @id
-  institutionId  String
-  classRoomId    String
-  subjectId      String?
-  createdById    String
-  title          String
-  startsAt       DateTime?
-  totalMarks     Decimal? @db.Decimal(7, 2)
-  createdAt      DateTime @default(now())
-
-  institution Institution  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  classRoom   ClassRoom    @relation(fields: [classRoomId], references: [id], onDelete: Cascade)
-  subject     Subject?     @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  createdBy   User         @relation("ExamCreator", fields: [createdById], references: [id], onDelete: Restrict)
-  results     ExamResult[]
-
-  @@index([institutionId])
-  @@index([institutionId, startsAt])
-}
-
-model ExamResult {
-  id             String   @id
-  institutionId  String
-  examId         String
-  studentId      String
-  marksObtained  Decimal? @db.Decimal(7, 2)
-  remarks        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  exam        Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student     User        @relation("ExamStudent", fields: [studentId], references: [id], onDelete: Restrict)
-
-  @@unique([examId, studentId])
-  @@index([institutionId])
-}
-
-model Notice {
-  id             String   @id
-  institutionId  String
-  createdById    String
-  title          String
-  body           String
-  publishedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  createdBy   User        @relation("NoticeCreator", fields: [createdById], references: [id], onDelete: Restrict)
-
-  @@index([institutionId])
-  @@index([institutionId, publishedAt])
-}
-
-model Notification {
-  id             String    @id
-  institutionId  String
-  userId         String
-  title          String
-  body           String
-  readAt         DateTime?
-  createdAt      DateTime  @default(now())
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([institutionId])
-  @@index([userId, readAt, createdAt])
-}
-
-model PasswordResetToken {
-  id             String   @id
-  institutionId  String?
-  userId         String
-  tokenHash      String   @unique
-  expiresAt      DateTime
-  usedAt         DateTime?
-  createdAt      DateTime @default(now())
-
-  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([institutionId])
-  @@index([userId, expiresAt])
-}
-
-model EmailVerificationToken {
-  id             String   @id
-  institutionId  String?
-  userId         String
-  tokenHash      String   @unique
-  expiresAt      DateTime
-  usedAt         DateTime?
-  createdAt      DateTime @default(now())
-
-  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([institutionId])
-  @@index([userId, expiresAt])
-}
-
-model Feature {
-  id          String   @id
-  key         String   @unique
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-
-  rolePermissions RolePermission[]
-}
-
-model RolePermission {
-  id             String   @id
-  institutionId  String
-  role           UserRole
-  featureId      String
-  enabled        Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
-  feature     Feature     @relation(fields: [featureId], references: [id], onDelete: Cascade)
-
-  @@unique([institutionId, role, featureId])
-  @@index([institutionId])
-}
-
-model AuditEvent {
-  id             String      @id
-  institutionId  String?
-  actorId        String?
-  action         AuditAction
-  entityType     String
-  entityId       String?
-  metadata       Json?
-  createdAt      DateTime    @default(now())
-
-  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
-  actor       User?        @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  @@index([institutionId])
-  @@index([institutionId, createdAt])
-  @@index([actorId, createdAt])
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INVITED
+  DELETED
 }
