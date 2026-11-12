@@ -129,8 +129,17 @@ function getPasswordStrength(password: string) {
   return { score, label: "Strong password" };
 }
 
-export default function InstitutionRegistrationForm() {
-  const [form, setForm] = useState<RegistrationForm>(initialForm);
+type InstitutionRegistrationFormProps = {
+  initialCategory?: InstitutionCategory;
+};
+
+export default function InstitutionRegistrationForm({
+  initialCategory = "COACHING",
+}: InstitutionRegistrationFormProps) {
+  const [form, setForm] = useState<RegistrationForm>(() => ({
+    ...initialForm,
+    category: initialCategory,
+  }));
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -169,7 +178,7 @@ export default function InstitutionRegistrationForm() {
       return;
     }
 
-    setForm(initialForm);
+    setForm({ ...initialForm, category: initialCategory });
     setShowPassword(false);
     setShowConfirmPassword(false);
     setError("");
@@ -277,7 +286,7 @@ export default function InstitutionRegistrationForm() {
 
       setRegisteredId(registered?.institutionId || "");
 
-      setForm(initialForm);
+      setForm({ ...initialForm, category: initialCategory });
       setShowPassword(false);
       setShowConfirmPassword(false);
     } catch (err) {
