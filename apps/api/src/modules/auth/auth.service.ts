@@ -14,8 +14,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './login.dto';
 
 const googleClient = new OAuth2Client();
-
-const SESSION_DURATION_DAYS = 7;
+const SESSION_DAYS = 7;
 
 @Injectable()
 export class AuthService {
@@ -33,9 +32,7 @@ export class AuthService {
     return {
       id: user.id,
       institutionId: user.institutionId,
-      name: [user.firstName, user.lastName]
-        .filter(Boolean)
-        .join(' '),
+      name: [user.firstName, user.lastName].filter(Boolean).join(' '),
       email: user.email,
       eduNexaId: user.brxUid,
       role: user.role,
@@ -44,15 +41,15 @@ export class AuthService {
 
   private async verifyPassword(
     password: string,
-    passwordHash: string,
+    hash: string,
   ): Promise<boolean> {
     try {
-      if (/^\$2[aby]\$/.test(passwordHash)) {
-        return await bcrypt.compare(password, passwordHash);
+      if (/^\$2[aby]\$/.test(hash)) {
+        return await bcrypt.compare(password, hash);
       }
 
-      if (passwordHash.startsWith('$argon2')) {
-        return await argon2.verify(passwordHash, password);
+      if (hash.startsWith('$argon2')) {
+        return await argon2.verify(hash, password);
       }
 
       return false;
@@ -68,9 +65,7 @@ export class AuthService {
     institutions: { status: string } | null;
   }) {
     if (user.status !== 'ACTIVE') {
-      throw new ForbiddenException(
-        'Your account is not active. Contact your institution administrator.',
-      );
+      throw new ForbiddenException('Your account is not active.');
     }
 
     if (user.role === 'PLATFORM_ADMIN') {
@@ -79,16 +74,12 @@ export class AuthService {
           'Invalid platform administrator account.',
         );
       }
-
       return;
     }
 
-    if (
-      !user.institutions ||
-      user.institutions.status !== 'ACTIVE'
-    ) {
+    if (!user.institutions || user.institutions.status !== 'ACTIVE') {
       throw new ForbiddenException(
-        'Your institution is awaiting approval or is inactive.',
+        'Your institution is not active yet.',
       );
     }
   }
@@ -102,12 +93,10 @@ export class AuthService {
     brxUid: string;
     role: string;
   }) {
-    // A 256-bit random token is used as the session ID.
     const sessionToken = randomBytes(32).toString('base64url');
 
     const expiresAt = new Date(
-      Date.now() +
-        SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
+      Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000,
     );
 
     await this.prisma.login_sessions.create({
@@ -137,16 +126,12 @@ export class AuthService {
               mode: 'insensitive',
             },
           },
-          {
-            brxUid: identifier,
-          },
+          { brxUid: identifier },
         ],
       },
       include: {
         institutions: {
-          select: {
-            status: true,
-          },
+          select: { status: true },
         },
       },
     });
@@ -185,17 +170,14 @@ export class AuthService {
         idToken: credential,
         audience: clientId,
       });
-
       payload = ticket.getPayload();
     } catch {
-      throw new UnauthorizedException(
-        'Invalid Google credential.',
-      );
+      throw new UnauthorizedException('Invalid Google credential.');
     }
 
     if (!payload?.email || payload.email_verified !== true) {
       throw new UnauthorizedException(
-        'Google account email must be verified.',
+        'Google email must be verified.',
       );
     }
 
@@ -208,9 +190,7 @@ export class AuthService {
       },
       include: {
         institutions: {
-          select: {
-            status: true,
-          },
+          select: { status: true },
         },
       },
     });
@@ -231,32 +211,25 @@ export class AuthService {
       throw new UnauthorizedException('Not authenticated.');
     }
 
-    const session =
-      await this.prisma.login_sessions.findFirst({
-        where: {
-          id: sessionToken,
-          revokedAt: null,
-          expiresAt: {
-            gt: new Date(),
-          },
-        },
-        include: {
-          users: {
-            include: {
-              institutions: {
-                select: {
-                  status: true,
-                },
-              },
+    const session = await this.prisma.login_sessions.findFirst({
+      where: {
+        id: sessionToken,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        users: {
+          include: {
+            institutions: {
+              select: { status: true },
             },
           },
         },
-      });
+      },
+    });
 
     if (!session) {
-      throw new UnauthorizedException(
-        'Session invalid or expired.',
-      );
+      throw new UnauthorizedException('Session invalid or expired.');
     }
 
     const user = session.users;
@@ -270,18 +243,14 @@ export class AuthService {
     }
 
     await this.prisma.login_sessions.update({
-      where: {
-        id: session.id,
-      },
-      data: {
-        lastActiveAt: new Date(),
-      },
+      where: { id: session.id },
+      data: { lastActiveAt: new Date() },
     });
 
     return this.formatUser(user);
   }
 
-  async logout(sessionToken?: string) {
+    async logout(sessionToken?: string) {
     if (sessionToken) {
       await this.prisma.login_sessions.updateMany({
         where: {

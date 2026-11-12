@@ -7,19 +7,19 @@ import { InstitutionsApprovalService } from "./institutions-approval.service";
 import { InstitutionsApprovalController } from "./institutions-approval.controller";
 
 @Module({
-imports: [AuthModule],
-controllers: [
-InstitutionsController,
-InstitutionsApprovalController,
-],
-providers: [
-  InstitutionsService,
-  InstitutionsApprovalService,
-  RolesGuard,
-],
-exports: [
-InstitutionsService,
-InstitutionsApprovalService,
-],
+  imports: [AuthModule],
+  controllers: [
+    InstitutionsController,
+    InstitutionsApprovalController,
+  ],
+  providers: [
+    InstitutionsService,
+    InstitutionsApprovalService,
+    RolesGuard,
+  ],
+  exports: [
+    InstitutionsService,
+    InstitutionsApprovalService,
+  ],
 })
 export class InstitutionsModule {}

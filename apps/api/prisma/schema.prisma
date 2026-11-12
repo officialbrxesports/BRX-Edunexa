@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -73,6 +74,9 @@ model classes {
   sections            sections[]
   student_enrollments student_enrollments[]
   student_fees        student_fees[]
+  class_subjects      class_subjects[]
+  subject_teachers    subject_teachers[]
+  admission_applications AdmissionApplication[]
 
   @@unique([institutionId, code])
   @@index([institutionId])
@@ -172,6 +176,9 @@ model institutions {
   notifications notifications[]
   results       results[]
   users         users[]
+  subjects      subjects[]
+  subject_teachers subject_teachers[]
+  admission_applications AdmissionApplication[]
 
   @@index([country])
   @@index([state])
@@ -311,19 +318,22 @@ model results {
 }
 
 model sections {
-  id                  String                @id
+  id                  String   @id
   name                String
   code                String
+  capacity            Int      @default(40)
   classId             String
-  createdAt           DateTime              @default(now())
+  createdAt           DateTime @default(now())
   updatedAt           DateTime
   assignments         assignments[]
   attendance          attendance[]
   exams               exams[]
   fee_plans           fee_plans[]
-  classes             classes               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classes             classes  @relation(fields: [classId], references: [id], onDelete: Cascade)
   student_enrollments student_enrollments[]
   student_fees        student_fees[]
+  subject_teachers    subject_teachers[]
+  admission_applications AdmissionApplication[]
 
   @@unique([classId, code])
   @@index([classId])
@@ -410,11 +420,234 @@ model users {
   teacher_students_teacher_students_studentIdTousers teacher_students[]    @relation("teacher_students_studentIdTousers")
   teacher_students_teacher_students_teacherIdTousers teacher_students[]    @relation("teacher_students_teacherIdTousers")
   institutions                                       institutions?         @relation(fields: [institutionId], references: [id])
+  editor_documents                                  editor_documents[]
+  subject_teachers                                  subject_teachers[]
+
+  admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
+  admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
 
   @@index([institutionId])
   @@index([role])
   @@index([status])
 }
+
+model editor_documents {
+  id        String   @id
+  userId    String
+  title     String   @db.VarChar(160)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+model subjects {
+  id            String          @id
+  institutionId String
+  name          String
+  code          String
+  type          SubjectType     @default(CORE)
+  category      SubjectCategory @default(BOTH)
+  description   String?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+
+  institutions   institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  class_subjects class_subjects[]
+  subject_teachers subject_teachers[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+  @@index([isActive])
+}
+
+model class_subjects {
+  id        String   @id
+  classId   String
+  subjectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  classes  classes  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subjects subjects @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, subjectId])
+  @@index([subjectId])
+}
+
+model subject_teachers {
+  id               String   @id
+  institutionId    String
+  subjectId        String
+  classId          String
+  sectionId        String?
+  teacherId        String
+  weeklyPeriods    Int      @default(0)
+  theoryPeriods    Int      @default(0)
+  practicalPeriods Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  subjects     subjects     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  classes      classes      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  sections     sections?    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  users        users        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@index([subjectId])
+  @@index([classId])
+  @@index([sectionId])
+  @@index([teacherId])
+}
+
+// ==========================================
+// BRX EDUNEXA - ADMISSION MANAGEMENT
+// ==========================================
+
+model AdmissionApplication {
+  id                String          @id
+  applicationNumber String          @unique
+  institutionId     String
+  classId           String
+  sectionId         String?
+
+  status            AdmissionStatus @default(DRAFT)
+
+  // Student details
+  firstName         String
+  middleName        String?
+  lastName          String?
+  dateOfBirth       DateTime?
+  studentEmail      String?
+  gender            Gender?
+  bloodGroup        String?
+  category          String?
+  religion          String?
+  motherTongue      String?
+
+  // Identity - never store full Aadhaar in plaintext
+  identityLast4     String?
+
+  // Parent and guardian details
+  fatherName        String?
+  fatherOccupation  String?
+  motherName        String?
+  motherOccupation  String?
+  guardianName      String?
+  guardianPhone     String?
+  parentPhone       String
+  whatsappPhone     String?
+  parentEmail       String?
+
+  // Address
+  address           String?
+  city              String?
+  state             String?
+  pinCode           String?
+  country           String          @default("India")
+
+  // Previous school details
+  previousSchool    String?
+  previousClass     String?
+  previousBoard     String?
+  previousMarks     String?
+  previousTCNumber  String?
+
+  // Application workflow
+  declarationAccepted Boolean      @default(false)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  reviewNote        String?
+  rejectionReason   String?
+  approvedStudentId String?         @unique
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  institutions      institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  classes           classes         @relation(fields: [classId], references: [id], onDelete: Restrict)
+  sections          sections?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  reviewedBy        users?          @relation("AdmissionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  approvedStudent   users?          @relation("AdmissionApprovedStudent", fields: [approvedStudentId], references: [id], onDelete: SetNull)
+
+  documents         AdmissionDocument[]
+  receipt           AdmissionReceipt?
+  statusHistory     AdmissionStatusHistory[]
+
+  @@index([institutionId, status])
+  @@index([classId, sectionId])
+  @@index([parentPhone])
+  @@index([createdAt])
+  @@index([approvedStudentId])
+}
+
+model AdmissionDocument {
+  id            String                 @id
+  applicationId String
+  type          AdmissionDocumentType
+  originalName  String
+  storageKey    String
+  mimeType      String
+  sizeBytes     Int
+  verified      Boolean                @default(false)
+  verifiedAt    DateTime?
+  verifiedById  String?
+  remarks       String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  application   AdmissionApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([type])
+  @@index([verified])
+}
+
+model AdmissionReceipt {
+  id                String              @id
+  receiptNumber     String              @unique
+  applicationId     String              @unique
+  amount            Decimal             @default(0) @db.Decimal(10, 2)
+  paymentMethod     PaymentMethod?
+  transactionId     String?
+  paymentStatus     AdmissionPaymentStatus @default(PENDING)
+  paymentDate       DateTime?
+  note              String?
+  issuedAt          DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  application       AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([paymentStatus])
+  @@index([issuedAt])
+}
+
+model AdmissionStatusHistory {
+  id            String          @id
+  applicationId String
+  oldStatus     AdmissionStatus?
+  newStatus     AdmissionStatus
+  changedById   String?
+  note          String?
+  createdAt     DateTime        @default(now())
+
+  application   AdmissionApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+  @@index([newStatus])
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
 
 enum UserRole {
   PLATFORM_ADMIN
@@ -513,4 +746,48 @@ enum UserStatus {
   SUSPENDED
   INVITED
   DELETED
+}
+
+enum SubjectType {
+  CORE
+  OPTIONAL
+  ADDITIONAL
+}
+
+enum SubjectCategory {
+  THEORY
+  PRACTICAL
+  BOTH
+}
+
+enum AdmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  ENROLLED
+}
+
+enum AdmissionDocumentType {
+  STUDENT_PHOTO
+  BIRTH_CERTIFICATE
+  IDENTITY_DOCUMENT
+  TRANSFER_CERTIFICATE
+  MARKSHEET
+  OTHER
+}
+
+enum AdmissionPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }

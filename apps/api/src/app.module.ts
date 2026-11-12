@@ -3,7 +3,19 @@ import { HealthModule } from './modules/health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { InstitutionsModule } from './modules/institutions/institutions.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { AcademicsModule } from './modules/academics/academics.module';
+import { StudentsModule } from './modules/students/students.module';
+
 @Module({
-  imports: [PrismaModule, HealthModule, AuthModule, InstitutionsModule],
+  imports: [
+    PrismaModule,
+    HealthModule,
+    AuthModule,
+    InstitutionsModule,
+    DocumentsModule,
+    AcademicsModule,
+    StudentsModule,
+  ],
 })
 export class AppModule {}
