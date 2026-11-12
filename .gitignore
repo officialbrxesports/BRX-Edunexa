@@ -28,3 +28,8 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Build and uploads
+dist/
+private-uploads/
+uploads/
