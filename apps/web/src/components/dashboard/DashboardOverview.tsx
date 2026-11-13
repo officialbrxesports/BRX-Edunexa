@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "../../lib/api";
-import AdmissionManagement from "./AdmissionManagement";
+import ClassesView from "./ClassesView";
 import {
   BookOpen,
   Building2,
-  ClipboardList,
   GraduationCap,
   LayoutDashboard,
   LogOut,
@@ -48,8 +47,7 @@ type NavItem = { label: string; icon: LucideIcon; href?: string };
 
 const NAV: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard },
-  { label: "Admissions", icon: ClipboardList },
-  { label: "Classes & Sections", icon: BookOpen, href: "/dashboard/classes" },
+  { label: "Classes & Sections", icon: BookOpen },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -100,6 +98,7 @@ export default function DashboardOverview({ type }: { type: string }) {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(isSchool);
   const [error, setError] = useState("");
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   const loadSummary = useCallback(async () => {
     setLoading(true);
@@ -191,6 +190,33 @@ export default function DashboardOverview({ type }: { type: string }) {
 
           <div className="flex items-center gap-2">
             <span className="hidden text-xs text-blue-100 md:block">{today}</span>
+
+            {isSchool && (
+              <>
+                <button
+                  type="button"
+                  title="Refresh"
+                  onClick={() => {
+                    void loadSummary();
+                    setRefreshSignal((n) => n + 1);
+                  }}
+                  disabled={loading}
+                  className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold text-white hover:bg-white/20 disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+
+                <Link
+                  href="/dashboard/add"
+                  title="Create or edit"
+                  className="flex h-8 items-center gap-1.5 bg-white px-2.5 text-xs font-bold text-blue-900 hover:bg-blue-50"
+                >
+                  <Plus size={14} />
+                  Add
+                </Link>
+              </>
+            )}
 
             <Link
               href="/editor"
@@ -302,26 +328,6 @@ export default function DashboardOverview({ type }: { type: string }) {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void loadSummary()}
-                  disabled={!isSchool || loading}
-                  className="flex h-9 items-center gap-2 border border-slate-300 bg-white px-3 text-xs font-medium hover:bg-slate-50 disabled:opacity-50"
-                >
-                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-                  Refresh
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/add")}
-                  className="flex items-center gap-2 bg-blue-800 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-900"
-                >
-                  <Plus size={16} />
-                  Add
-                </button>
-              </div>
             </div>
 
             {!isSchool ? (
@@ -329,8 +335,8 @@ export default function DashboardOverview({ type }: { type: string }) {
                 The dedicated dashboard for this institution type is coming
                 soon.
               </div>
-            ) : active === "Admissions" ? (
-              <AdmissionManagement />
+            ) : active === "Classes & Sections" ? (
+              <ClassesView refreshSignal={refreshSignal} />
             ) : (
               <>
                 {error && (
@@ -379,13 +385,12 @@ export default function DashboardOverview({ type }: { type: string }) {
                       <h2 className="text-sm font-bold text-slate-900">
                         Recent admission applications
                       </h2>
-                      <button
-                        type="button"
-                        onClick={() => setActive("Admissions")}
+                      <Link
+                        href="/dashboard/add"
                         className="text-xs font-semibold text-blue-800 hover:underline"
                       >
-                        Open admissions
-                      </button>
+                        Manage in Add
+                      </Link>
                     </div>
 
                     {loading && !summary ? (
