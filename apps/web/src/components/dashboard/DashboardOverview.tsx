@@ -210,7 +210,7 @@ export default function DashboardOverview({ type }: { type: string }) {
                 <Link
                   href="/dashboard/add"
                   title="Create or edit"
-                  className="flex h-8 items-center gap-1.5 bg-white px-2.5 text-xs font-bold text-blue-900 hover:bg-blue-50"
+                  className="flex h-8 items-center gap-1.5 bg-amber-400 px-2.5 text-xs font-bold text-white hover:bg-amber-500"
                 >
                   <Plus size={14} />
                   Add
