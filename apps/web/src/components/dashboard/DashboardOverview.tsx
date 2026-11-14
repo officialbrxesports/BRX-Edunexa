@@ -240,7 +240,7 @@ export default function DashboardOverview({ type }: { type: string }) {
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-64px)]">
+      <div className="flex min-h-[calc(100vh-4rem)]">
         {sidebarOpen && (
           <button
             aria-label="Close menu overlay"
@@ -252,7 +252,7 @@ export default function DashboardOverview({ type }: { type: string }) {
         <aside
           className={`${
             sidebarOpen ? "fixed inset-y-16 left-0 z-30 flex" : "hidden"
-          } w-65 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-64px)]`}
+          } w-65 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-16 lg:flex lg:h-[calc(100vh-4rem)]`}
         >
           <div className="border-b border-slate-100 px-5 py-5">
             <div className="flex items-center gap-3">
