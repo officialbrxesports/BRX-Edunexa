@@ -8,6 +8,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 
+export type StaffRole = 'TEACHER' | 'STAFF';
+
 export type CreateTeacherInput = {
   firstName?: string;
   lastName?: string;
@@ -51,11 +53,11 @@ export class TeachersService {
     }
   }
 
-  async list(institutionId: string) {
+  async list(institutionId: string, role: StaffRole = 'TEACHER') {
     const teachers = await this.prisma.users.findMany({
       where: {
         institutionId,
-        role: 'TEACHER',
+        role,
         status: { not: 'DELETED' },
       },
       orderBy: { createdAt: 'desc' },
@@ -68,14 +70,18 @@ export class TeachersService {
     }));
   }
 
-  async create(institutionId: string, input: CreateTeacherInput) {
+  async create(
+    institutionId: string,
+    input: CreateTeacherInput,
+    role: StaffRole = 'TEACHER',
+  ) {
     const firstName = this.clean(input.firstName);
     const lastName = this.clean(input.lastName);
     const email = this.clean(input.email)?.toLowerCase() ?? null;
     const phone = this.clean(input.phone);
 
     if (!firstName || !email) {
-      throw new BadRequestException('Teacher name and email are required.');
+      throw new BadRequestException('Name and email are required.');
     }
 
     if (firstName.length > 80 || (lastName && lastName.length > 80)) {
@@ -113,7 +119,7 @@ export class TeachersService {
           firstName,
           lastName,
           phone,
-          role: 'TEACHER',
+          role,
           status: 'ACTIVE',
           institutionId,
           brxUid,
@@ -126,7 +132,7 @@ export class TeachersService {
 
       return {
         success: true,
-        message: 'Teacher account created.',
+        message: 'Account created.',
         teacher: { ...safeTeacher, assignments: _count.subject_teachers },
         credentials: {
           eduNexaId: brxUid,
@@ -143,14 +149,19 @@ export class TeachersService {
     }
   }
 
-  async update(institutionId: string, id: string, input: UpdateTeacherInput) {
+  async update(
+    institutionId: string,
+    id: string,
+    input: UpdateTeacherInput,
+    role: StaffRole = 'TEACHER',
+  ) {
     const teacher = await this.prisma.users.findFirst({
-      where: { id, institutionId, role: 'TEACHER', status: { not: 'DELETED' } },
+      where: { id, institutionId, role, status: { not: 'DELETED' } },
       select: { id: true },
     });
 
     if (!teacher) {
-      throw new NotFoundException('Teacher not found.');
+      throw new NotFoundException('Account not found.');
     }
 
     const data: {
@@ -164,7 +175,7 @@ export class TeachersService {
     if (input.firstName !== undefined) {
       const firstName = this.clean(input.firstName);
       if (!firstName || firstName.length > 80) {
-        throw new BadRequestException('Enter a valid teacher name.');
+        throw new BadRequestException('Enter a valid name.');
       }
       data.firstName = firstName;
     }

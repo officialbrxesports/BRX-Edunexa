@@ -65,3 +65,53 @@ export class TeachersController {
     );
   }
 }
+
+@Controller('staff')
+@UseGuards(SessionAuthGuard, RolesGuard)
+@Roles('HEAD')
+export class StaffController {
+  constructor(private readonly teachersService: TeachersService) {}
+
+  private getInstitutionId(request: AuthenticatedRequest) {
+    const institutionId = request.user?.institutionId;
+
+    if (!institutionId) {
+      throw new UnauthorizedException(
+        'Your account is not linked to an institution.',
+      );
+    }
+
+    return institutionId;
+  }
+
+  @Get()
+  list(@Req() request: AuthenticatedRequest) {
+    return this.teachersService.list(this.getInstitutionId(request), 'STAFF');
+  }
+
+  @Post()
+  create(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: CreateTeacherInput,
+  ) {
+    return this.teachersService.create(
+      this.getInstitutionId(request),
+      body,
+      'STAFF',
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: UpdateTeacherInput,
+  ) {
+    return this.teachersService.update(
+      this.getInstitutionId(request),
+      id,
+      body,
+      'STAFF',
+    );
+  }
+}

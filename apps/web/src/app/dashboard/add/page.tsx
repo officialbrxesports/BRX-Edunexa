@@ -1402,6 +1402,8 @@ function AddHubContent() {
                   ? "Admission Management"
                   : selected === "Teacher"
                     ? "Teacher Management"
+                  : selected === "Staff"
+                    ? "Staff Management"
                   : selected === "Section"
                     ? "Section Management"
                     : `Create ${selected}`}
@@ -1426,7 +1428,9 @@ function AddHubContent() {
             ) : selected === "Subject" ? (
               <SubjectManagement />
             ) : selected === "Teacher" ? (
-              <TeacherManagement />
+              <TeacherManagement key="teacher" kind="teacher" />
+            ) : selected === "Staff" ? (
+              <TeacherManagement key="staff" kind="staff" />
             ) : (
               <div className="flex min-h-full flex-col items-center justify-center text-center">
                 <SelectedIcon

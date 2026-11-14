@@ -56,7 +56,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 const inputClass =
   "mt-1 h-9 w-full border border-slate-300 px-3 text-sm font-normal outline-none focus:border-blue-600";
 
-export default function TeacherManagement() {
+export default function TeacherManagement({
+  kind = "teacher",
+}: {
+  kind?: "teacher" | "staff";
+}) {
+  const path = kind === "staff" ? "/staff" : "/teachers";
+  const label = kind === "staff" ? "staff member" : "teacher";
+  const Label = kind === "staff" ? "Staff" : "Teacher";
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,13 +78,13 @@ export default function TeacherManagement() {
     setLoading(true);
 
     try {
-      setTeachers(await request<Teacher[]>("/teachers"));
+      setTeachers(await request<Teacher[]>(path));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load teachers.");
+      setError(err instanceof Error ? err.message : `Could not load ${label}s.`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [path]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -125,7 +132,7 @@ export default function TeacherManagement() {
 
     try {
       if (editingId) {
-        await request(`/teachers/${editingId}`, {
+        await request(`${path}/${editingId}`, {
           method: "PATCH",
           body: JSON.stringify({
             firstName: form.firstName,
@@ -133,15 +140,15 @@ export default function TeacherManagement() {
             phone: form.phone,
           }),
         });
-        setSuccess("Teacher updated.");
+        setSuccess(`${Label} updated.`);
         cancelEdit();
       } else {
         const result = await request<{ credentials: Credentials }>(
-          "/teachers",
+          path,
           { method: "POST", body: JSON.stringify(form) },
         );
         setCredentials(result.credentials);
-        setSuccess("Teacher account created.");
+        setSuccess(`${Label} account created.`);
         setForm(EMPTY_FORM);
       }
 
@@ -169,7 +176,7 @@ export default function TeacherManagement() {
     setSuccess("");
 
     try {
-      await request(`/teachers/${teacher.id}`, {
+      await request(`${path}/${teacher.id}`, {
         method: "PATCH",
         body: JSON.stringify({ status: next }),
       });
@@ -188,7 +195,7 @@ export default function TeacherManagement() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
             <UserPlus size={16} />
-            {editingId ? "Edit teacher" : "New teacher"}
+            {editingId ? `Edit ${label}` : `New ${label}`}
           </h3>
 
           {editingId && (
@@ -253,7 +260,7 @@ export default function TeacherManagement() {
             disabled={saving}
             className="h-9 bg-blue-800 px-4 text-xs font-semibold text-white hover:bg-blue-900 disabled:opacity-50"
           >
-            {saving ? "Saving..." : editingId ? "Save changes" : "Create teacher"}
+            {saving ? "Saving..." : editingId ? "Save changes" : `Create ${label}`}
           </button>
           {editingId && (
             <span className="text-xs text-slate-500">
@@ -276,7 +283,7 @@ export default function TeacherManagement() {
 
       {credentials && (
         <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-bold">Teacher account created. Save these now.</p>
+          <p className="font-bold">{Label} account created. Save these now.</p>
           <p className="mt-1 text-xs">
             The temporary password is shown only once and cannot be viewed
             again.
@@ -304,7 +311,7 @@ export default function TeacherManagement() {
       <section className="border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3">
           <h3 className="text-sm font-bold text-slate-900">
-            Teachers ({teachers.length})
+            {Label === "Staff" ? "Staff" : "Teachers"} ({teachers.length})
           </h3>
 
           <div className="flex items-center gap-2">
@@ -316,7 +323,7 @@ export default function TeacherManagement() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search teachers..."
+                placeholder={`Search ${kind === "staff" ? "staff" : "teachers"}...`}
                 className="h-8 w-52 border border-slate-300 pl-8 pr-2 text-xs outline-none focus:border-blue-600"
               />
             </div>
@@ -336,8 +343,8 @@ export default function TeacherManagement() {
         ) : visible.length === 0 ? (
           <p className="p-6 text-sm text-slate-500">
             {teachers.length === 0
-              ? "No teachers yet. Create the first one above."
-              : "No teachers match your search."}
+              ? "Nothing here yet. Create the first one above."
+              : "No results match your search."}
           </p>
         ) : (
           <ul className="divide-y divide-slate-100">
@@ -358,8 +365,9 @@ export default function TeacherManagement() {
                   <p className="truncate text-xs text-slate-500">
                     {teacher.email}
                     {teacher.phone ? ` · ${teacher.phone}` : ""} ·{" "}
-                    {teacher.brxUid} · {teacher.assignments} subject
-                    assignment(s)
+                    {teacher.brxUid}
+                    {kind === "teacher" &&
+                      ` · ${teacher.assignments} subject assignment(s)`}
                   </p>
                 </div>
 
