@@ -13,6 +13,15 @@ type CurrentUser = {
   mustChangePassword?: boolean;
 };
 
+const HEAD_HOME: Record<string, string> = {
+  SCHOOL: "/dashboard/school",
+  COLLEGE: "/dashboard/college",
+  UNIVERSITY: "/dashboard/university",
+  COACHING: "/dashboard/coaching",
+  INSTITUTE: "/dashboard/institute",
+  OTHER: "/dashboard/other",
+};
+
 export default function DashboardAuth({
   children,
   headOnly = false,
@@ -61,7 +70,27 @@ export default function DashboardAuth({
           pathname === "/dashboard" &&
           result.user.role === "HEAD"
         ) {
-          router.replace("/dashboard/school");
+          // Send the head to the dashboard that matches their institution type.
+          let target = "/dashboard/school";
+
+          try {
+            const meResponse = await fetch(`${API_URL}/dashboard/me`, {
+              credentials: "include",
+              cache: "no-store",
+            });
+
+            if (meResponse.ok) {
+              const me: { institution?: { type?: string } } =
+                await meResponse.json();
+              const type = me.institution?.type;
+
+              if (type && type in HEAD_HOME) target = HEAD_HOME[type];
+            }
+          } catch {
+            // fall back to the school dashboard
+          }
+
+          router.replace(target);
           return;
         }
 

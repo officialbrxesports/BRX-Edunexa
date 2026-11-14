@@ -1,5 +1,10 @@
-﻿import DashboardOverview from "../../../components/dashboard/DashboardOverview";
+import CoachingDashboard from "../../../components/dashboard/CoachingDashboard";
+import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 
-export default function Page() {
-  return <DashboardOverview type="coaching" />;
+export default function CoachingPage() {
+  return (
+    <DashboardAuth headOnly>
+      <CoachingDashboard />
+    </DashboardAuth>
+  );
 }

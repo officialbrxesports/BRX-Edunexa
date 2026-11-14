@@ -59,18 +59,32 @@ const inputClass =
 export default function TeacherManagement({
   kind = "teacher",
 }: {
-  kind?: "teacher" | "staff" | "guard";
+  kind?: "teacher" | "staff" | "guard" | "student";
 }) {
   const path =
-    kind === "staff" ? "/staff" : kind === "guard" ? "/guards" : "/teachers";
+    kind === "staff"
+      ? "/staff"
+      : kind === "guard"
+        ? "/guards"
+        : kind === "student"
+          ? "/coaching/students"
+          : "/teachers";
   const label =
     kind === "staff"
       ? "staff member"
       : kind === "guard"
         ? "security guard"
-        : "teacher";
+        : kind === "student"
+          ? "student"
+          : "teacher";
   const Label =
-    kind === "staff" ? "Staff" : kind === "guard" ? "Guard" : "Teacher";
+    kind === "staff"
+      ? "Staff"
+      : kind === "guard"
+        ? "Guard"
+        : kind === "student"
+          ? "Student"
+          : "Teacher";
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -318,7 +332,14 @@ export default function TeacherManagement({
       <section className="border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3">
           <h3 className="text-sm font-bold text-slate-900">
-            {Label === "Staff" ? "Staff" : Label === "Guard" ? "Guards" : "Teachers"} ({teachers.length})
+            {Label === "Staff"
+              ? "Staff"
+              : Label === "Guard"
+                ? "Guards"
+                : Label === "Student"
+                  ? "Students"
+                  : "Teachers"}{" "}
+            ({teachers.length})
           </h3>
 
           <div className="flex items-center gap-2">
@@ -330,7 +351,7 @@ export default function TeacherManagement({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={`Search ${kind === "staff" ? "staff" : kind === "guard" ? "guards" : "teachers"}...`}
+                placeholder={`Search ${kind === "staff" ? "staff" : `${kind}s`}...`}
                 className="h-8 w-52 border border-slate-300 pl-8 pr-2 text-xs outline-none focus:border-blue-600"
               />
             </div>
