@@ -33,12 +33,14 @@ import {
   Pencil,
   Armchair,
   RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 
 import SubjectManagement from "../../../components/dashboard/SubjectManagement";
 import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 import AdmissionManagement from "../../../components/dashboard/AdmissionManagement";
 import TeacherManagement from "../../../components/dashboard/TeacherManagement";
+import ParentManagement from "../../../components/dashboard/ParentManagement";
 import { API_URL } from "../../../lib/api";
 
 /* =====================================================
@@ -145,6 +147,7 @@ const categories = [
       { name: "Teacher", icon: UserRound },
       { name: "Staff", icon: BriefcaseBusiness },
       { name: "Parent / Guardian", icon: Users },
+      { name: "Security Guard", icon: ShieldCheck },
     ],
   },
   {
@@ -1404,6 +1407,10 @@ function AddHubContent() {
                     ? "Teacher Management"
                   : selected === "Staff"
                     ? "Staff Management"
+                  : selected === "Parent / Guardian"
+                    ? "Parent / Guardian Management"
+                  : selected === "Security Guard"
+                    ? "Security Guard Management"
                   : selected === "Section"
                     ? "Section Management"
                     : `Create ${selected}`}
@@ -1431,6 +1438,10 @@ function AddHubContent() {
               <TeacherManagement key="teacher" kind="teacher" />
             ) : selected === "Staff" ? (
               <TeacherManagement key="staff" kind="staff" />
+            ) : selected === "Security Guard" ? (
+              <TeacherManagement key="guard" kind="guard" />
+            ) : selected === "Parent / Guardian" ? (
+              <ParentManagement />
             ) : (
               <div className="flex min-h-full flex-col items-center justify-center text-center">
                 <SelectedIcon

@@ -59,11 +59,18 @@ const inputClass =
 export default function TeacherManagement({
   kind = "teacher",
 }: {
-  kind?: "teacher" | "staff";
+  kind?: "teacher" | "staff" | "guard";
 }) {
-  const path = kind === "staff" ? "/staff" : "/teachers";
-  const label = kind === "staff" ? "staff member" : "teacher";
-  const Label = kind === "staff" ? "Staff" : "Teacher";
+  const path =
+    kind === "staff" ? "/staff" : kind === "guard" ? "/guards" : "/teachers";
+  const label =
+    kind === "staff"
+      ? "staff member"
+      : kind === "guard"
+        ? "security guard"
+        : "teacher";
+  const Label =
+    kind === "staff" ? "Staff" : kind === "guard" ? "Guard" : "Teacher";
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -311,7 +318,7 @@ export default function TeacherManagement({
       <section className="border border-slate-200 bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-3">
           <h3 className="text-sm font-bold text-slate-900">
-            {Label === "Staff" ? "Staff" : "Teachers"} ({teachers.length})
+            {Label === "Staff" ? "Staff" : Label === "Guard" ? "Guards" : "Teachers"} ({teachers.length})
           </h3>
 
           <div className="flex items-center gap-2">
@@ -323,7 +330,7 @@ export default function TeacherManagement({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={`Search ${kind === "staff" ? "staff" : "teachers"}...`}
+                placeholder={`Search ${kind === "staff" ? "staff" : kind === "guard" ? "guards" : "teachers"}...`}
                 className="h-8 w-52 border border-slate-300 pl-8 pr-2 text-xs outline-none focus:border-blue-600"
               />
             </div>

@@ -8,7 +8,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 
-export type StaffRole = 'TEACHER' | 'STAFF';
+export type StaffRole = 'TEACHER' | 'STAFF' | 'GUARD' | 'PARENT';
 
 export type CreateTeacherInput = {
   firstName?: string;
