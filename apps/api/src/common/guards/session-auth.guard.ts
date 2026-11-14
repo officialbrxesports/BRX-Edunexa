@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ export type AuthenticatedUser = {
   email: string;
   eduNexaId: string;
   role: string;
+  mustChangePassword?: boolean;
 };
 
 export type AuthenticatedRequest = Request & {
@@ -59,6 +61,13 @@ export class SessionAuthGuard implements CanActivate {
 
     if (!user) {
       throw new UnauthorizedException('Invalid or expired session');
+    }
+
+    // A temporary password must be replaced before anything else works.
+    if (user.mustChangePassword) {
+      throw new ForbiddenException(
+        'You must change your temporary password before continuing.',
+      );
     }
 
     request.user = user;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -12,6 +13,7 @@ import * as bcrypt from 'bcrypt';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './login.dto';
+import { ChangePasswordDto } from './change-password.dto';
 
 const googleClient = new OAuth2Client();
 const SESSION_DAYS = 7;
@@ -28,6 +30,7 @@ export class AuthService {
     email: string;
     brxUid: string;
     role: string;
+    mustChangePassword?: boolean;
   }) {
     return {
       id: user.id,
@@ -36,6 +39,7 @@ export class AuthService {
       email: user.email,
       eduNexaId: user.brxUid,
       role: user.role,
+      mustChangePassword: user.mustChangePassword ?? false,
     };
   }
 
@@ -92,6 +96,7 @@ export class AuthService {
     email: string;
     brxUid: string;
     role: string;
+    mustChangePassword?: boolean;
   }) {
     const sessionToken = randomBytes(32).toString('base64url');
 
@@ -248,6 +253,70 @@ export class AuthService {
     });
 
     return this.formatUser(user);
+  }
+
+  async changePassword(sessionToken: string | undefined, dto: ChangePasswordDto) {
+    if (!sessionToken) {
+      throw new UnauthorizedException('Not authenticated.');
+    }
+
+    const session = await this.prisma.login_sessions.findFirst({
+      where: {
+        id: sessionToken,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { users: true },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('Session invalid or expired.');
+    }
+
+    const user = session.users;
+
+    if (user.status !== 'ACTIVE') {
+      throw new ForbiddenException('Your account is not active.');
+    }
+
+    const valid = await this.verifyPassword(
+      dto.currentPassword,
+      user.passwordHash,
+    );
+
+    if (!valid) {
+      throw new BadRequestException('Current password is incorrect.');
+    }
+
+    if (dto.currentPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'New password must be different from the current password.',
+      );
+    }
+
+    const passwordHash = await argon2.hash(dto.newPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.users.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+          mustChangePassword: false,
+          updatedAt: new Date(),
+        },
+      }),
+      // Sign out every other device; keep this one.
+      this.prisma.login_sessions.updateMany({
+        where: {
+          userId: user.id,
+          revokedAt: null,
+          id: { not: session.id },
+        },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return { success: true };
   }
 
     async logout(sessionToken?: string) {

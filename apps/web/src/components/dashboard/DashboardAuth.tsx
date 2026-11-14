@@ -10,6 +10,7 @@ type CurrentUser = {
   email: string;
   eduNexaId: string | null;
   role: string;
+  mustChangePassword?: boolean;
 };
 
 export default function DashboardAuth({
@@ -42,6 +43,11 @@ export default function DashboardAuth({
 
         if (!result.user) {
           router.replace("/login");
+          return;
+        }
+
+        if (result.user.mustChangePassword) {
+          router.replace("/change-password");
           return;
         }
 

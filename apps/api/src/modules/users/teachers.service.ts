@@ -121,6 +121,7 @@ export class TeachersService {
           phone,
           role,
           status: 'ACTIVE',
+          mustChangePassword: true,
           institutionId,
           brxUid,
           updatedAt: new Date(),

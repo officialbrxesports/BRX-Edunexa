@@ -864,6 +864,7 @@ export class StudentsService {
                 phone: currentApplication.parentPhone,
                 role: 'STUDENT',
                 status: 'ACTIVE',
+                mustChangePassword: true,
                 institutionId,
                 brxUid,
                 updatedAt: new Date(),

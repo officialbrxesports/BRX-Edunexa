@@ -10,6 +10,7 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
 import { GoogleLoginDto } from './google-login.dto';
+import { ChangePasswordDto } from './change-password.dto';
 
 const COOKIE_NAME = 'brx_session';
 
@@ -86,6 +87,14 @@ export class AuthController {
     );
 
     return { user };
+  }
+
+  @Post('change-password')
+  async changePassword(
+    @Req() request: Request,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(getSessionToken(request), dto);
   }
 
   @Post('logout')
