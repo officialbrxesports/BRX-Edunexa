@@ -84,4 +84,158 @@ export class DashboardService {
       recentAdmissions,
     };
   }
+
+  // What a signed-in person sees on their own home page. Everything is
+  // scoped to their own id and institution; nothing is guessed or faked.
+  async getMySummary(user: {
+    id: string;
+    institutionId: string | null;
+    role: string;
+  }) {
+    if (!user.institutionId) {
+      throw new NotFoundException('Your account is not linked to an institution.');
+    }
+
+    const institutionId = user.institutionId;
+
+    const [institution, me] = await Promise.all([
+      this.prisma.institutions.findUnique({
+        where: { id: institutionId },
+        select: { name: true, type: true },
+      }),
+      this.prisma.users.findUnique({
+        where: { id: user.id },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          brxUid: true,
+        },
+      }),
+    ]);
+
+    if (!institution || !me) {
+      throw new NotFoundException('Account not found.');
+    }
+
+    const fullName = (first: string, last: string | null) =>
+      [first, last].filter(Boolean).join(' ');
+
+    const base = {
+      role: user.role,
+      institution,
+      profile: {
+        name: fullName(me.firstName, me.lastName),
+        email: me.email,
+        phone: me.phone,
+        eduNexaId: me.brxUid,
+      },
+    };
+
+    if (user.role === 'STUDENT') {
+      const [enrollment, links] = await Promise.all([
+        this.prisma.student_enrollments.findFirst({
+          where: { studentId: user.id },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            classes: { select: { name: true } },
+            sections: { select: { name: true } },
+          },
+        }),
+        this.prisma.parent_students.findMany({
+          where: { studentId: user.id, institutionId },
+          select: {
+            relation: true,
+            parent: { select: { firstName: true, lastName: true } },
+          },
+        }),
+      ]);
+
+      return {
+        ...base,
+        student: {
+          className: enrollment?.classes.name ?? null,
+          sectionName: enrollment?.sections.name ?? null,
+          guardians: links.map((link) => ({
+            name: fullName(link.parent.firstName, link.parent.lastName),
+            relation: link.relation,
+          })),
+        },
+      };
+    }
+
+    if (user.role === 'TEACHER') {
+      const assignments = await this.prisma.subject_teachers.findMany({
+        where: { teacherId: user.id, institutionId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true,
+          weeklyPeriods: true,
+          subjects: { select: { name: true, code: true } },
+          classes: { select: { name: true } },
+          sections: { select: { name: true } },
+        },
+      });
+
+      return {
+        ...base,
+        teacher: {
+          assignments: assignments.map((item) => ({
+            id: item.id,
+            subject: item.subjects.name,
+            subjectCode: item.subjects.code,
+            className: item.classes.name,
+            sectionName: item.sections?.name ?? null,
+            weeklyPeriods: item.weeklyPeriods,
+          })),
+        },
+      };
+    }
+
+    if (user.role === 'PARENT') {
+      const links = await this.prisma.parent_students.findMany({
+        where: { parentId: user.id, institutionId },
+        select: {
+          relation: true,
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              brxUid: true,
+              student_enrollments: {
+                take: 1,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                  classes: { select: { name: true } },
+                  sections: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return {
+        ...base,
+        parent: {
+          children: links.map((link) => {
+            const enrollment = link.student.student_enrollments[0];
+
+            return {
+              id: link.student.id,
+              name: fullName(link.student.firstName, link.student.lastName),
+              eduNexaId: link.student.brxUid,
+              relation: link.relation,
+              className: enrollment?.classes.name ?? null,
+              sectionName: enrollment?.sections.name ?? null,
+            };
+          }),
+        },
+      };
+    }
+
+    return base;
+  }
 }

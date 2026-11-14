@@ -18,6 +18,12 @@ import { DashboardService } from './dashboard.service';
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
+  // Every signed-in role can read its own home summary.
+  @Get('me')
+  getMine(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getMySummary(request.user!);
+  }
+
   @Get('summary')
   @Roles('HEAD')
   getSummary(@Req() request: AuthenticatedRequest) {
