@@ -178,6 +178,7 @@ model institutions {
   users         users[]
   subjects      subjects[]
   subject_teachers subject_teachers[]
+  parent_students parent_students[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -407,6 +408,7 @@ model users {
   createdAt                                          DateTime              @default(now())
   updatedAt                                          DateTime
   brxUid                                             String                @unique @db.VarChar(32)
+  mustChangePassword                                 Boolean               @default(false)
   assignments_assignments_studentIdTousers           assignments[]         @relation("assignments_studentIdTousers")
   assignments_assignments_teacherIdTousers           assignments[]         @relation("assignments_teacherIdTousers")
   attendance                                         attendance[]
@@ -422,6 +424,8 @@ model users {
   institutions                                       institutions?         @relation(fields: [institutionId], references: [id])
   editor_documents                                  editor_documents[]
   subject_teachers                                  subject_teachers[]
+  parent_links                                      parent_students[]     @relation("parent_students_parentId")
+  child_links                                       parent_students[]     @relation("parent_students_studentId")
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -429,6 +433,25 @@ model users {
   @@index([institutionId])
   @@index([role])
   @@index([status])
+}
+
+model parent_students {
+  id            String   @id
+  institutionId String
+  parentId      String
+  studentId     String
+  relation      String   @default("GUARDIAN") @db.VarChar(20)
+  isPrimary     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  parent       users        @relation("parent_students_parentId", fields: [parentId], references: [id], onDelete: Cascade)
+  student      users        @relation("parent_students_studentId", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
 }
 
 model editor_documents {
@@ -655,6 +678,8 @@ enum UserRole {
   TEACHER
   STAFF
   STUDENT
+  PARENT
+  GUARD
 }
 
 enum InstitutionStatus {
