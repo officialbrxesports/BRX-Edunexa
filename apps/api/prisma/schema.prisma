@@ -179,6 +179,10 @@ model institutions {
   subjects      subjects[]
   subject_teachers subject_teachers[]
   parent_students parent_students[]
+  batches batches[]
+  batch_students batch_students[]
+  batch_teachers batch_teachers[]
+  enquiries enquiries[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -426,6 +430,8 @@ model users {
   subject_teachers                                  subject_teachers[]
   parent_links                                      parent_students[]     @relation("parent_students_parentId")
   child_links                                       parent_students[]     @relation("parent_students_studentId")
+  batch_memberships                                 batch_students[]
+  batch_teaching                                    batch_teachers[]
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -452,6 +458,83 @@ model parent_students {
   @@unique([parentId, studentId])
   @@index([institutionId])
   @@index([studentId])
+}
+
+model batches {
+  id            String      @id
+  institutionId String
+  name          String      @db.VarChar(120)
+  code          String      @db.VarChar(30)
+  schedule      String?     @db.VarChar(160)
+  description   String?     @db.VarChar(500)
+  capacity      Int         @default(30)
+  startDate     DateTime?
+  endDate       DateTime?
+  status        BatchStatus @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime
+
+  institutions institutions     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  students     batch_students[]
+  teachers     batch_teachers[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId, status])
+}
+
+model batch_students {
+  id            String   @id
+  institutionId String
+  batchId       String
+  studentId     String
+  joinedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  batch        batches      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student      users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
+}
+
+model batch_teachers {
+  id            String   @id
+  institutionId String
+  batchId       String
+  teacherId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  batch        batches      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  teacher      users        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, teacherId])
+  @@index([institutionId])
+  @@index([teacherId])
+}
+
+model enquiries {
+  id            String        @id
+  institutionId String
+  name          String        @db.VarChar(120)
+  phone         String        @db.VarChar(20)
+  email         String?       @db.VarChar(254)
+  interest      String?       @db.VarChar(160)
+  source        String?       @db.VarChar(60)
+  note          String?       @db.VarChar(1000)
+  status        EnquiryStatus @default(NEW)
+  followUpOn    DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId, status])
+  @@index([followUpOn])
 }
 
 model editor_documents {
@@ -721,6 +804,19 @@ enum FeeStatus {
   PARTIAL
   PAID
   OVERDUE
+}
+
+enum BatchStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  JOINED
+  LOST
 }
 
 enum InstitutionType {
