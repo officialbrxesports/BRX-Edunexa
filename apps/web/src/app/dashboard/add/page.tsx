@@ -38,6 +38,7 @@ import {
 import SubjectManagement from "../../../components/dashboard/SubjectManagement";
 import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 import AdmissionManagement from "../../../components/dashboard/AdmissionManagement";
+import TeacherManagement from "../../../components/dashboard/TeacherManagement";
 import { API_URL } from "../../../lib/api";
 
 /* =====================================================
@@ -1399,6 +1400,8 @@ function AddHubContent() {
               <h2 className="text-xl font-bold text-slate-900">
                 {selected === "Admission Form"
                   ? "Admission Management"
+                  : selected === "Teacher"
+                    ? "Teacher Management"
                   : selected === "Section"
                     ? "Section Management"
                     : `Create ${selected}`}
@@ -1422,6 +1425,8 @@ function AddHubContent() {
               <SectionList key={`sections-${refreshKey}`} />
             ) : selected === "Subject" ? (
               <SubjectManagement />
+            ) : selected === "Teacher" ? (
+              <TeacherManagement />
             ) : (
               <div className="flex min-h-full flex-col items-center justify-center text-center">
                 <SelectedIcon
