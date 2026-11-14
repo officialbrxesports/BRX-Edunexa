@@ -1,18 +1,25 @@
 ﻿import {
   Body,
   Controller,
+  BadRequestException,
   Get,
   Post,
   Req,
   Res,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { AttemptLimiter } from '../../common/security/attempt-limiter';
 import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
 import { GoogleLoginDto } from './google-login.dto';
 import { ChangePasswordDto } from './change-password.dto';
 
 const COOKIE_NAME = 'brx_session';
+
+// 8 wrong passwords per person and device in 15 minutes, then a short lock.
+const loginLimiter = new AttemptLimiter(8, 15 * 60 * 1000);
+const passwordChangeLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
 
 function getSessionToken(request: Request): string | undefined {
   const cookieHeader = request.headers.cookie;
@@ -55,9 +62,22 @@ export class AuthController {
   @Post('login')
   async login(
     @Body() dto: LoginDto,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const result = await this.authService.login(dto);
+    const key = `${request.ip ?? 'unknown'}|${dto.identifier.trim().toLowerCase()}`;
+    loginLimiter.assertAllowed(key);
+
+    let result: Awaited<ReturnType<AuthService['login']>>;
+
+    try {
+      result = await this.authService.login(dto);
+    } catch (error) {
+      if (error instanceof UnauthorizedException) loginLimiter.recordFailure(key);
+      throw error;
+    }
+
+    loginLimiter.clear(key);
     this.setSessionCookie(response, result);
 
     return {
@@ -94,7 +114,20 @@ export class AuthController {
     @Req() request: Request,
     @Body() dto: ChangePasswordDto,
   ) {
-    return this.authService.changePassword(getSessionToken(request), dto);
+    const token = getSessionToken(request);
+    const key = token ?? request.ip ?? 'unknown';
+    passwordChangeLimiter.assertAllowed(key);
+
+    try {
+      const result = await this.authService.changePassword(token, dto);
+      passwordChangeLimiter.clear(key);
+      return result;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        passwordChangeLimiter.recordFailure(key);
+      }
+      throw error;
+    }
   }
 
   @Post('logout')
