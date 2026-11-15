@@ -6,13 +6,23 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
+import { gradeFor } from '../../common/grading';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type DepartmentInput = {
   name?: string;
   code?: string;
   hodId?: string | null;
+  facultyId?: string | null;
 };
+
+export type FacultyInput = {
+  name?: string;
+  code?: string;
+  deanId?: string | null;
+};
+
+export type ResultRow = { studentId?: string; marks?: number | string | null };
 
 export type ProgramInput = {
   departmentId?: string;
@@ -43,18 +53,52 @@ const isDuplicate = (error: unknown) =>
 export class CollegeService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** College tools exist only for college institutions. */
+  /** College tools exist only for colleges and universities. */
   async assertCollege(institutionId: string) {
     const institution = await this.prisma.institutions.findUnique({
       where: { id: institutionId },
       select: { type: true },
     });
 
-    if (!institution || institution.type !== 'COLLEGE') {
+    if (
+      !institution ||
+      (institution.type !== 'COLLEGE' && institution.type !== 'UNIVERSITY')
+    ) {
       throw new ForbiddenException(
-        'This feature is only available for colleges.',
+        'This feature is only available for colleges and universities.',
       );
     }
+
+    return institution.type;
+  }
+
+  private async assertUniversity(institutionId: string) {
+    const type = await this.assertCollege(institutionId);
+
+    if (type !== 'UNIVERSITY') {
+      throw new ForbiddenException('Faculties exist only in universities.');
+    }
+  }
+
+  private async checkFaculty(
+    institutionId: string,
+    type: string,
+    facultyId: string | null | undefined,
+  ) {
+    if (!facultyId) return null;
+
+    if (type !== 'UNIVERSITY') {
+      throw new BadRequestException('Faculties exist only in universities.');
+    }
+
+    const faculty = await this.prisma.faculties.findFirst({
+      where: { id: facultyId, institutionId },
+      select: { id: true },
+    });
+
+    if (!faculty) throw new BadRequestException('The chosen faculty was not found.');
+
+    return faculty.id;
   }
 
   private name(first: string, last: string | null) {
@@ -139,7 +183,7 @@ export class CollegeService {
   /* ------------------------------- summary ------------------------------- */
 
   async summary(institutionId: string) {
-    await this.assertCollege(institutionId);
+    const type = await this.assertCollege(institutionId);
 
     const [departments, programs, enrolled, teachers, allStudents, byDepartment] =
       await Promise.all([
@@ -170,8 +214,43 @@ export class CollegeService {
         }),
       ]);
 
+    const faculties =
+      type === 'UNIVERSITY'
+        ? await this.prisma.faculties.findMany({
+            where: { institutionId },
+            orderBy: { name: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              departments: {
+                select: {
+                  programs: { select: { _count: { select: { students: true } } } },
+                },
+              },
+            },
+          })
+        : undefined;
+
     return {
+      type,
+      faculties: faculties?.map((faculty) => ({
+        id: faculty.id,
+        name: faculty.name,
+        code: faculty.code,
+        departments: faculty.departments.length,
+        students: faculty.departments.reduce(
+          (sum, department) =>
+            sum +
+            department.programs.reduce(
+              (inner, program) => inner + program._count.students,
+              0,
+            ),
+          0,
+        ),
+      })),
       counts: {
+        faculties: faculties?.length,
         departments,
         programs,
         studentsEnrolled: enrolled,
@@ -222,6 +301,8 @@ export class CollegeService {
         name: true,
         code: true,
         hodId: true,
+        facultyId: true,
+        faculty: { select: { name: true } },
         hod: { select: { firstName: true, lastName: true } },
         programs: { select: { id: true } },
       },
@@ -232,16 +313,19 @@ export class CollegeService {
       name: row.name,
       code: row.code,
       hodId: row.hodId,
+      facultyId: row.facultyId,
+      facultyName: row.faculty?.name ?? null,
       hodName: row.hod ? this.name(row.hod.firstName, row.hod.lastName) : null,
       programCount: row.programs.length,
     }));
   }
 
   async createDepartment(institutionId: string, input: DepartmentInput) {
-    await this.assertCollege(institutionId);
+    const type = await this.assertCollege(institutionId);
 
     const name = this.required(input.name, 120, 'Department name');
     const hodId = await this.checkHod(institutionId, input.hodId);
+    const facultyId = await this.checkFaculty(institutionId, type, input.facultyId);
 
     try {
       const created = await this.prisma.departments.create({
@@ -251,6 +335,7 @@ export class CollegeService {
           name,
           code: this.code(input.code, name, 'Department code'),
           hodId,
+          facultyId,
           updatedAt: new Date(),
         },
         select: { id: true },
@@ -271,7 +356,7 @@ export class CollegeService {
     id: string,
     input: DepartmentInput,
   ) {
-    await this.assertCollege(institutionId);
+    const type = await this.assertCollege(institutionId);
 
     const existing = await this.prisma.departments.findFirst({
       where: { id, institutionId },
@@ -280,7 +365,12 @@ export class CollegeService {
 
     if (!existing) throw new NotFoundException('Department not found.');
 
-    const data: { name?: string; hodId?: string | null; updatedAt: Date } = {
+    const data: {
+      name?: string;
+      hodId?: string | null;
+      facultyId?: string | null;
+      updatedAt: Date;
+    } = {
       updatedAt: new Date(),
     };
 
@@ -292,7 +382,95 @@ export class CollegeService {
       data.hodId = await this.checkHod(institutionId, input.hodId);
     }
 
+    if (input.facultyId !== undefined) {
+      data.facultyId = await this.checkFaculty(institutionId, type, input.facultyId);
+    }
+
     await this.prisma.departments.update({ where: { id }, data });
+
+    return { success: true, id };
+  }
+
+  /* ------------------------------- faculties ------------------------------- */
+
+  async listFaculties(institutionId: string) {
+    await this.assertUniversity(institutionId);
+
+    const rows = await this.prisma.faculties.findMany({
+      where: { institutionId },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        deanId: true,
+        dean: { select: { firstName: true, lastName: true } },
+        departments: { select: { id: true } },
+      },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      deanId: row.deanId,
+      deanName: row.dean ? this.name(row.dean.firstName, row.dean.lastName) : null,
+      departmentCount: row.departments.length,
+    }));
+  }
+
+  async createFaculty(institutionId: string, input: FacultyInput) {
+    await this.assertUniversity(institutionId);
+
+    const name = this.required(input.name, 120, 'Faculty name');
+    const deanId = await this.checkHod(institutionId, input.deanId);
+
+    try {
+      const created = await this.prisma.faculties.create({
+        data: {
+          id: randomUUID(),
+          institutionId,
+          name,
+          code: this.code(input.code, name, 'Faculty code'),
+          deanId,
+          updatedAt: new Date(),
+        },
+        select: { id: true },
+      });
+
+      return { success: true, id: created.id };
+    } catch (error) {
+      if (isDuplicate(error)) {
+        throw new ConflictException('A faculty with this code already exists.');
+      }
+
+      throw error;
+    }
+  }
+
+  async updateFaculty(institutionId: string, id: string, input: FacultyInput) {
+    await this.assertUniversity(institutionId);
+
+    const existing = await this.prisma.faculties.findFirst({
+      where: { id, institutionId },
+      select: { id: true },
+    });
+
+    if (!existing) throw new NotFoundException('Faculty not found.');
+
+    const data: { name?: string; deanId?: string | null; updatedAt: Date } = {
+      updatedAt: new Date(),
+    };
+
+    if (input.name !== undefined) {
+      data.name = this.required(input.name, 120, 'Faculty name');
+    }
+
+    if (input.deanId !== undefined) {
+      data.deanId = await this.checkHod(institutionId, input.deanId);
+    }
+
+    await this.prisma.faculties.update({ where: { id }, data });
 
     return { success: true, id };
   }
@@ -519,6 +697,158 @@ export class CollegeService {
     await this.prisma.courses.delete({ where: { id } });
 
     return { success: true, id };
+  }
+
+  /* -------------------------------- results -------------------------------- */
+
+  async resultSheet(institutionId: string, courseId: string | undefined) {
+    await this.assertCollege(institutionId);
+
+    const course = courseId
+      ? await this.prisma.courses.findFirst({
+          where: { id: courseId, institutionId },
+          select: {
+            id: true,
+            title: true,
+            code: true,
+            credits: true,
+            semester: true,
+            programId: true,
+          },
+        })
+      : null;
+
+    if (!course) throw new NotFoundException('Course not found.');
+
+    const [enrolled, saved] = await Promise.all([
+      this.prisma.program_students.findMany({
+        where: {
+          programId: course.programId,
+          semester: { gte: course.semester },
+          student: { status: 'ACTIVE' },
+        },
+        select: {
+          semester: true,
+          student: {
+            select: { id: true, firstName: true, lastName: true, brxUid: true },
+          },
+        },
+      }),
+      this.prisma.course_results.findMany({
+        where: { courseId: course.id },
+        select: { studentId: true, marks: true, grade: true },
+      }),
+    ]);
+
+    const byStudent = new Map(saved.map((row) => [row.studentId, row]));
+
+    return {
+      course: {
+        id: course.id,
+        title: course.title,
+        code: course.code,
+        credits: course.credits,
+        semester: course.semester,
+      },
+      students: enrolled
+        .map((row) => ({
+          id: row.student.id,
+          name: this.name(row.student.firstName, row.student.lastName),
+          brxUid: row.student.brxUid,
+          semester: row.semester,
+          marks: byStudent.get(row.student.id)?.marks ?? null,
+          grade: byStudent.get(row.student.id)?.grade ?? null,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }
+
+  async saveResults(
+    institutionId: string,
+    courseId: string | undefined,
+    rows: ResultRow[],
+  ) {
+    const sheet = await this.resultSheet(institutionId, courseId);
+
+    if (!Array.isArray(rows) || rows.length > 1000) {
+      throw new BadRequestException('Invalid marks list.');
+    }
+
+    const allowed = new Set(sheet.students.map((student) => student.id));
+    const clean = new Map<string, number | 'clear'>();
+
+    for (const row of rows) {
+      if (!row.studentId || !allowed.has(row.studentId)) {
+        throw new BadRequestException(
+          'A student in the list is not in this course\'s program.',
+        );
+      }
+
+      if (row.marks === null || row.marks === undefined || row.marks === '') {
+        clean.set(row.studentId, 'clear');
+        continue;
+      }
+
+      const marks = Number(row.marks);
+
+      if (!Number.isFinite(marks) || marks < 0 || marks > 100) {
+        throw new BadRequestException('Marks must be between 0 and 100.');
+      }
+
+      clean.set(row.studentId, Math.round(marks * 100) / 100);
+    }
+
+    const existing = await this.prisma.course_results.findMany({
+      where: { courseId: sheet.course.id, studentId: { in: [...clean.keys()] } },
+      select: { id: true, studentId: true },
+    });
+    const existingBy = new Map(existing.map((row) => [row.studentId, row.id]));
+    const now = new Date();
+    const operations = [];
+
+    for (const [studentId, value] of clean) {
+      const existingId = existingBy.get(studentId);
+
+      if (value === 'clear') {
+        if (existingId) {
+          operations.push(
+            this.prisma.course_results.delete({ where: { id: existingId } }),
+          );
+        }
+
+        continue;
+      }
+
+      const { grade, gradePoint } = gradeFor(value);
+
+      if (existingId) {
+        operations.push(
+          this.prisma.course_results.update({
+            where: { id: existingId },
+            data: { marks: value, grade, gradePoint, updatedAt: now },
+          }),
+        );
+      } else {
+        operations.push(
+          this.prisma.course_results.create({
+            data: {
+              id: randomUUID(),
+              institutionId,
+              courseId: sheet.course.id,
+              studentId,
+              marks: value,
+              grade,
+              gradePoint,
+              updatedAt: now,
+            },
+          }),
+        );
+      }
+    }
+
+    await this.prisma.$transaction(operations);
+
+    return { saved: operations.length };
   }
 
   /* ------------------------------ enrollments ------------------------------ */

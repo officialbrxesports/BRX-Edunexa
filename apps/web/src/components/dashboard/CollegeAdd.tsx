@@ -9,8 +9,10 @@ import {
   Building2,
   GraduationCap,
   Landmark,
+  Network,
   Library,
   ListChecks,
+  Medal,
   ShieldCheck,
   UserRound,
   Users,
@@ -22,18 +24,21 @@ import {
   ProgramManagement,
 } from "./CollegeManagement";
 import EnrollmentManagement from "./EnrollmentManagement";
+import { FacultyManagement, ResultsManagement } from "./UniversityManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
 
 type Item = { name: string; icon: LucideIcon };
 
-const GROUPS: { title: string; items: Item[] }[] = [
+const buildGroups = (university: boolean): { title: string; items: Item[] }[] => [
   {
     title: "ACADEMIC STRUCTURE",
     items: [
+      ...(university ? [{ name: "Faculty", icon: Network }] : []),
       { name: "Department", icon: Landmark },
       { name: "Program", icon: Library },
       { name: "Course", icon: BookOpen },
+      { name: "Results", icon: Medal },
     ],
   },
   {
@@ -49,8 +54,15 @@ const GROUPS: { title: string; items: Item[] }[] = [
   },
 ];
 
-export default function CollegeAdd() {
-  const [selected, setSelected] = useState("Department");
+export default function CollegeAdd({
+  variant = "college",
+}: {
+  variant?: "college" | "university";
+}) {
+  const university = variant === "university";
+  const label = university ? "University" : "College";
+  const GROUPS = buildGroups(university);
+  const [selected, setSelected] = useState(university ? "Faculty" : "Department");
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -62,11 +74,11 @@ export default function CollegeAdd() {
             </span>
             BRX EduNexa
             <span className="hidden border-l border-white/30 pl-3 text-sm font-normal text-blue-100 sm:inline">
-              College · Create &amp; manage
+              {label} · Create &amp; manage
             </span>
           </div>
           <Link
-            href="/dashboard/college"
+            href={`/dashboard/${variant}`}
             className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20"
           >
             <ArrowLeft size={14} />
@@ -107,7 +119,9 @@ export default function CollegeAdd() {
           <div className="mx-auto max-w-5xl">
             <h1 className="mb-4 text-xl font-bold text-slate-900">{selected}</h1>
 
-            {selected === "Department" && <DepartmentManagement />}
+            {selected === "Faculty" && <FacultyManagement />}
+            {selected === "Department" && <DepartmentManagement withFaculty={university} />}
+            {selected === "Results" && <ResultsManagement />}
             {selected === "Program" && <ProgramManagement />}
             {selected === "Course" && <CourseManagement />}
             {selected === "Student" && (

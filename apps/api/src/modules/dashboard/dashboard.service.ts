@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { buildTranscript } from '../../common/grading';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const ADMISSION_STATUSES = [
@@ -83,6 +84,35 @@ export class DashboardService {
       admissions,
       recentAdmissions,
     };
+  }
+
+  // College and university: semester results with SGPA and CGPA.
+  private async transcriptFor(studentId: string) {
+    const rows = await this.prisma.course_results.findMany({
+      where: { studentId },
+      select: {
+        marks: true,
+        grade: true,
+        gradePoint: true,
+        course: {
+          select: { semester: true, code: true, title: true, credits: true },
+        },
+      },
+    });
+
+    if (rows.length === 0) return null;
+
+    return buildTranscript(
+      rows.map((row) => ({
+        semester: row.course.semester,
+        code: row.course.code,
+        title: row.course.title,
+        credits: row.course.credits,
+        marks: row.marks,
+        grade: row.grade,
+        gradePoint: row.gradePoint,
+      })),
+    );
   }
 
   // College only: the student's program, semester and this semester's courses.
@@ -335,8 +365,12 @@ export class DashboardService {
               : undefined,
           attendance: await this.attendanceFor(institution.type, user.id),
           program:
-            institution.type === 'COLLEGE'
+            institution.type === 'COLLEGE' || institution.type === 'UNIVERSITY'
               ? await this.programFor(user.id, true)
+              : undefined,
+          transcript:
+            institution.type === 'COLLEGE' || institution.type === 'UNIVERSITY'
+              ? await this.transcriptFor(user.id)
               : undefined,
           shortCourses:
             institution.type === 'INSTITUTE'
@@ -420,8 +454,14 @@ export class DashboardService {
                 link.student.id,
               ),
               program:
-                institution.type === 'COLLEGE'
+                institution.type === 'COLLEGE' ||
+                institution.type === 'UNIVERSITY'
                   ? await this.programFor(link.student.id, false)
+                  : undefined,
+              cgpa:
+                institution.type === 'COLLEGE' ||
+                institution.type === 'UNIVERSITY'
+                  ? ((await this.transcriptFor(link.student.id))?.cgpa ?? null)
                   : undefined,
             };
           })),

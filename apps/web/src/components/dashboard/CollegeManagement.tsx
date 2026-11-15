@@ -11,6 +11,8 @@ export type Department = {
   code: string;
   hodId: string | null;
   hodName: string | null;
+  facultyId: string | null;
+  facultyName: string | null;
   programCount: number;
 };
 
@@ -96,8 +98,10 @@ function useLoader<T>(path: string) {
 
 /* ------------------------------- departments ------------------------------- */
 
-export function DepartmentManagement() {
+export function DepartmentManagement({ withFaculty = false }: { withFaculty?: boolean }) {
   const { data, loading, loadError, load } = useLoader<Department>("/college/departments");
+  const [faculties, setFaculties] = useState<{ id: string; name: string }[]>([]);
+  const [facultyId, setFacultyId] = useState("");
   const [teachers, setTeachers] = useState<{ id: string; name: string; brxUid: string }[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -115,11 +119,20 @@ export function DepartmentManagement() {
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (!withFaculty) return;
+
+    apiRequest<{ id: string; name: string }[]>("/college/faculties")
+      .then(setFaculties)
+      .catch(() => undefined);
+  }, [withFaculty]);
+
   function reset() {
     setEditingId(null);
     setName("");
     setCode("");
     setHodId("");
+    setFacultyId("");
   }
 
   function startEdit(department: Department) {
@@ -127,6 +140,7 @@ export function DepartmentManagement() {
     setName(department.name);
     setCode(department.code);
     setHodId(department.hodId ?? "");
+    setFacultyId(department.facultyId ?? "");
     setError("");
     setSuccess("");
   }
@@ -141,13 +155,22 @@ export function DepartmentManagement() {
       if (editingId) {
         await apiRequest(`/college/departments/${editingId}`, {
           method: "PATCH",
-          body: JSON.stringify({ name, hodId: hodId || null }),
+          body: JSON.stringify({
+            name,
+            hodId: hodId || null,
+            ...(withFaculty ? { facultyId: facultyId || null } : {}),
+          }),
         });
         setSuccess("Department updated.");
       } else {
         await apiRequest("/college/departments", {
           method: "POST",
-          body: JSON.stringify({ name, code, hodId: hodId || null }),
+          body: JSON.stringify({
+            name,
+            code,
+            hodId: hodId || null,
+            ...(withFaculty ? { facultyId: facultyId || null } : {}),
+          }),
         });
         setSuccess("Department created.");
       }
@@ -202,6 +225,22 @@ export function DepartmentManagement() {
               ))}
             </select>
           </Field>
+          {withFaculty && (
+            <Field label="Faculty">
+              <select
+                value={facultyId}
+                onChange={(event) => setFacultyId(event.target.value)}
+                className={inputClass}
+              >
+                <option value="">No faculty</option>
+                {faculties.map((faculty) => (
+                  <option key={faculty.id} value={faculty.id}>
+                    {faculty.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
         </div>
         <div className="mt-4 flex gap-2">
           <button type="submit" disabled={saving} className={buttonClass}>
@@ -243,7 +282,8 @@ export function DepartmentManagement() {
                     </span>
                   </p>
                   <p className="text-xs text-slate-500">
-                    HOD: {department.hodName ?? "not assigned"} · {department.programCount}{" "}
+                    {department.facultyName ? `${department.facultyName} · ` : ""}HOD:{" "}
+                    {department.hodName ?? "not assigned"} · {department.programCount}{" "}
                     program(s)
                   </p>
                 </div>

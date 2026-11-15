@@ -28,6 +28,12 @@ type TestMark = {
   appeared: number;
 };
 
+type TranscriptInfo = {
+  cgpa: number | null;
+  totalCredits: number;
+  semesters: { semester: number; sgpa: number | null }[];
+};
+
 type ShortCourseInfo = {
   id: string;
   title: string;
@@ -148,6 +154,7 @@ type Me = {
     attendance?: AttendanceInfo;
     program?: ProgramInfo | null;
     shortCourses?: ShortCourseInfo[];
+    transcript?: TranscriptInfo | null;
   };
   teacher?: {
     assignments: {
@@ -170,6 +177,7 @@ type Me = {
       tests?: TestMark[];
       attendance?: AttendanceInfo;
       program?: ProgramInfo | null;
+      cgpa?: number | null;
     }[];
   };
 };
@@ -402,6 +410,30 @@ export default function RoleHome() {
                     </Card>
                   </div>
                 )}
+                {me.student.transcript && (
+                  <div className="md:col-span-2">
+                    <Card title="My results">
+                      <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div>
+                          <p className="text-3xl font-bold text-slate-900">
+                            CGPA {me.student.transcript.cgpa ?? "-"}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {me.student.transcript.semesters
+                              .map((item) => `Sem ${item.semester}: ${item.sgpa ?? "-"}`)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                        <Link
+                          href="/dashboard/transcript"
+                          className="text-xs font-semibold text-blue-800 underline"
+                        >
+                          View / print transcript
+                        </Link>
+                      </div>
+                    </Card>
+                  </div>
+                )}
                 {me.student.shortCourses && (
                   <div className="md:col-span-2">
                     <Card title="My courses & certificates">
@@ -513,6 +545,9 @@ export default function RoleHome() {
                         {child.program && (
                           <p className="w-full text-xs text-slate-600">
                             {child.program.name} · Semester {child.program.semester}
+                            {child.cgpa !== undefined && child.cgpa !== null
+                              ? ` · CGPA ${child.cgpa}`
+                              : ""}
                           </p>
                         )}
                         {child.attendance && (

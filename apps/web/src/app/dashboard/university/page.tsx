@@ -1,10 +1,10 @@
-﻿import UniversityDashboardOverview from "../../../components/dashboard/UniversityDashboardOverview";
+import CollegeDashboard from "../../../components/dashboard/CollegeDashboard";
 import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 
 export default function UniversityDashboardPage() {
   return (
-    <DashboardAuth>
-      <UniversityDashboardOverview />
+    <DashboardAuth headOnly>
+      <CollegeDashboard variant="university" />
     </DashboardAuth>
   );
 }

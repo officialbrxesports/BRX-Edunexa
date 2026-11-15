@@ -28,7 +28,9 @@ import {
   type CourseInput,
   type DepartmentInput,
   type EnrollmentInput,
+  type FacultyInput,
   type ProgramInput,
+  type ResultRow,
 } from './college.service';
 
 @Controller('college')
@@ -60,6 +62,52 @@ export class CollegeController {
   @Get('people-options')
   peopleOptions(@Req() request: AuthenticatedRequest) {
     return this.college.peopleOptions(this.institutionId(request));
+  }
+
+  /* faculties (universities only) */
+
+  @Get('faculties')
+  listFaculties(@Req() request: AuthenticatedRequest) {
+    return this.college.listFaculties(this.institutionId(request));
+  }
+
+  @Post('faculties')
+  createFaculty(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: FacultyInput,
+  ) {
+    return this.college.createFaculty(this.institutionId(request), body);
+  }
+
+  @Patch('faculties/:id')
+  updateFaculty(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: FacultyInput,
+  ) {
+    return this.college.updateFaculty(this.institutionId(request), id, body);
+  }
+
+  /* results */
+
+  @Get('results/sheet')
+  resultSheet(
+    @Req() request: AuthenticatedRequest,
+    @Query('courseId') courseId?: string,
+  ) {
+    return this.college.resultSheet(this.institutionId(request), courseId);
+  }
+
+  @Put('results')
+  saveResults(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: { courseId?: string; results?: ResultRow[] },
+  ) {
+    return this.college.saveResults(
+      this.institutionId(request),
+      body?.courseId,
+      body?.results ?? [],
+    );
   }
 
   /* departments */

@@ -7,6 +7,7 @@ import {
   Building2,
   GraduationCap,
   Landmark,
+  Network,
   Library,
   LayoutDashboard,
   LogOut,
@@ -20,7 +21,15 @@ import { API_URL, apiRequest } from "../../lib/api";
 import type { Department, Program } from "./CollegeManagement";
 
 type Summary = {
+  faculties?: {
+    id: string;
+    name: string;
+    code: string;
+    departments: number;
+    students: number;
+  }[];
   counts: {
+    faculties?: number;
     departments: number;
     programs: number;
     studentsEnrolled: number;
@@ -36,8 +45,9 @@ type Summary = {
   }[];
 };
 
-const NAV: { label: string; icon: LucideIcon }[] = [
+const buildNav = (university: boolean): { label: string; icon: LucideIcon }[] => [
   { label: "Overview", icon: LayoutDashboard },
+  ...(university ? [{ label: "Faculties", icon: Network }] : []),
   { label: "Departments", icon: Landmark },
   { label: "Programs", icon: Library },
 ];
@@ -71,14 +81,21 @@ function StatCard({
   );
 }
 
-export default function CollegeDashboard() {
+export default function CollegeDashboard({
+  variant = "college",
+}: {
+  variant?: "college" | "university";
+}) {
   const router = useRouter();
+  const university = variant === "university";
+  const label = university ? "University" : "College";
+  const NAV = buildNav(university);
   const [active, setActive] = useState("Overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [departments, setDepartments] = useState<Department[] | null>(null);
   const [programs, setPrograms] = useState<Program[] | null>(null);
-  const [collegeName, setCollegeName] = useState("Your college");
+  const [collegeName, setCollegeName] = useState(`Your ${label.toLowerCase()}`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -155,7 +172,7 @@ export default function CollegeDashboard() {
               <span>BRX EduNexa</span>
             </Link>
             <span className="hidden border-l border-white/30 pl-3 text-sm text-blue-100 sm:block">
-              College Administration
+              {label} Administration
             </span>
           </div>
 
@@ -171,7 +188,7 @@ export default function CollegeDashboard() {
               <span className="hidden sm:inline">Refresh</span>
             </button>
             <Link
-              href="/dashboard/college/add"
+              href={`/dashboard/${variant}/add`}
               className="flex h-8 items-center gap-1.5 bg-amber-400 px-2.5 text-xs font-bold text-white hover:bg-amber-500"
             >
               <Plus size={14} />
@@ -206,7 +223,7 @@ export default function CollegeDashboard() {
         >
           <div className="border-b border-slate-100 px-5 py-5">
             <p className="truncate text-sm font-bold text-slate-900">{collegeName}</p>
-            <p className="text-xs text-slate-500">College panel</p>
+            <p className="text-xs text-slate-500">{label} panel</p>
           </div>
           <nav className="flex-1 space-y-1 px-3 py-4">
             {NAV.map(({ label, icon: Icon }) => (
@@ -233,7 +250,7 @@ export default function CollegeDashboard() {
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-375">
             <h1 className="text-2xl font-bold text-slate-900">
-              {active === "Overview" ? "College Dashboard" : active}
+              {active === "Overview" ? `${label} Dashboard` : active}
             </h1>
             <p className="mb-6 mt-1 text-sm text-slate-500">
               View only. Create or edit departments, programs, courses and people from Add.
@@ -251,6 +268,14 @@ export default function CollegeDashboard() {
             {active === "Overview" && (
               <>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {university && (
+                    <StatCard
+                      title="Faculties"
+                      value={counts ? (counts.faculties ?? 0) : "-"}
+                      icon={Network}
+                      tint="bg-rose-50 text-rose-700"
+                    />
+                  )}
                   <StatCard
                     title="Departments"
                     value={counts ? counts.departments : "-"}
@@ -322,7 +347,7 @@ export default function CollegeDashboard() {
                     These are not built yet, so no numbers are shown.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {["Semester exams & CGPA", "Course attendance", "Timetable", "Fees"].map(
+                    {["Exam schedule", "Course attendance", "Timetable", "Fees"].map(
                       (name) => (
                         <span
                           key={name}
@@ -335,6 +360,37 @@ export default function CollegeDashboard() {
                   </div>
                 </section>
               </>
+            )}
+
+            {active === "Faculties" && (
+              <section className="border border-slate-200 bg-white shadow-sm">
+                {!summary ? (
+                  <p className="p-6 text-sm text-slate-500">Loading...</p>
+                ) : !summary.faculties || summary.faculties.length === 0 ? (
+                  <p className="p-6 text-sm text-slate-500">
+                    No faculties yet. Use Add &gt; Faculty to create one.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {summary.faculties.map((faculty) => (
+                      <li
+                        key={faculty.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                      >
+                        <p className="font-semibold text-slate-900">
+                          {faculty.name}{" "}
+                          <span className="text-xs font-normal text-slate-500">
+                            {faculty.code}
+                          </span>
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          {faculty.departments} department(s) · {faculty.students} students
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
             )}
 
             {active === "Departments" && (
@@ -356,7 +412,8 @@ export default function CollegeDashboard() {
                           </span>
                         </p>
                         <p className="text-xs text-slate-500">
-                          HOD: {department.hodName ?? "not assigned"} ·{" "}
+                          {department.facultyName ? `${department.facultyName} · ` : ""}HOD:{" "}
+                          {department.hodName ?? "not assigned"} ·{" "}
                           {department.programCount} program(s)
                         </p>
                       </li>

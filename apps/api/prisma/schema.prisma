@@ -193,6 +193,8 @@ model institutions {
   short_courses short_courses[]
   course_enrollments course_enrollments[]
   certificates certificates[]
+  faculties faculties[]
+  course_results course_results[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -447,6 +449,8 @@ model users {
   departments_headed                                departments[]         @relation("department_hod")
   program_enrollment                                program_students?
   course_enrollments                                course_enrollments[]
+  faculties_led                                     faculties[]           @relation("faculty_dean")
+  course_results                                    course_results[]
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -598,15 +602,55 @@ model departments {
   name          String   @db.VarChar(120)
   code          String   @db.VarChar(30)
   hodId         String?
+  facultyId     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime
 
   institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   hod          users?       @relation("department_hod", fields: [hodId], references: [id], onDelete: SetNull)
+  faculty      faculties?   @relation(fields: [facultyId], references: [id], onDelete: SetNull)
   programs     programs[]
 
   @@unique([institutionId, code])
   @@index([institutionId])
+  @@index([facultyId])
+}
+
+model faculties {
+  id            String   @id
+  institutionId String
+  name          String   @db.VarChar(120)
+  code          String   @db.VarChar(30)
+  deanId        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  dean         users?        @relation("faculty_dean", fields: [deanId], references: [id], onDelete: SetNull)
+  departments  departments[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+}
+
+model course_results {
+  id            String   @id
+  institutionId String
+  courseId      String
+  studentId     String
+  marks         Float
+  grade         String   @db.VarChar(3)
+  gradePoint    Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  course       courses      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student      users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
 }
 
 model programs {
@@ -642,6 +686,7 @@ model courses {
 
   institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   program      programs     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  results      course_results[]
 
   @@unique([programId, code])
   @@index([programId, semester])
