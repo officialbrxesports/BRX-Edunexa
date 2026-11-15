@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CoachingModule } from './modules/coaching/coaching.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { CollegeModule } from './modules/college/college.module';
+import { InstituteModule } from './modules/institute/institute.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CollegeModule } from './modules/college/college.module';
     CoachingModule,
     AttendanceModule,
     CollegeModule,
+    InstituteModule,
   ],
 })
 export class AppModule {}

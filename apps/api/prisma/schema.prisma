@@ -190,6 +190,9 @@ model institutions {
   programs programs[]
   courses courses[]
   program_students program_students[]
+  short_courses short_courses[]
+  course_enrollments course_enrollments[]
+  certificates certificates[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -443,6 +446,7 @@ model users {
   batch_attendance                                  batch_attendance[]
   departments_headed                                departments[]         @relation("department_hod")
   program_enrollment                                program_students?
+  course_enrollments                                course_enrollments[]
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -659,6 +663,67 @@ model program_students {
 
   @@index([institutionId])
   @@index([programId])
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  DROPPED
+}
+
+model short_courses {
+  id            String   @id
+  institutionId String
+  title         String   @db.VarChar(160)
+  code          String   @db.VarChar(30)
+  durationWeeks Int
+  description   String?  @db.VarChar(500)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  enrollments  course_enrollments[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+}
+
+model course_enrollments {
+  id            String           @id
+  institutionId String
+  courseId      String
+  studentId     String
+  status        EnrollmentStatus @default(ENROLLED)
+  startedOn     DateTime         @default(now())
+  completedOn   DateTime?
+  grade         String?          @db.VarChar(20)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+
+  institutions institutions  @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  course       short_courses @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student      users         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  certificate  certificates?
+
+  @@unique([courseId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
+}
+
+model certificates {
+  id            String   @id
+  institutionId String
+  enrollmentId  String   @unique
+  certificateNo String   @unique @db.VarChar(30)
+  issuedOn      DateTime @default(now())
+  issuedBy      String
+  createdAt     DateTime @default(now())
+
+  institutions institutions       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  enrollment   course_enrollments @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
 }
 
 model enquiries {

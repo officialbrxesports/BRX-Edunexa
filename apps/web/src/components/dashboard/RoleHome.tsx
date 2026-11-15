@@ -28,6 +28,16 @@ type TestMark = {
   appeared: number;
 };
 
+type ShortCourseInfo = {
+  id: string;
+  title: string;
+  durationWeeks: number;
+  status: string;
+  grade: string | null;
+  completedOn: string | null;
+  certificateNo: string | null;
+};
+
 type ProgramInfo = {
   name: string;
   code: string;
@@ -137,6 +147,7 @@ type Me = {
     tests?: TestMark[];
     attendance?: AttendanceInfo;
     program?: ProgramInfo | null;
+    shortCourses?: ShortCourseInfo[];
   };
   teacher?: {
     assignments: {
@@ -387,6 +398,44 @@ export default function RoleHome() {
                             </ul>
                           )}
                         </div>
+                      )}
+                    </Card>
+                  </div>
+                )}
+                {me.student.shortCourses && (
+                  <div className="md:col-span-2">
+                    <Card title="My courses & certificates">
+                      {me.student.shortCourses.length === 0 ? (
+                        <Empty text="You are not enrolled in any course yet." />
+                      ) : (
+                        <ul className="divide-y divide-slate-100">
+                          {me.student.shortCourses.map((course) => (
+                            <li
+                              key={course.id}
+                              className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                            >
+                              <div>
+                                <p className="font-semibold text-slate-900">
+                                  {course.title}
+                                </p>
+                                <p className="text-xs text-slate-500">
+                                  {course.durationWeeks} weeks ·{" "}
+                                  {course.status.toLowerCase()}
+                                  {course.grade ? ` · grade ${course.grade}` : ""}
+                                </p>
+                              </div>
+                              {course.certificateNo && (
+                                <Link
+                                  href={`/verify/${course.certificateNo}`}
+                                  target="_blank"
+                                  className="text-xs font-semibold text-blue-800 underline"
+                                >
+                                  View certificate
+                                </Link>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </Card>
                   </div>

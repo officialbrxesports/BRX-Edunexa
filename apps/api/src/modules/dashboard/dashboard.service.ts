@@ -129,6 +129,32 @@ export class DashboardService {
     };
   }
 
+  // Institute only: the student's short courses and certificates.
+  private async coursesFor(studentId: string) {
+    const rows = await this.prisma.course_enrollments.findMany({
+      where: { studentId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        grade: true,
+        completedOn: true,
+        course: { select: { title: true, durationWeeks: true } },
+        certificate: { select: { certificateNo: true } },
+      },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.course.title,
+      durationWeeks: row.course.durationWeeks,
+      status: row.status,
+      grade: row.grade,
+      completedOn: row.completedOn,
+      certificateNo: row.certificate?.certificateNo ?? null,
+    }));
+  }
+
   // School and coaching: this month's attendance for one student.
   private async attendanceFor(type: string, studentId: string) {
     if (type !== 'SCHOOL' && type !== 'COACHING') return undefined;
@@ -311,6 +337,10 @@ export class DashboardService {
           program:
             institution.type === 'COLLEGE'
               ? await this.programFor(user.id, true)
+              : undefined,
+          shortCourses:
+            institution.type === 'INSTITUTE'
+              ? await this.coursesFor(user.id)
               : undefined,
         },
       };
