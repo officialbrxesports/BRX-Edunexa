@@ -22,6 +22,14 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  // Behind Render/Vercel the real client IP arrives in X-Forwarded-For.
+  // Set TRUST_PROXY_HOPS=1 (or 2) in production so rate limiting sees it.
+  const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 0);
+
+  if (Number.isInteger(trustProxyHops) && trustProxyHops > 0) {
+    app.set('trust proxy', trustProxyHops);
+  }
+
   const nodeEnv = process.env.NODE_ENV ?? 'development';
   const configuredOrigins = process.env.CORS_ORIGINS;
 
