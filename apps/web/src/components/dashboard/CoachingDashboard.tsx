@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { API_URL, apiRequest } from "../../lib/api";
+import AttendanceCard from "./AttendanceCard";
 import { ENQUIRY_LABELS, type Enquiry } from "./EnquiryManagement";
 import type { TestRow } from "./TestManagement";
 
@@ -389,13 +390,15 @@ export default function CoachingDashboard() {
                   </section>
                 </div>
 
+                <AttendanceCard />
+
                 <section className="mt-6 border border-slate-200 bg-white p-4 shadow-sm">
                   <h2 className="text-sm font-bold text-slate-900">Coming soon</h2>
                   <p className="mt-1 text-xs text-slate-500">
                     These are not built yet, so no numbers are shown.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {["Fee installments", "Attendance"].map(
+                    {["Fee installments"].map(
                       (name) => (
                         <span
                           key={name}

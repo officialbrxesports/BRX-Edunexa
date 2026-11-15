@@ -15,6 +15,7 @@ import {
   Layers3,
   BookOpen,
   CalendarDays,
+  CalendarCheck,
   GraduationCap,
   UserRound,
   BriefcaseBusiness,
@@ -41,6 +42,7 @@ import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 import AdmissionManagement from "../../../components/dashboard/AdmissionManagement";
 import TeacherManagement from "../../../components/dashboard/TeacherManagement";
 import ParentManagement from "../../../components/dashboard/ParentManagement";
+import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
 import { API_URL } from "../../../lib/api";
 
 /* =====================================================
@@ -138,6 +140,7 @@ const categories = [
       { name: "Section", icon: Layers3 },
       { name: "Subject", icon: BookOpen },
       { name: "Academic Session", icon: CalendarDays },
+      { name: "Attendance", icon: CalendarCheck },
     ],
   },
   {
@@ -1411,6 +1414,8 @@ function AddHubContent() {
                     ? "Parent / Guardian Management"
                   : selected === "Security Guard"
                     ? "Security Guard Management"
+                  : selected === "Attendance"
+                    ? "Mark Attendance"
                   : selected === "Section"
                     ? "Section Management"
                     : `Create ${selected}`}
@@ -1434,6 +1439,8 @@ function AddHubContent() {
               <SectionList key={`sections-${refreshKey}`} />
             ) : selected === "Subject" ? (
               <SubjectManagement />
+            ) : selected === "Attendance" ? (
+              <AttendanceManagement />
             ) : selected === "Teacher" ? (
               <TeacherManagement key="teacher" kind="teacher" />
             ) : selected === "Staff" ? (

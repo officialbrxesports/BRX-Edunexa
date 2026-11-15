@@ -85,6 +85,48 @@ export class DashboardService {
     };
   }
 
+  // School and coaching: this month's attendance for one student.
+  private async attendanceFor(type: string, studentId: string) {
+    if (type !== 'SCHOOL' && type !== 'COACHING') return undefined;
+
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+
+    const rows =
+      type === 'SCHOOL'
+        ? await this.prisma.attendance.findMany({
+            where: { studentId, date: { gte: monthStart } },
+            orderBy: { date: 'desc' },
+            select: { date: true, status: true },
+          })
+        : await this.prisma.batch_attendance.findMany({
+            where: { studentId, date: { gte: monthStart } },
+            orderBy: { date: 'desc' },
+            select: { date: true, status: true },
+          });
+
+    const present = rows.filter((row) => row.status === 'PRESENT').length;
+    const late = rows.filter((row) => row.status === 'LATE').length;
+    const absent = rows.filter((row) => row.status === 'ABSENT').length;
+
+    return {
+      month: monthStart.toISOString().slice(0, 7),
+      present,
+      late,
+      absent,
+      percent:
+        rows.length > 0
+          ? Math.round(((present + late) / rows.length) * 1000) / 10
+          : null,
+      recent: rows.slice(0, 7).map((row) => ({
+        date: row.date,
+        status: row.status,
+      })),
+    };
+  }
+
   // Coaching only: a student's latest test marks with their rank in the batch.
   private async testResultsFor(institutionId: string, studentId: string) {
     const mine = await this.prisma.test_results.findMany({
@@ -221,6 +263,7 @@ export class DashboardService {
             institution.type === 'COACHING'
               ? await this.testResultsFor(institutionId, user.id)
               : undefined,
+          attendance: await this.attendanceFor(institution.type, user.id),
         },
       };
     }
@@ -294,6 +337,10 @@ export class DashboardService {
                 institution.type === 'COACHING'
                   ? await this.testResultsFor(institutionId, link.student.id)
                   : undefined,
+              attendance: await this.attendanceFor(
+                institution.type,
+                link.student.id,
+              ),
             };
           })),
         },

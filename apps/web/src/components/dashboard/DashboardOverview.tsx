@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { API_URL } from "../../lib/api";
+import AttendanceCard from "./AttendanceCard";
 import ClassesView from "./ClassesView";
 import {
   BookOpen,
@@ -60,7 +61,7 @@ const STATUS_LABELS: Record<string, string> = {
   ENROLLED: "Enrolled",
 };
 
-const COMING_SOON = ["Attendance", "Exams & results", "Fees", "Notices"];
+const COMING_SOON = ["Exams & results", "Fees", "Notices"];
 
 function StatCard({
   title,
@@ -447,6 +448,8 @@ export default function DashboardOverview({ type }: { type: string }) {
                     </ul>
                   </section>
                 </div>
+
+                <AttendanceCard />
 
                 <section className="mt-6 border border-slate-200 bg-white p-4 shadow-sm">
                   <h2 className="text-sm font-bold text-slate-900">

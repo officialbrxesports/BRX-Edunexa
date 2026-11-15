@@ -185,6 +185,7 @@ model institutions {
   enquiries enquiries[]
   tests tests[]
   test_results test_results[]
+  batch_attendance batch_attendance[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -435,6 +436,7 @@ model users {
   batch_memberships                                 batch_students[]
   batch_teaching                                    batch_teachers[]
   test_results                                      test_results[]
+  batch_attendance                                  batch_attendance[]
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -481,6 +483,7 @@ model batches {
   students     batch_students[]
   teachers     batch_teachers[]
   tests        tests[]
+  attendance   batch_attendance[]
 
   @@unique([institutionId, code])
   @@index([institutionId, status])
@@ -556,6 +559,26 @@ model test_results {
 
   @@unique([testId, studentId])
   @@index([institutionId])
+  @@index([studentId])
+}
+
+model batch_attendance {
+  id            String           @id
+  institutionId String
+  batchId       String
+  studentId     String
+  markedBy      String
+  date          DateTime
+  status        AttendanceStatus
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  batch        batches      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  student      users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentId, date])
+  @@index([institutionId, date])
   @@index([studentId])
 }
 

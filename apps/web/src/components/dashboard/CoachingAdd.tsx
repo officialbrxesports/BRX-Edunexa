@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import {
   ArrowLeft,
+  CalendarCheck,
   BriefcaseBusiness,
   ClipboardList,
   Building2,
@@ -15,6 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import AttendanceManagement from "./AttendanceManagement";
 import BatchManagement from "./BatchManagement";
 import EnquiryManagement from "./EnquiryManagement";
 import ParentManagement from "./ParentManagement";
@@ -30,6 +32,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { name: "Batch", icon: Layers },
       { name: "Enquiry", icon: PhoneCall },
       { name: "Test", icon: ClipboardList },
+      { name: "Attendance", icon: CalendarCheck },
     ],
   },
   {
@@ -105,6 +108,7 @@ export default function CoachingAdd() {
             {selected === "Batch" && <BatchManagement />}
             {selected === "Enquiry" && <EnquiryManagement />}
             {selected === "Test" && <TestManagement />}
+            {selected === "Attendance" && <AttendanceManagement />}
             {selected === "Student" && (
               <TeacherManagement key="student" kind="student" />
             )}
