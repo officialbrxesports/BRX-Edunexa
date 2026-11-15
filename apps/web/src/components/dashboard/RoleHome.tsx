@@ -28,6 +28,17 @@ type TestMark = {
   appeared: number;
 };
 
+type ProgramInfo = {
+  name: string;
+  code: string;
+  department: string;
+  semester: number;
+  totalSemesters: number;
+  rollNo: string | null;
+  courses: { id: string; code: string; title: string; credits: number }[];
+  totalCredits: number;
+};
+
 type AttendanceInfo = {
   month: string;
   present: number;
@@ -125,6 +136,7 @@ type Me = {
     guardians: { name: string; relation: string }[];
     tests?: TestMark[];
     attendance?: AttendanceInfo;
+    program?: ProgramInfo | null;
   };
   teacher?: {
     assignments: {
@@ -146,6 +158,7 @@ type Me = {
       sectionName: string | null;
       tests?: TestMark[];
       attendance?: AttendanceInfo;
+      program?: ProgramInfo | null;
     }[];
   };
 };
@@ -327,6 +340,57 @@ export default function RoleHome() {
                     </ul>
                   )}
                 </Card>
+                {me.student.program !== undefined && (
+                  <div className="md:col-span-2">
+                    <Card title="My program">
+                      {me.student.program === null ? (
+                        <Empty text="You are not assigned to a program yet. Please contact the college office." />
+                      ) : (
+                        <div className="p-4">
+                          <p className="text-sm font-bold text-slate-900">
+                            {me.student.program.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {me.student.program.department} · Semester{" "}
+                            {me.student.program.semester} of{" "}
+                            {me.student.program.totalSemesters}
+                            {me.student.program.rollNo
+                              ? ` · Roll ${me.student.program.rollNo}`
+                              : ""}
+                          </p>
+                          {me.student.program.courses.length === 0 ? (
+                            <p className="mt-3 text-sm text-slate-500">
+                              No courses added for this semester yet.
+                            </p>
+                          ) : (
+                            <ul className="mt-3 divide-y divide-slate-100 border border-slate-200">
+                              {me.student.program.courses.map((course) => (
+                                <li
+                                  key={course.id}
+                                  className="flex justify-between px-3 py-2 text-sm"
+                                >
+                                  <span className="text-slate-800">
+                                    {course.title}{" "}
+                                    <span className="text-xs text-slate-500">
+                                      {course.code}
+                                    </span>
+                                  </span>
+                                  <span className="text-xs text-slate-600">
+                                    {course.credits} cr
+                                  </span>
+                                </li>
+                              ))}
+                              <li className="flex justify-between bg-slate-50 px-3 py-2 text-xs font-bold text-slate-700">
+                                <span>Total</span>
+                                <span>{me.student.program.totalCredits} credits</span>
+                              </li>
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                )}
                 {me.student.attendance && (
                   <div className="md:col-span-2">
                     <Card title="My attendance">
@@ -397,6 +461,11 @@ export default function RoleHome() {
                         <span className="bg-slate-100 px-2 py-1 text-xs text-slate-700">
                           {child.relation.toLowerCase()}
                         </span>
+                        {child.program && (
+                          <p className="w-full text-xs text-slate-600">
+                            {child.program.name} · Semester {child.program.semester}
+                          </p>
+                        )}
                         {child.attendance && (
                           <div className="w-full border-t border-slate-100 pt-2">
                             <p className="mb-1 text-xs font-bold text-slate-700">

@@ -58,8 +58,10 @@ const inputClass =
 
 export default function TeacherManagement({
   kind = "teacher",
+  studentPath = "/coaching/students",
 }: {
   kind?: "teacher" | "staff" | "guard" | "student";
+  studentPath?: string;
 }) {
   const path =
     kind === "staff"
@@ -67,7 +69,7 @@ export default function TeacherManagement({
       : kind === "guard"
         ? "/guards"
         : kind === "student"
-          ? "/coaching/students"
+          ? studentPath
           : "/teachers";
   const label =
     kind === "staff"

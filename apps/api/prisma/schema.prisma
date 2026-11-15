@@ -186,6 +186,10 @@ model institutions {
   tests tests[]
   test_results test_results[]
   batch_attendance batch_attendance[]
+  departments departments[]
+  programs programs[]
+  courses courses[]
+  program_students program_students[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -437,6 +441,8 @@ model users {
   batch_teaching                                    batch_teachers[]
   test_results                                      test_results[]
   batch_attendance                                  batch_attendance[]
+  departments_headed                                departments[]         @relation("department_hod")
+  program_enrollment                                program_students?
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -580,6 +586,79 @@ model batch_attendance {
   @@unique([batchId, studentId, date])
   @@index([institutionId, date])
   @@index([studentId])
+}
+
+model departments {
+  id            String   @id
+  institutionId String
+  name          String   @db.VarChar(120)
+  code          String   @db.VarChar(30)
+  hodId         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  hod          users?       @relation("department_hod", fields: [hodId], references: [id], onDelete: SetNull)
+  programs     programs[]
+
+  @@unique([institutionId, code])
+  @@index([institutionId])
+}
+
+model programs {
+  id            String   @id
+  institutionId String
+  departmentId  String
+  name          String   @db.VarChar(120)
+  code          String   @db.VarChar(30)
+  semesters     Int      @default(6)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  department   departments      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  courses      courses[]
+  students     program_students[]
+
+  @@unique([institutionId, code])
+  @@index([departmentId])
+}
+
+model courses {
+  id            String   @id
+  institutionId String
+  programId     String
+  semester      Int
+  code          String   @db.VarChar(30)
+  title         String   @db.VarChar(160)
+  credits       Int      @default(3)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  program      programs     @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, code])
+  @@index([programId, semester])
+}
+
+model program_students {
+  id            String   @id
+  institutionId String
+  programId     String
+  studentId     String   @unique
+  semester      Int      @default(1)
+  rollNo        String?  @db.VarChar(40)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  program      programs     @relation(fields: [programId], references: [id], onDelete: Cascade)
+  student      users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId])
+  @@index([programId])
 }
 
 model enquiries {

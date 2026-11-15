@@ -85,6 +85,50 @@ export class DashboardService {
     };
   }
 
+  // College only: the student's program, semester and this semester's courses.
+  private async programFor(studentId: string, withCourses: boolean) {
+    const enrollment = await this.prisma.program_students.findUnique({
+      where: { studentId },
+      select: {
+        semester: true,
+        rollNo: true,
+        program: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            semesters: true,
+            department: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (!enrollment) return null;
+
+    const courses = withCourses
+      ? await this.prisma.courses.findMany({
+          where: {
+            programId: enrollment.program.id,
+            semester: enrollment.semester,
+          },
+          orderBy: { code: 'asc' },
+          select: { id: true, code: true, title: true, credits: true },
+        })
+      : [];
+
+    return {
+      name: enrollment.program.name,
+      code: enrollment.program.code,
+      department: enrollment.program.department.name,
+      semester: enrollment.semester,
+      totalSemesters: enrollment.program.semesters,
+      rollNo: enrollment.rollNo,
+      courses,
+      totalCredits: courses.reduce((sum, course) => sum + course.credits, 0),
+    };
+  }
+
   // School and coaching: this month's attendance for one student.
   private async attendanceFor(type: string, studentId: string) {
     if (type !== 'SCHOOL' && type !== 'COACHING') return undefined;
@@ -264,6 +308,10 @@ export class DashboardService {
               ? await this.testResultsFor(institutionId, user.id)
               : undefined,
           attendance: await this.attendanceFor(institution.type, user.id),
+          program:
+            institution.type === 'COLLEGE'
+              ? await this.programFor(user.id, true)
+              : undefined,
         },
       };
     }
@@ -341,6 +389,10 @@ export class DashboardService {
                 institution.type,
                 link.student.id,
               ),
+              program:
+                institution.type === 'COLLEGE'
+                  ? await this.programFor(link.student.id, false)
+                  : undefined,
             };
           })),
         },
