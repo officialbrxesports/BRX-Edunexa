@@ -15,6 +15,61 @@ import {
 } from "lucide-react";
 import { API_URL } from "../../lib/api";
 
+type TestMark = {
+  id: string;
+  title: string;
+  subject: string | null;
+  batchName: string;
+  testDate: string;
+  maxMarks: number;
+  marks: number | null;
+  absent: boolean;
+  rank: number | null;
+  appeared: number;
+};
+
+function TestList({ tests }: { tests: TestMark[] }) {
+  if (tests.length === 0) {
+    return <p className="p-5 text-sm text-slate-500">No test marks yet.</p>;
+  }
+
+  return (
+    <ul className="divide-y divide-slate-100">
+      {tests.map((test) => (
+        <li
+          key={test.id}
+          className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+        >
+          <div>
+            <p className="font-semibold text-slate-900">{test.title}</p>
+            <p className="text-xs text-slate-500">
+              {test.batchName}
+              {test.subject ? ` · ${test.subject}` : ""} ·{" "}
+              {new Date(test.testDate).toLocaleDateString("en-IN")}
+            </p>
+          </div>
+          <div className="text-right text-xs text-slate-600">
+            {test.absent ? (
+              <p className="font-semibold text-slate-700">Absent</p>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-slate-900">
+                  {test.marks ?? "-"} / {test.maxMarks}
+                </p>
+                {test.rank !== null && (
+                  <p>
+                    Rank {test.rank} of {test.appeared}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 type Me = {
   role: string;
   institution: { name: string; type: string };
@@ -23,6 +78,7 @@ type Me = {
     className: string | null;
     sectionName: string | null;
     guardians: { name: string; relation: string }[];
+    tests?: TestMark[];
   };
   teacher?: {
     assignments: {
@@ -42,6 +98,7 @@ type Me = {
       relation: string;
       className: string | null;
       sectionName: string | null;
+      tests?: TestMark[];
     }[];
   };
 };
@@ -223,6 +280,13 @@ export default function RoleHome() {
                     </ul>
                   )}
                 </Card>
+                {me.student.tests && (
+                  <div className="md:col-span-2">
+                    <Card title="My test results">
+                      <TestList tests={me.student.tests} />
+                    </Card>
+                  </div>
+                )}
               </div>
             )}
 
@@ -279,6 +343,14 @@ export default function RoleHome() {
                         <span className="bg-slate-100 px-2 py-1 text-xs text-slate-700">
                           {child.relation.toLowerCase()}
                         </span>
+                        {child.tests && (
+                          <div className="w-full border-t border-slate-100 pt-2">
+                            <p className="mb-1 text-xs font-bold text-slate-700">
+                              Test results
+                            </p>
+                            <TestList tests={child.tests} />
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

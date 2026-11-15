@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Building2,
   CalendarClock,
+  ClipboardList,
   GraduationCap,
   Layers,
   LayoutDashboard,
@@ -19,6 +20,20 @@ import {
 } from "lucide-react";
 import { API_URL, apiRequest } from "../../lib/api";
 import { ENQUIRY_LABELS, type Enquiry } from "./EnquiryManagement";
+import type { TestRow } from "./TestManagement";
+
+type Leaderboard = {
+  batch: { id: string; name: string; code: string };
+  rows: {
+    studentId: string;
+    name: string;
+    tests: number;
+    marks: number;
+    maxMarks: number;
+    percent: number;
+    rank: number;
+  }[];
+};
 
 type Summary = {
   counts: {
@@ -55,6 +70,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Batches", icon: Layers },
   { label: "Enquiries", icon: PhoneCall },
+  { label: "Tests", icon: ClipboardList },
 ];
 
 function StatCard({
@@ -93,6 +109,10 @@ export default function CoachingDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [batches, setBatches] = useState<Batch[] | null>(null);
   const [enquiries, setEnquiries] = useState<Enquiry[] | null>(null);
+  const [tests, setTests] = useState<TestRow[] | null>(null);
+  const [boardBatch, setBoardBatch] = useState("");
+  const [board, setBoard] = useState<Leaderboard | null>(null);
+  const [boardLoading, setBoardLoading] = useState(false);
   const [instituteName, setInstituteName] = useState("Your institute");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,15 +123,17 @@ export default function CoachingDashboard() {
     setError("");
 
     try {
-      const [summaryData, batchData, enquiryData, me] = await Promise.all([
+      const [summaryData, batchData, enquiryData, testData, me] = await Promise.all([
         apiRequest<Summary>("/coaching/summary"),
         apiRequest<Batch[]>("/coaching/batches"),
         apiRequest<Enquiry[]>("/coaching/enquiries"),
+        apiRequest<TestRow[]>("/coaching/tests"),
         apiRequest<{ institution: { name: string } }>("/dashboard/me"),
       ]);
       setSummary(summaryData);
       setBatches(batchData);
       setEnquiries(enquiryData);
+      setTests(testData);
       setInstituteName(me.institution.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load dashboard.");
@@ -124,6 +146,23 @@ export default function CoachingDashboard() {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
   }, [load]);
+
+  async function pickBoard(batchId: string) {
+    setBoardBatch(batchId);
+    setBoard(null);
+
+    if (!batchId) return;
+
+    setBoardLoading(true);
+
+    try {
+      setBoard(await apiRequest<Leaderboard>(`/coaching/tests/leaderboard/${batchId}`));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load ranking.");
+    } finally {
+      setBoardLoading(false);
+    }
+  }
 
   async function logout() {
     if (loggingOut) return;
@@ -356,7 +395,7 @@ export default function CoachingDashboard() {
                     These are not built yet, so no numbers are shown.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {["Test series & ranking", "Fee installments", "Attendance"].map(
+                    {["Fee installments", "Attendance"].map(
                       (name) => (
                         <span
                           key={name}
@@ -423,6 +462,119 @@ export default function CoachingDashboard() {
                   </ul>
                 )}
               </section>
+            )}
+
+            {active === "Tests" && (
+              <div className="space-y-6">
+                <section className="border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-4 py-3">
+                    <h2 className="text-sm font-bold text-slate-900">Recent tests</h2>
+                  </div>
+                  {!tests ? (
+                    <p className="p-6 text-sm text-slate-500">Loading...</p>
+                  ) : tests.length === 0 ? (
+                    <p className="p-6 text-sm text-slate-500">
+                      No tests yet. Use Add &gt; Test to create one.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {tests.slice(0, 20).map((test) => (
+                        <li
+                          key={test.id}
+                          className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                        >
+                          <div>
+                            <p className="font-semibold text-slate-900">
+                              {test.title}{" "}
+                              <span className="text-xs font-normal text-slate-500">
+                                {test.batchName}
+                                {test.subject ? ` · ${test.subject}` : ""}
+                              </span>
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {new Date(test.testDate).toLocaleDateString("en-IN")} ·{" "}
+                              {test.appeared} appeared
+                              {test.absent > 0 ? ` · ${test.absent} absent` : ""}
+                            </p>
+                          </div>
+                          <div className="text-right text-xs text-slate-600">
+                            <p>
+                              Avg{" "}
+                              <span className="font-semibold text-slate-900">
+                                {test.average ?? "-"}
+                              </span>{" "}
+                              / {test.maxMarks}
+                            </p>
+                            {test.topper && (
+                              <p>
+                                Top: {test.topper.name} ({test.topper.marks})
+                              </p>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+
+                <section className="border border-slate-200 bg-white shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+                    <h2 className="text-sm font-bold text-slate-900">Batch ranking</h2>
+                    <select
+                      value={boardBatch}
+                      onChange={(event) => void pickBoard(event.target.value)}
+                      className="h-8 border border-slate-300 px-2 text-xs outline-none focus:border-blue-600"
+                    >
+                      <option value="">Choose a batch</option>
+                      {(batches ?? []).map((batch) => (
+                        <option key={batch.id} value={batch.id}>
+                          {batch.name} ({batch.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {!boardBatch ? (
+                    <p className="p-6 text-sm text-slate-500">
+                      Choose a batch to see its ranking.
+                    </p>
+                  ) : boardLoading ? (
+                    <p className="p-6 text-sm text-slate-500">Loading...</p>
+                  ) : !board || board.rows.length === 0 ? (
+                    <p className="p-6 text-sm text-slate-500">
+                      No marks entered for this batch yet.
+                    </p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 text-left text-xs text-slate-600">
+                        <tr>
+                          <th className="w-14 px-4 py-2">Rank</th>
+                          <th className="px-4 py-2">Student</th>
+                          <th className="px-4 py-2">Tests</th>
+                          <th className="px-4 py-2">Marks</th>
+                          <th className="px-4 py-2">%</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {board.rows.map((row) => (
+                          <tr key={row.studentId}>
+                            <td className="px-4 py-2 font-bold text-slate-900">
+                              {row.rank}
+                            </td>
+                            <td className="px-4 py-2 text-slate-800">{row.name}</td>
+                            <td className="px-4 py-2 text-slate-600">{row.tests}</td>
+                            <td className="px-4 py-2 text-slate-600">
+                              {row.marks}/{row.maxMarks}
+                            </td>
+                            <td className="px-4 py-2 font-semibold text-slate-900">
+                              {row.percent}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </section>
+              </div>
             )}
 
             {active === "Enquiries" && (

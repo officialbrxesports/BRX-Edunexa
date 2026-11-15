@@ -85,6 +85,62 @@ export class DashboardService {
     };
   }
 
+  // Coaching only: a student's latest test marks with their rank in the batch.
+  private async testResultsFor(institutionId: string, studentId: string) {
+    const mine = await this.prisma.test_results.findMany({
+      where: { institutionId, studentId },
+      orderBy: { test: { testDate: 'desc' } },
+      take: 10,
+      select: {
+        marks: true,
+        absent: true,
+        test: {
+          select: {
+            id: true,
+            title: true,
+            subject: true,
+            testDate: true,
+            maxMarks: true,
+            batch: { select: { name: true } },
+          },
+        },
+      },
+    });
+
+    if (mine.length === 0) return [];
+
+    const everyone = await this.prisma.test_results.findMany({
+      where: {
+        testId: { in: mine.map((row) => row.test.id) },
+        absent: false,
+        marks: { not: null },
+      },
+      select: { testId: true, marks: true },
+    });
+
+    return mine.map((row) => {
+      const scores = everyone
+        .filter((other) => other.testId === row.test.id)
+        .map((other) => other.marks ?? 0);
+      const scored = !row.absent && row.marks !== null;
+
+      return {
+        id: row.test.id,
+        title: row.test.title,
+        subject: row.test.subject,
+        batchName: row.test.batch.name,
+        testDate: row.test.testDate,
+        maxMarks: row.test.maxMarks,
+        marks: row.marks,
+        absent: row.absent,
+        rank: scored
+          ? 1 + scores.filter((score) => score > (row.marks ?? 0)).length
+          : null,
+        appeared: scores.length,
+      };
+    });
+  }
+
   // What a signed-in person sees on their own home page. Everything is
   // scoped to their own id and institution; nothing is guessed or faked.
   async getMySummary(user: {
@@ -161,6 +217,10 @@ export class DashboardService {
             name: fullName(link.parent.firstName, link.parent.lastName),
             relation: link.relation,
           })),
+          tests:
+            institution.type === 'COACHING'
+              ? await this.testResultsFor(institutionId, user.id)
+              : undefined,
         },
       };
     }
@@ -220,7 +280,7 @@ export class DashboardService {
       return {
         ...base,
         parent: {
-          children: links.map((link) => {
+          children: await Promise.all(links.map(async (link) => {
             const enrollment = link.student.student_enrollments[0];
 
             return {
@@ -230,8 +290,12 @@ export class DashboardService {
               relation: link.relation,
               className: enrollment?.classes.name ?? null,
               sectionName: enrollment?.sections.name ?? null,
+              tests:
+                institution.type === 'COACHING'
+                  ? await this.testResultsFor(institutionId, link.student.id)
+                  : undefined,
             };
-          }),
+          })),
         },
       };
     }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import {
   ArrowLeft,
   BriefcaseBusiness,
+  ClipboardList,
   Building2,
   GraduationCap,
   Layers,
@@ -18,6 +19,7 @@ import BatchManagement from "./BatchManagement";
 import EnquiryManagement from "./EnquiryManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
+import TestManagement from "./TestManagement";
 
 type Item = { name: string; icon: LucideIcon };
 
@@ -27,6 +29,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { name: "Batch", icon: Layers },
       { name: "Enquiry", icon: PhoneCall },
+      { name: "Test", icon: ClipboardList },
     ],
   },
   {
@@ -101,6 +104,7 @@ export default function CoachingAdd() {
 
             {selected === "Batch" && <BatchManagement />}
             {selected === "Enquiry" && <EnquiryManagement />}
+            {selected === "Test" && <TestManagement />}
             {selected === "Student" && (
               <TeacherManagement key="student" kind="student" />
             )}

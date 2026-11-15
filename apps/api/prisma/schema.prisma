@@ -183,6 +183,8 @@ model institutions {
   batch_students batch_students[]
   batch_teachers batch_teachers[]
   enquiries enquiries[]
+  tests tests[]
+  test_results test_results[]
   admission_applications AdmissionApplication[]
 
   @@index([country])
@@ -432,6 +434,7 @@ model users {
   child_links                                       parent_students[]     @relation("parent_students_studentId")
   batch_memberships                                 batch_students[]
   batch_teaching                                    batch_teachers[]
+  test_results                                      test_results[]
 
   admissions_reviewed AdmissionApplication[] @relation("AdmissionReviewedBy")
   admissions_approved AdmissionApplication[] @relation("AdmissionApprovedStudent")
@@ -477,6 +480,7 @@ model batches {
   institutions institutions     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   students     batch_students[]
   teachers     batch_teachers[]
+  tests        tests[]
 
   @@unique([institutionId, code])
   @@index([institutionId, status])
@@ -515,6 +519,44 @@ model batch_teachers {
   @@unique([batchId, teacherId])
   @@index([institutionId])
   @@index([teacherId])
+}
+
+model tests {
+  id            String   @id
+  institutionId String
+  batchId       String
+  title         String   @db.VarChar(120)
+  subject       String?  @db.VarChar(80)
+  testDate      DateTime
+  maxMarks      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  batch        batches        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  results      test_results[]
+
+  @@index([institutionId, batchId])
+  @@index([batchId, testDate])
+}
+
+model test_results {
+  id            String   @id
+  institutionId String
+  testId        String
+  studentId     String
+  marks         Float?
+  absent        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  test         tests        @relation(fields: [testId], references: [id], onDelete: Cascade)
+  student      users        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([testId, studentId])
+  @@index([institutionId])
+  @@index([studentId])
 }
 
 model enquiries {
