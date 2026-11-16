@@ -1,5 +1,10 @@
-﻿import DashboardOverview from "../../../components/dashboard/DashboardOverview";
+import DashboardAuth from "../../../components/dashboard/DashboardAuth";
+import OtherDashboard from "../../../components/dashboard/OtherDashboard";
 
-export default function Page() {
-  return <DashboardOverview type="other" />;
+export default function OtherDashboardPage() {
+  return (
+    <DashboardAuth headOnly>
+      <OtherDashboard />
+    </DashboardAuth>
+  );
 }

@@ -193,6 +193,9 @@ model institutions {
   short_courses short_courses[]
   course_enrollments course_enrollments[]
   certificates certificates[]
+  groups groups[]
+  group_members group_members[]
+  notices notices[]
   faculties faculties[]
   course_results course_results[]
   admission_applications AdmissionApplication[]
@@ -449,6 +452,7 @@ model users {
   departments_headed                                departments[]         @relation("department_hod")
   program_enrollment                                program_students?
   course_enrollments                                course_enrollments[]
+  group_memberships                                 group_members[]
   faculties_led                                     faculties[]           @relation("faculty_dean")
   course_results                                    course_results[]
 
@@ -1165,4 +1169,53 @@ enum Gender {
   MALE
   FEMALE
   OTHER
+}
+
+model groups {
+  id            String   @id
+  institutionId String
+  name          String   @db.VarChar(120)
+  description   String?  @db.VarChar(500)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  members      group_members[]
+  notices      notices[]
+
+  @@unique([institutionId, name])
+  @@index([institutionId])
+}
+
+model group_members {
+  id            String   @id
+  institutionId String
+  groupId       String
+  userId        String
+  createdAt     DateTime @default(now())
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  group        groups       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user         users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([institutionId])
+  @@index([userId])
+}
+
+model notices {
+  id            String   @id
+  institutionId String
+  groupId       String?
+  title         String   @db.VarChar(160)
+  body          String   @db.VarChar(2000)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+
+  institutions institutions @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  group        groups?      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId, createdAt])
 }

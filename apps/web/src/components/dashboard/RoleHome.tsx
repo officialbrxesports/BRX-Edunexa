@@ -146,6 +146,16 @@ type Me = {
   role: string;
   institution: { name: string; type: string };
   profile: { name: string; email: string; phone: string | null; eduNexaId: string };
+  other?: {
+    groups: { id: string; name: string; description: string | null }[];
+    notices: {
+      id: string;
+      title: string;
+      body: string;
+      createdAt: string;
+      groupName: string | null;
+    }[];
+  };
   student?: {
     className: string | null;
     sectionName: string | null;
@@ -577,6 +587,47 @@ export default function RoleHome() {
               <Card title="Your workspace">
                 <Empty text="Your tools for this role are being built. Nothing to show yet." />
               </Card>
+            )}
+
+            {me.other && (
+              <div className="grid gap-5 md:grid-cols-2">
+                <Card title="My groups">
+                  {me.other.groups.length === 0 ? (
+                    <Empty text="You are not in any group yet." />
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {me.other.groups.map((group) => (
+                        <li key={group.id} className="px-4 py-3 text-sm">
+                          <p className="font-semibold text-slate-900">{group.name}</p>
+                          {group.description && (
+                            <p className="text-xs text-slate-500">{group.description}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+                <Card title="Notices">
+                  {me.other.notices.length === 0 ? (
+                    <Empty text="No notice for you yet." />
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {me.other.notices.map((notice) => (
+                        <li key={notice.id} className="px-4 py-3 text-sm">
+                          <p className="font-semibold text-slate-900">{notice.title}</p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(notice.createdAt).toLocaleDateString("en-IN")} ·{" "}
+                            {notice.groupName ? `Group: ${notice.groupName}` : "Everyone"}
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-slate-700">
+                            {notice.body}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </div>
             )}
 
             <Card title="Coming soon">

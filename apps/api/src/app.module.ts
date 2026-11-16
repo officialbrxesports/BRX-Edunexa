@@ -12,6 +12,7 @@ import { CoachingModule } from './modules/coaching/coaching.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { CollegeModule } from './modules/college/college.module';
 import { InstituteModule } from './modules/institute/institute.module';
+import { OtherModule } from './modules/other/other.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { InstituteModule } from './modules/institute/institute.module';
     AttendanceModule,
     CollegeModule,
     InstituteModule,
+    OtherModule,
   ],
 })
 export class AppModule {}

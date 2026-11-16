@@ -290,6 +290,68 @@ export class DashboardService {
     institutionId: string | null;
     role: string;
   }) {
+    const summary = await this.getRoleSummary(user);
+
+    // "Other" organisations have no classes or courses; what a member sees
+    // is the groups they belong to and the notices meant for them.
+    if (summary.institution.type === 'OTHER' && user.institutionId) {
+      return {
+        ...summary,
+        other: await this.otherFor(user.institutionId, user.id),
+      };
+    }
+
+    return summary;
+  }
+
+  private async otherFor(institutionId: string, userId: string) {
+    const [groups, notices] = await Promise.all([
+      this.prisma.groups.findMany({
+        where: {
+          institutionId,
+          isActive: true,
+          members: { some: { userId } },
+        },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, description: true },
+      }),
+      this.prisma.notices.findMany({
+        where: {
+          institutionId,
+          OR: [
+            { groupId: null },
+            { group: { members: { some: { userId } } } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          body: true,
+          createdAt: true,
+          group: { select: { name: true } },
+        },
+      }),
+    ]);
+
+    return {
+      groups,
+      notices: notices.map((notice) => ({
+        id: notice.id,
+        title: notice.title,
+        body: notice.body,
+        createdAt: notice.createdAt,
+        groupName: notice.group?.name ?? null,
+      })),
+    };
+  }
+
+  private async getRoleSummary(user: {
+    id: string;
+    institutionId: string | null;
+    role: string;
+  }) {
     if (!user.institutionId) {
       throw new NotFoundException('Your account is not linked to an institution.');
     }
