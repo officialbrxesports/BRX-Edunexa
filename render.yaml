@@ -1,0 +1,23 @@
+# Render Blueprint for the API (free plan). Secrets are NOT stored here:
+# Render asks for the "sync: false" values on its Environment screen.
+services:
+  - type: web
+    name: brx-edunexa-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --include=dev && cd apps/api && npx prisma generate && cd ../.. && npm run build --workspace @brx/api
+    startCommand: cd apps/api && npx prisma migrate deploy && npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: "2"
+      - key: DIRECT_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
