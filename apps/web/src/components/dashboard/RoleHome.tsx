@@ -499,6 +499,29 @@ export default function RoleHome() {
               </div>
             )}
 
+            {me.role === "TEACHER" &&
+              (me.institution.type === "SCHOOL" ||
+                me.institution.type === "COACHING") && (
+                <Card title="My tools">
+                  <div className="flex flex-wrap gap-2 p-4">
+                    <Link
+                      href="/dashboard/teacher/attendance"
+                      className="h-9 bg-blue-800 px-4 text-xs font-semibold leading-9 text-white hover:bg-blue-900"
+                    >
+                      Take attendance
+                    </Link>
+                    {me.institution.type === "COACHING" && (
+                      <Link
+                        href="/dashboard/teacher/tests"
+                        className="h-9 bg-blue-800 px-4 text-xs font-semibold leading-9 text-white hover:bg-blue-900"
+                      >
+                        Tests &amp; marks
+                      </Link>
+                    )}
+                  </div>
+                </Card>
+              )}
+
             {me.role === "TEACHER" && me.teacher && (
               <Card title={`My subjects (${me.teacher.assignments.length})`}>
                 {me.teacher.assignments.length === 0 ? (

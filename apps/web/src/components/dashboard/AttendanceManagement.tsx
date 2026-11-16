@@ -34,7 +34,11 @@ export function localDate(offsetDays = 0) {
 const inputClass =
   "mt-1 h-9 w-full border border-slate-300 px-3 text-sm font-normal outline-none focus:border-blue-600";
 
-export default function AttendanceManagement() {
+export default function AttendanceManagement({
+  base = "/attendance",
+}: {
+  base?: string;
+}) {
   const [mode, setMode] = useState<"SECTION" | "BATCH" | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupId, setGroupId] = useState("");
@@ -49,7 +53,7 @@ export default function AttendanceManagement() {
   useEffect(() => {
     let cancelled = false;
 
-    apiRequest<{ mode: "SECTION" | "BATCH"; groups: Group[] }>("/attendance/groups")
+    apiRequest<{ mode: "SECTION" | "BATCH"; groups: Group[] }>(`${base}/groups`)
       .then((data) => {
         if (cancelled) return;
         setMode(data.mode);
@@ -66,7 +70,7 @@ export default function AttendanceManagement() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [base]);
 
   const loadSheet = useCallback(async (group: string, day: string) => {
     setSheet(null);
@@ -77,7 +81,7 @@ export default function AttendanceManagement() {
 
     try {
       const data = await apiRequest<Sheet>(
-        `/attendance/sheet?groupId=${encodeURIComponent(group)}&date=${day}`,
+        `${base}/sheet?groupId=${encodeURIComponent(group)}&date=${day}`,
       );
       setSheet(data);
       setMarks(
@@ -88,7 +92,7 @@ export default function AttendanceManagement() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load the list.");
     }
-  }, []);
+  }, [base]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadSheet(groupId, date), 0);
@@ -114,7 +118,7 @@ export default function AttendanceManagement() {
     setSuccess("");
 
     try {
-      await apiRequest("/attendance/sheet", {
+      await apiRequest(`${base}/sheet`, {
         method: "PUT",
         body: JSON.stringify({
           groupId,

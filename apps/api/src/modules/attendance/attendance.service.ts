@@ -144,6 +144,72 @@ export class AttendanceService {
     return { classId: null, students: rows.map((row) => row.student) };
   }
 
+  /* --------------------------- teacher access --------------------------- */
+
+  /** The sections / batches this teacher is assigned to, and nothing else. */
+  async teacherGroupIds(institutionId: string, teacherId: string) {
+    const mode = await this.mode(institutionId);
+    const ids = new Set<string>();
+
+    if (mode === 'BATCH') {
+      const rows = await this.prisma.batch_teachers.findMany({
+        where: { institutionId, teacherId },
+        select: { batchId: true },
+      });
+
+      rows.forEach((row) => ids.add(row.batchId));
+      return ids;
+    }
+
+    const rows = await this.prisma.subject_teachers.findMany({
+      where: { institutionId, teacherId },
+      select: { classId: true, sectionId: true },
+    });
+    const wholeClasses: string[] = [];
+
+    for (const row of rows) {
+      if (row.sectionId) ids.add(row.sectionId);
+      else wholeClasses.push(row.classId);
+    }
+
+    if (wholeClasses.length > 0) {
+      const sections = await this.prisma.sections.findMany({
+        where: { classId: { in: wholeClasses }, classes: { institutionId } },
+        select: { id: true },
+      });
+
+      sections.forEach((section) => ids.add(section.id));
+    }
+
+    return ids;
+  }
+
+  async teacherGroups(institutionId: string, teacherId: string) {
+    const [data, ids] = await Promise.all([
+      this.groups(institutionId),
+      this.teacherGroupIds(institutionId, teacherId),
+    ]);
+
+    return {
+      mode: data.mode,
+      groups: data.groups.filter((group) => ids.has(group.id)),
+    };
+  }
+
+  async assertTeacherGroup(
+    institutionId: string,
+    teacherId: string,
+    groupId?: string,
+  ) {
+    const ids = await this.teacherGroupIds(institutionId, teacherId);
+
+    if (!groupId || !ids.has(groupId)) {
+      throw new ForbiddenException(
+        'You can only take attendance for your own classes or batches.',
+      );
+    }
+  }
+
   /* -------------------------------- sheet -------------------------------- */
 
   async sheet(institutionId: string, groupId?: string, dateText?: string) {

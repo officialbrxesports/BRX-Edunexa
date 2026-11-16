@@ -5,10 +5,15 @@ import { CoachingController } from './coaching.controller';
 import { CoachingService } from './coaching.service';
 import { CoachingTestsController } from './coaching-tests.controller';
 import { CoachingTestsService } from './coaching-tests.service';
+import { TeacherTestsController } from './teacher-tests.controller';
 
 @Module({
   imports: [AuthModule, UsersModule],
-  controllers: [CoachingController, CoachingTestsController],
+  controllers: [
+    CoachingController,
+    CoachingTestsController,
+    TeacherTestsController,
+  ],
   providers: [CoachingService, CoachingTestsService],
 })
 export class CoachingModule {}

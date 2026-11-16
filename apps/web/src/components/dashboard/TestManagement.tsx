@@ -48,7 +48,15 @@ const inputClass =
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function TestManagement() {
+export default function TestManagement({
+  basePath = "/coaching/tests",
+  batchesPath = "/coaching/batches",
+  canDelete = true,
+}: {
+  basePath?: string;
+  batchesPath?: string;
+  canDelete?: boolean;
+}) {
   const [batches, setBatches] = useState<BatchOption[]>([]);
   const [tests, setTests] = useState<TestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,8 +79,8 @@ export default function TestManagement() {
 
     try {
       const [batchList, testList] = await Promise.all([
-        apiRequest<BatchOption[]>("/coaching/batches"),
-        apiRequest<TestRow[]>("/coaching/tests"),
+        apiRequest<BatchOption[]>(batchesPath),
+        apiRequest<TestRow[]>(basePath),
       ]);
       setBatches(batchList);
       setTests(testList);
@@ -81,7 +89,7 @@ export default function TestManagement() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [basePath, batchesPath]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -95,7 +103,7 @@ export default function TestManagement() {
     setSaving(true);
 
     try {
-      const created = await apiRequest<{ id: string }>("/coaching/tests", {
+      const created = await apiRequest<{ id: string }>(basePath, {
         method: "POST",
         body: JSON.stringify({
           batchId,
@@ -121,7 +129,7 @@ export default function TestManagement() {
     setError("");
 
     try {
-      const data = await apiRequest<Sheet>(`/coaching/tests/${id}/sheet`);
+      const data = await apiRequest<Sheet>(`${basePath}/${id}/sheet`);
       setSheet(data);
       setEntries(
         Object.fromEntries(
@@ -146,7 +154,7 @@ export default function TestManagement() {
     setSheetSaving(true);
 
     try {
-      await apiRequest(`/coaching/tests/${sheet.test.id}/results`, {
+      await apiRequest(`${basePath}/${sheet.test.id}/results`, {
         method: "PUT",
         body: JSON.stringify({
           results: sheet.students.map((student) => ({
@@ -424,14 +432,16 @@ export default function TestManagement() {
                   >
                     Enter marks
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void removeTest(test)}
-                    title="Delete test"
-                    className="flex h-8 w-8 items-center justify-center border border-slate-300 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => void removeTest(test)}
+                      title="Delete test"
+                      className="flex h-8 w-8 items-center justify-center border border-slate-300 text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </li>
             ))}

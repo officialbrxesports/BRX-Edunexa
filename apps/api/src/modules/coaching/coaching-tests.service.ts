@@ -115,6 +115,59 @@ export class CoachingTestsService {
     return cleaned;
   }
 
+  /* --------------------------- teacher access --------------------------- */
+
+  /** Batches this teacher is assigned to, and nothing else. */
+  async teacherBatchIds(institutionId: string, teacherId: string) {
+    await this.assertCoaching(institutionId);
+
+    const rows = await this.prisma.batch_teachers.findMany({
+      where: { institutionId, teacherId },
+      select: { batchId: true },
+    });
+
+    return new Set(rows.map((row) => row.batchId));
+  }
+
+  async teacherBatches(institutionId: string, teacherId: string) {
+    const ids = await this.teacherBatchIds(institutionId, teacherId);
+
+    return this.prisma.batches.findMany({
+      where: { institutionId, status: 'ACTIVE', id: { in: [...ids] } },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, code: true },
+    });
+  }
+
+  async assertTeacherBatch(
+    institutionId: string,
+    teacherId: string,
+    batchId?: string,
+  ) {
+    const ids = await this.teacherBatchIds(institutionId, teacherId);
+
+    if (!batchId || !ids.has(batchId)) {
+      throw new ForbiddenException('You can only use your own batches.');
+    }
+  }
+
+  async assertTeacherTest(
+    institutionId: string,
+    teacherId: string,
+    testId: string,
+  ) {
+    await this.assertCoaching(institutionId);
+    const test = await this.findTest(institutionId, testId);
+    await this.assertTeacherBatch(institutionId, teacherId, test.batchId);
+  }
+
+  async listForTeacher(institutionId: string, teacherId: string) {
+    const ids = await this.teacherBatchIds(institutionId, teacherId);
+    const all = await this.list(institutionId);
+
+    return all.filter((test) => ids.has(test.batchId));
+  }
+
   /* ------------------------------- tests ------------------------------- */
 
   async list(institutionId: string, batchId?: string) {
