@@ -19,6 +19,11 @@ export class InstitutionsApprovalController {
     private readonly approvalService: InstitutionsApprovalService,
   ) {}
 
+  @Get()
+  listAll() {
+    return this.approvalService.listAll();
+  }
+
   @Get("pending")
   listPending() {
     return this.approvalService.listPending();

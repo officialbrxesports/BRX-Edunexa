@@ -29,6 +29,52 @@ return this.prisma.$queryRaw`       SELECT
     `;
 }
 
+async listAll() {
+const rows = await this.prisma.institutions.findMany({
+orderBy: { createdAt: "desc" },
+select: {
+id: true,
+name: true,
+code: true,
+type: true,
+status: true,
+state: true,
+country: true,
+email: true,
+phone: true,
+createdAt: true,
+_count: { select: { users: true } },
+users: {
+where: { role: "HEAD" },
+take: 1,
+select: { firstName: true, lastName: true, email: true },
+},
+},
+});
+
+return rows.map((row) => ({
+id: row.id,
+name: row.name,
+code: row.code,
+type: row.type,
+status: row.status,
+state: row.state,
+country: row.country,
+email: row.email,
+phone: row.phone,
+createdAt: row.createdAt,
+userCount: row._count.users,
+head: row.users[0]
+? {
+name: [row.users[0].firstName, row.users[0].lastName]
+.filter(Boolean)
+.join(" "),
+email: row.users[0].email,
+}
+: null,
+}));
+}
+
 async approve(institutionId: string) {
 return this.prisma.$transaction(async (tx) => {
 const institutions = await tx.$queryRaw<

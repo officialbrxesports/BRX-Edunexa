@@ -25,9 +25,11 @@ const HEAD_HOME: Record<string, string> = {
 export default function DashboardAuth({
   children,
   headOnly = false,
+  platformOnly = false,
 }: {
   children: ReactNode;
   headOnly?: boolean;
+  platformOnly?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -60,8 +62,23 @@ export default function DashboardAuth({
           return;
         }
 
+        if (platformOnly && result.user.role !== "PLATFORM_ADMIN") {
+          router.replace("/dashboard");
+          return;
+        }
+
         if (headOnly && result.user.role !== "HEAD") {
           router.replace("/dashboard");
+          return;
+        }
+
+        if (
+          !headOnly &&
+          !platformOnly &&
+          pathname === "/dashboard" &&
+          result.user.role === "PLATFORM_ADMIN"
+        ) {
+          router.replace("/dashboard/admin");
           return;
         }
 
@@ -105,7 +122,7 @@ export default function DashboardAuth({
     return () => {
       active = false;
     };
-  }, [headOnly, pathname, router]);
+  }, [headOnly, platformOnly, pathname, router]);
 
   if (!authorized) {
     return (

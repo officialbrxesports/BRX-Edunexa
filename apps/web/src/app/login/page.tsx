@@ -227,12 +227,6 @@ export default function LoginPage() {
             </p>
           )}
 
-          {!GOOGLE_CLIENT_ID && (
-            <p role="alert" style={{ color: "#dc2626" }}>
-              Google sign-in configure nahi hai.
-            </p>
-          )}
-
           {GOOGLE_CLIENT_ID && !googleReady && (
             <p style={{ textAlign: "center", fontSize: 12 }}>
               Google sign-in load ho raha hai...
