@@ -5,6 +5,7 @@ services:
     name: brx-edunexa-api
     runtime: node
     plan: free
+    region: ohio
     buildCommand: npm ci --include=dev && cd apps/api && npx prisma generate && cd ../.. && npm run build --workspace @brx/api
     startCommand: cd apps/api && npx prisma migrate deploy && npm run start:prod
     healthCheckPath: /health
