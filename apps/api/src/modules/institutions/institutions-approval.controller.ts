@@ -3,6 +3,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   UseGuards,
 } from "@nestjs/common";
 
@@ -32,6 +33,11 @@ export class InstitutionsApprovalController {
   @Patch(":id/approve")
   approve(@Param("id") id: string) {
     return this.approvalService.approve(id);
+  }
+
+  @Post(":id/reset-head-password")
+  resetHeadPassword(@Param("id") id: string) {
+    return this.approvalService.resetHeadPassword(id);
   }
 
   @Patch(":id/reject")

@@ -150,6 +150,51 @@ export class TeachersService {
     }
   }
 
+  /**
+   * A head resets the password of someone in their own institution.
+   * The new password is shown once, the person is signed out everywhere
+   * and must choose their own password at the next login.
+   */
+  async resetPassword(institutionId: string, id: string) {
+    const user = await this.prisma.users.findFirst({
+      where: {
+        id,
+        institutionId,
+        role: { in: ['TEACHER', 'STAFF', 'GUARD', 'PARENT', 'STUDENT'] },
+        status: { not: 'DELETED' },
+      },
+      select: { id: true, brxUid: true, email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Account not found.');
+    }
+
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const passwordHash = await argon2.hash(temporaryPassword);
+
+    await this.prisma.$transaction([
+      this.prisma.users.update({
+        where: { id: user.id },
+        data: { passwordHash, mustChangePassword: true, updatedAt: new Date() },
+      }),
+      this.prisma.login_sessions.updateMany({
+        where: { userId: user.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Password reset.',
+      credentials: {
+        eduNexaId: user.brxUid,
+        email: user.email,
+        temporaryPassword,
+      },
+    };
+  }
+
   async update(
     institutionId: string,
     id: string,

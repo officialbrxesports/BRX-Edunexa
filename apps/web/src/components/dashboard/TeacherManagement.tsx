@@ -20,6 +20,7 @@ type Credentials = {
   eduNexaId: string;
   email: string;
   temporaryPassword: string;
+  reset?: boolean;
 };
 
 type FormState = {
@@ -183,6 +184,29 @@ export default function TeacherManagement({
     }
   }
 
+  async function resetPassword(teacher: Teacher) {
+    if (
+      !window.confirm(
+        `Reset the password for ${teacher.firstName}? They will be signed out and must choose a new password at the next login.`,
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await request<{ credentials: Credentials }>(
+        `/users/${teacher.id}/reset-password`,
+        { method: "POST" },
+      );
+      setCredentials({ ...result.credentials, reset: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset the password.");
+    }
+  }
+
   async function toggleStatus(teacher: Teacher) {
     const next = teacher.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
 
@@ -306,7 +330,11 @@ export default function TeacherManagement({
 
       {credentials && (
         <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-bold">{Label} account created. Save these now.</p>
+          <p className="font-bold">
+            {credentials.reset
+              ? "Password reset. Save these now."
+              : `${Label} account created. Save these now.`}
+          </p>
           <p className="mt-1 text-xs">
             The temporary password is shown only once and cannot be viewed
             again.
@@ -416,6 +444,13 @@ export default function TeacherManagement({
                     className="h-8 border border-slate-300 px-2.5 text-xs font-semibold hover:bg-slate-50"
                   >
                     {teacher.status === "ACTIVE" ? "Suspend" : "Activate"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void resetPassword(teacher)}
+                    className="h-8 border border-slate-300 px-2.5 text-xs font-semibold hover:bg-slate-50"
+                  >
+                    Reset password
                   </button>
                 </div>
               </li>

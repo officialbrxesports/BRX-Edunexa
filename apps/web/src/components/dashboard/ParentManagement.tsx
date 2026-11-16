@@ -30,6 +30,7 @@ type Credentials = {
   eduNexaId: string;
   email: string;
   temporaryPassword: string;
+  reset?: boolean;
 };
 
 const RELATIONS = ["FATHER", "MOTHER", "GUARDIAN", "OTHER"];
@@ -202,6 +203,29 @@ export default function ParentManagement() {
       setError(err instanceof Error ? err.message : "Could not save parent.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function resetPassword(parent: Parent) {
+    if (
+      !window.confirm(
+        `Reset the password for ${parent.firstName}? They will be signed out and must choose a new password at the next login.`,
+      )
+    ) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await request<{ credentials: Credentials }>(
+        `/users/${parent.id}/reset-password`,
+        { method: "POST" },
+      );
+      setCredentials({ ...result.credentials, reset: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset the password.");
     }
   }
 
@@ -385,7 +409,11 @@ export default function ParentManagement() {
 
       {credentials && (
         <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-          <p className="font-bold">Parent account created. Save these now.</p>
+          <p className="font-bold">
+            {credentials.reset
+              ? "Password reset. Save these now."
+              : "Parent account created. Save these now."}
+          </p>
           <p className="mt-1 text-xs">
             The temporary password is shown only once. The parent must change
             it on first login.
@@ -493,6 +521,13 @@ export default function ParentManagement() {
                     className="h-8 border border-slate-300 px-2.5 text-xs font-semibold hover:bg-slate-50"
                   >
                     {parent.status === "ACTIVE" ? "Suspend" : "Activate"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void resetPassword(parent)}
+                    className="h-8 border border-slate-300 px-2.5 text-xs font-semibold hover:bg-slate-50"
+                  >
+                    Reset password
                   </button>
                 </div>
               </li>

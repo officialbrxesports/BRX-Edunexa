@@ -51,6 +51,12 @@ export default function PlatformAdminHome() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [credentials, setCredentials] = useState<{
+    institution: string;
+    eduNexaId: string;
+    email: string;
+    temporaryPassword: string;
+  } | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const load = useCallback(async () => {
@@ -97,6 +103,40 @@ export default function PlatformAdminHome() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed.");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function resetHead(row: InstitutionRow) {
+    if (busyId) return;
+
+    if (
+      !window.confirm(
+        `Reset the password of the head of "${row.name}"? They will be signed out and must choose a new password.`,
+      )
+    ) {
+      return;
+    }
+
+    setBusyId(row.id);
+    setNotice("");
+    setError("");
+    setCredentials(null);
+
+    try {
+      const result = await apiRequest<{
+        credentials: {
+          eduNexaId: string;
+          email: string;
+          temporaryPassword: string;
+        };
+      }>(`/admin/institutions/${row.id}/reset-head-password`, {
+        method: "POST",
+      });
+      setCredentials({ institution: row.name, ...result.credentials });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset the password.");
     } finally {
       setBusyId("");
     }
@@ -186,6 +226,33 @@ export default function PlatformAdminHome() {
           >
             {notice}
           </p>
+        )}
+
+        {credentials && (
+          <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-bold">
+              Head password reset for {credentials.institution}. Save these now.
+            </p>
+            <p className="mt-1 text-xs">
+              The temporary password is shown only once. The head must change it
+              at the next login.
+            </p>
+            <dl className="mt-3 grid gap-1 text-xs sm:grid-cols-[110px_1fr]">
+              <dt className="font-semibold">EduNexa ID</dt>
+              <dd className="font-mono">{credentials.eduNexaId}</dd>
+              <dt className="font-semibold">Email</dt>
+              <dd className="font-mono">{credentials.email}</dd>
+              <dt className="font-semibold">Temp password</dt>
+              <dd className="break-all font-mono">{credentials.temporaryPassword}</dd>
+            </dl>
+            <button
+              type="button"
+              onClick={() => setCredentials(null)}
+              className="mt-3 text-xs font-semibold underline"
+            >
+              I have saved it
+            </button>
+          </div>
         )}
 
         {!rows && !error && (
@@ -283,7 +350,7 @@ export default function PlatformAdminHome() {
                 </p>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] text-left text-sm">
+                  <table className="w-full min-w-[640px] text-left text-sm">
                     <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                       <tr>
                         <th className="px-4 py-2">Name</th>
@@ -291,6 +358,7 @@ export default function PlatformAdminHome() {
                         <th className="px-4 py-2">Status</th>
                         <th className="px-4 py-2">Users</th>
                         <th className="px-4 py-2">Applied</th>
+                        <th className="px-4 py-2" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -313,6 +381,18 @@ export default function PlatformAdminHome() {
                           <td className="px-4 py-2.5">{row.userCount}</td>
                           <td className="px-4 py-2.5">
                             {formatDate(row.createdAt)}
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            {row.status === "ACTIVE" && (
+                              <button
+                                type="button"
+                                disabled={busyId === row.id}
+                                onClick={() => void resetHead(row)}
+                                className="text-xs font-semibold text-blue-800 underline disabled:opacity-50"
+                              >
+                                Reset head password
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}

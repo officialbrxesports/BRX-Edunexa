@@ -5,6 +5,7 @@ import {
   StaffController,
   TeachersController,
 } from './teachers.controller';
+import { AccountsController } from './accounts.controller';
 import { ParentsController } from './parents.controller';
 import { ParentsService } from './parents.service';
 import { TeachersService } from './teachers.service';
@@ -16,6 +17,7 @@ import { TeachersService } from './teachers.service';
     StaffController,
     GuardsController,
     ParentsController,
+    AccountsController,
   ],
   providers: [TeachersService, ParentsService],
   exports: [TeachersService],

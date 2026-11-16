@@ -4,6 +4,9 @@ Injectable,
 NotFoundException,
 } from "@nestjs/common";
 
+import { randomBytes } from "node:crypto";
+import * as argon2 from "argon2";
+
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
@@ -27,6 +30,57 @@ return this.prisma.$queryRaw`       SELECT
       WHERE "status"::text = 'PENDING'
       ORDER BY "createdAt" ASC
     `;
+}
+
+async resetHeadPassword(institutionId: string) {
+const institution = await this.prisma.institutions.findUnique({
+where: { id: institutionId },
+select: { status: true },
+});
+
+if (!institution) {
+throw new NotFoundException("Institution not found.");
+}
+
+if (institution.status !== "ACTIVE") {
+throw new BadRequestException(
+"Only active institutions can have their head password reset.",
+);
+}
+
+const head = await this.prisma.users.findFirst({
+where: { institutionId, role: "HEAD", status: { not: "DELETED" } },
+orderBy: { createdAt: "asc" },
+select: { id: true, brxUid: true, email: true },
+});
+
+if (!head) {
+throw new NotFoundException("This institution has no head account.");
+}
+
+const temporaryPassword = randomBytes(18).toString("base64url");
+const passwordHash = await argon2.hash(temporaryPassword);
+
+await this.prisma.$transaction([
+this.prisma.users.update({
+where: { id: head.id },
+data: { passwordHash, mustChangePassword: true, updatedAt: new Date() },
+}),
+this.prisma.login_sessions.updateMany({
+where: { userId: head.id, revokedAt: null },
+data: { revokedAt: new Date() },
+}),
+]);
+
+return {
+success: true,
+message: "Head password reset.",
+credentials: {
+eduNexaId: head.brxUid,
+email: head.email,
+temporaryPassword,
+},
+};
 }
 
 async listAll() {
