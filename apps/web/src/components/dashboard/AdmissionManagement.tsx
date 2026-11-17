@@ -407,6 +407,8 @@ export default function AdmissionManagement() {
 
   const [profiles, setProfiles] = useState<AdmissionProfile[]>([]);
   const [institutionName, setInstitutionName] = useState("");
+  const [institutionCode, setInstitutionCode] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
 
@@ -506,6 +508,7 @@ export default function AdmissionManagement() {
 
         if (profileRes.ok) setProfiles(profileData.profiles || []);
         setInstitutionName(me?.institution?.name || "");
+        setInstitutionCode(me?.institution?.code || "");
       } catch {
         // The form still works without profiles; the server validates.
       }
@@ -1896,6 +1899,35 @@ export default function AdmissionManagement() {
           </button>
         </div>
       </div>
+
+      {institutionCode && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
+          <div className="min-w-0">
+            <p className="font-semibold">Public apply link for parents</p>
+            <p className="mt-1 break-all">
+              {typeof window !== "undefined" ? window.location.origin : ""}/apply/{institutionCode}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const link = `${window.location.origin}/apply/${institutionCode}`;
+
+              navigator.clipboard
+                .writeText(link)
+                .then(() => {
+                  setLinkCopied(true);
+                  window.setTimeout(() => setLinkCopied(false), 2000);
+                })
+                .catch(() => setError("Could not copy. Select the link and copy it."));
+            }}
+            className="h-9 shrink-0 rounded bg-blue-800 px-3 font-semibold text-white"
+          >
+            {linkCopied ? "Copied" : "Copy link"}
+          </button>
+        </div>
+      )}
 
       {/* ALERTS */}
 

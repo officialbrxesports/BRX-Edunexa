@@ -176,6 +176,15 @@ export class StudentsService {
     }));
   }
 
+  // Classes for the public apply page (no sections, no seat counts).
+  async publicClassList(classes: { id: string; name: string }[]) {
+    return classes.map((classItem) => ({
+      id: classItem.id,
+      name: classItem.name,
+      formProfile: profileIdForClassName(classItem.name),
+    }));
+  }
+
   // -----------------------------------------
   // CREATE ADMISSION APPLICATION
   // -----------------------------------------

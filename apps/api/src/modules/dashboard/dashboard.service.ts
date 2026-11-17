@@ -361,7 +361,7 @@ export class DashboardService {
     const [institution, me] = await Promise.all([
       this.prisma.institutions.findUnique({
         where: { id: institutionId },
-        select: { name: true, type: true },
+        select: { name: true, type: true, code: true },
       }),
       this.prisma.users.findUnique({
         where: { id: user.id },
