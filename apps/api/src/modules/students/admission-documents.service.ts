@@ -14,12 +14,6 @@ import {
 } from 'node:fs';
 
 import {
-  mkdir,
-  writeFile,
-  unlink,
-} from 'node:fs/promises';
-
-import {
   basename,
   join,
   resolve,
@@ -51,7 +45,7 @@ const MIME_EXTENSIONS: Record<string, string> = {
   'application/pdf': '.pdf',
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
 @Injectable()
 export class AdmissionDocumentsService {
@@ -109,7 +103,7 @@ export class AdmissionDocumentsService {
 
     if (file.buffer.length > MAX_FILE_SIZE) {
       throw new BadRequestException(
-        'Maximum file size is 5 MB.',
+        'Maximum file size is 2 MB.',
       );
     }
 
@@ -203,13 +197,8 @@ export class AdmissionDocumentsService {
 
     const extension = this.validateFile(file);
 
-    await mkdir(this.uploadDirectory, {
-      recursive: true,
-    });
-
-    const storageKey = `${randomUUID()}${extension}`;
-
-    const filePath = this.getSafeFilePath(storageKey);
+    // New files live in the database; this key is only a label.
+    const storageKey = `db-${randomUUID()}${extension}`;
 
     const originalName = basename(
       String(file.originalname || 'document'),
@@ -217,32 +206,36 @@ export class AdmissionDocumentsService {
       .replace(/[^\w.\- ()]/g, '_')
       .slice(0, 180);
 
-    await writeFile(filePath, file.buffer, {
-      flag: 'wx',
-    });
-
-    try {
-      const document =
-        await this.prisma.admissionDocument.create({
-          data: {
-            id: randomUUID(),
-            applicationId,
-            type: type as AdmissionDocumentType,
-            originalName: originalName || 'document',
-            storageKey,
-            mimeType: file.mimetype,
-            sizeBytes: file.buffer.length,
+    const document =
+      await this.prisma.admissionDocument.create({
+        data: {
+          id: randomUUID(),
+          applicationId,
+          type: type as AdmissionDocumentType,
+          originalName: originalName || 'document',
+          storageKey,
+          mimeType: file.mimetype,
+          sizeBytes: file.buffer.length,
+          file: {
+            create: { data: new Uint8Array(file.buffer) },
           },
-        });
+        },
+        select: {
+          id: true,
+          applicationId: true,
+          type: true,
+          originalName: true,
+          mimeType: true,
+          sizeBytes: true,
+          verified: true,
+          createdAt: true,
+        },
+      });
 
-      return {
-        message: 'Document uploaded successfully.',
-        document,
-      };
-    } catch (error) {
-      await unlink(filePath).catch(() => undefined);
-      throw error;
-    }
+    return {
+      message: 'Document uploaded successfully.',
+      document,
+    };
   }
 
   async getDocuments(
@@ -359,6 +352,9 @@ export class AdmissionDocumentsService {
             },
           },
         },
+        include: {
+          file: true,
+        },
       });
 
     if (!document) {
@@ -367,6 +363,16 @@ export class AdmissionDocumentsService {
       );
     }
 
+    // Files uploaded after the move to the database.
+    if (document.file) {
+      return {
+        stream: Buffer.from(document.file.data),
+        mimeType: document.mimeType,
+        originalName: document.originalName,
+      };
+    }
+
+    // Older files that were saved on the server disk.
     const filePath = this.getSafeFilePath(
       document.storageKey,
     );

@@ -968,10 +968,19 @@ model AdmissionDocument {
   updatedAt     DateTime               @updatedAt
 
   application   AdmissionApplication   @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  file          AdmissionDocumentFile?
 
   @@index([applicationId])
   @@index([type])
   @@index([verified])
+}
+
+// The bytes of an uploaded admission document. Kept in the database because
+// the free hosting disk is wiped on every restart.
+model AdmissionDocumentFile {
+  documentId String            @id
+  data       Bytes
+  document   AdmissionDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 model AdmissionReceipt {

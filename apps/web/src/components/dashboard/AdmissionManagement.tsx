@@ -945,8 +945,8 @@ export default function AdmissionManagement() {
       return;
     }
 
-    if (uploadFile.size > 5 * 1024 * 1024) {
-      setError("File size must not exceed 5 MB.");
+    if (uploadFile.size > 2 * 1024 * 1024) {
+      setError("File size must not exceed 2 MB.");
       return;
     }
 
@@ -2608,7 +2608,7 @@ export default function AdmissionManagement() {
                   </button>
 
                   <p className="text-[10px] text-slate-500">
-                    JPG, PNG or PDF · Maximum 5 MB
+                    JPG, PNG or PDF · Maximum 2 MB
                   </p>
                 </form>
 
