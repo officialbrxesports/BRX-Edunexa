@@ -1,0 +1,14 @@
+-- AlterEnum
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'SIGNATURE';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'MIGRATION_CERTIFICATE';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'CASTE_CERTIFICATE';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'REGISTRATION_CARD';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'PWD_CERTIFICATE';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'INCOME_CERTIFICATE';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'BANK_PASSBOOK';
+ALTER TYPE "AdmissionDocumentType" ADD VALUE 'BOARD_CERTIFICATE';
+
+-- AlterTable
+ALTER TABLE "AdmissionApplication" ADD COLUMN "formProfile" TEXT,
+ADD COLUMN "apaarId" TEXT,
+ADD COLUMN "details" JSONB;

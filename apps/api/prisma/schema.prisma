@@ -923,6 +923,11 @@ model AdmissionApplication {
   previousTCNumber  String?
 
   // Application workflow
+  // Class-wise form: which form was used and its extra answers
+  formProfile       String?
+  apaarId           String?
+  details           Json?
+
   declarationAccepted Boolean      @default(false)
   submittedAt       DateTime?
   reviewedAt        DateTime?
@@ -1165,6 +1170,14 @@ enum AdmissionDocumentType {
   TRANSFER_CERTIFICATE
   MARKSHEET
   OTHER
+  SIGNATURE
+  MIGRATION_CERTIFICATE
+  CASTE_CERTIFICATE
+  REGISTRATION_CARD
+  PWD_CERTIFICATE
+  INCOME_CERTIFICATE
+  BANK_PASSBOOK
+  BOARD_CERTIFICATE
 }
 
 enum AdmissionPaymentStatus {

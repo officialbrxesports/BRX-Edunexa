@@ -8,7 +8,21 @@ import {
   type FormEvent,
 } from "react";
 
+import Link from "next/link";
+
 import { API_URL } from "../../lib/api";
+import AdmissionClassFields from "./AdmissionClassFields";
+import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
+import {
+  ALL_DOCUMENT_TYPES,
+  documentLabel,
+  initialDetails,
+  isFieldVisible,
+  marksSkipped,
+  type AdmissionProfile,
+  type Details,
+  type MarkRow,
+} from "../../lib/admissionProfiles";
 
 import {
   CheckCircle2,
@@ -24,6 +38,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
+  Printer,
 } from "lucide-react";
 
 /* =========================================================
@@ -39,6 +54,7 @@ type SchoolSection = {
 type SchoolClass = {
   id: string;
   name: string;
+  formProfile?: string;
   sections?: SchoolSection[];
 };
 
@@ -158,6 +174,10 @@ type Admission = {
   classId: string;
   sectionId?: string | null;
 
+  formProfile?: string | null;
+  details?: Details | null;
+  submittedAt?: string | null;
+
   status: string;
   reviewNote?: string | null;
   rejectionReason?: string | null;
@@ -168,14 +188,7 @@ type Admission = {
   documents?: AdmissionDocument[];
 };
 
-const DOCUMENT_TYPES = [
-  "STUDENT_PHOTO",
-  "BIRTH_CERTIFICATE",
-  "IDENTITY_DOCUMENT",
-  "TRANSFER_CERTIFICATE",
-  "MARKSHEET",
-  "OTHER",
-];
+const DOCUMENT_TYPES = ALL_DOCUMENT_TYPES;
 
 const INITIAL_FORM: AdmissionForm = {
   firstName: "",
@@ -392,6 +405,11 @@ export default function AdmissionManagement() {
 
   const [sectionId, setSectionId] = useState("");
 
+  const [profiles, setProfiles] = useState<AdmissionProfile[]>([]);
+  const [institutionName, setInstitutionName] = useState("");
+  const [details, setDetails] = useState<Details>({});
+  const [declarationName, setDeclarationName] = useState("");
+
   const [rejectReason, setRejectReason] = useState("");
   const [reviewNote, setReviewNote] = useState("");
 
@@ -440,6 +458,135 @@ export default function AdmissionManagement() {
 
   const inputClass =
     "mt-1 h-10 w-full rounded border border-slate-300 bg-white px-3 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-100";
+
+  /* -------------------------------------------------------
+     CLASS-WISE FORM PROFILE
+  ------------------------------------------------------- */
+
+  const activeProfile = useMemo(
+    () =>
+      profiles.find(
+        (item) => item.id === selectedClass?.formProfile,
+      ) || null,
+    [profiles, selectedClass?.formProfile],
+  );
+
+  const activeProfileId = activeProfile?.id;
+
+  useEffect(() => {
+    if (activeProfile) {
+      setDetails(initialDetails(activeProfile));
+    } else {
+      setDetails({});
+    }
+    setDeclarationName("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProfileId]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProfiles() {
+      try {
+        const [profileRes, meRes] = await Promise.all([
+          fetch(`${API_URL}/students/admissions/form-profiles`, {
+            credentials: "include",
+            cache: "no-store",
+          }),
+          fetch(`${API_URL}/dashboard/me`, {
+            credentials: "include",
+            cache: "no-store",
+          }),
+        ]);
+
+        const profileData = await profileRes.json().catch(() => ({}));
+        const me = await meRes.json().catch(() => ({}));
+
+        if (!active) return;
+
+        if (profileRes.ok) setProfiles(profileData.profiles || []);
+        setInstitutionName(me?.institution?.name || "");
+      } catch {
+        // The form still works without profiles; the server validates.
+      }
+    }
+
+    void loadProfiles();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function profileForApplication(
+    application: Admission,
+  ): AdmissionProfile | null {
+    return (
+      profiles.find((item) => item.id === application.formProfile) ||
+      profiles.find((item) => item.id === "GENERAL") ||
+      null
+    );
+  }
+
+  function uploadedTypes(): string[] {
+    return documents.map((doc) => doc.type);
+  }
+
+  function printFilledForm(application: Admission) {
+    const profile = profileForApplication(application);
+
+    if (!profile) {
+      setError("Form layout is not loaded yet. Please try again.");
+      return;
+    }
+
+    printHtml(
+      buildFormHtml(profile, institutionName, {
+        applicationNumber: application.applicationNumber,
+        className:
+          application.class?.name ||
+          classes.find((item) => item.id === application.classId)?.name,
+        sectionName: application.section?.name || undefined,
+        submittedAt: application.submittedAt || undefined,
+        status: application.status,
+        base: application as unknown as Record<string, unknown>,
+        details: application.details || {},
+        uploadedTypes: uploadedTypes(),
+      }),
+    );
+  }
+
+  function missingClassFields(): string {
+    if (!activeProfile) return "";
+
+    for (const section of activeProfile.sections) {
+      for (const field of section.fields) {
+        if (!isFieldVisible(field, details) || !field.required) continue;
+
+        const value = details[field.key];
+        const empty = Array.isArray(value)
+          ? value.length === 0
+          : value === undefined || String(value).trim() === "";
+
+        if (empty) return `${field.label} is required.`;
+
+        if (field.type === "multi" && field.pick && Array.isArray(value) && value.length !== field.pick) {
+          return `${field.label}: choose exactly ${field.pick}.`;
+        }
+      }
+
+      if (section.marks && !marksSkipped(section.marks, details)) {
+        const rows = Array.isArray(details.marks) ? (details.marks as MarkRow[]) : [];
+        const filled = rows.filter((row) => String(row.obtained).trim() !== "");
+
+        if (filled.length < 5) {
+          return `${section.marks.title}: enter marks for at least 5 subjects.`;
+        }
+      }
+    }
+
+    return "";
+  }
 
   /* -------------------------------------------------------
      FORM FIELD HELPERS
@@ -774,6 +921,37 @@ export default function AdmissionManagement() {
       return false;
     }
 
+    if (formStep === 3 && activeProfile) {
+      const isEarly = /nursery|lkg|ukg|kg|play|pre/i.test(
+        selectedClass?.name || "",
+      );
+
+      if (
+        activeProfile.requiresPreviousSchool &&
+        !isEarly &&
+        !form.previousSchool.trim()
+      ) {
+        setError("Previous school name is required for this class.");
+        return false;
+      }
+
+      const problem = missingClassFields();
+
+      if (problem) {
+        setError(problem);
+        return false;
+      }
+    }
+
+    if (
+      formStep === 4 &&
+      activeProfile?.requiresDeclarationName &&
+      !declarationName.trim()
+    ) {
+      setError("Type the full name of the person signing the declaration.");
+      return false;
+    }
+
     if (
       formStep === 4 &&
       !form.declarationAccepted
@@ -901,17 +1079,31 @@ export default function AdmissionManagement() {
             sectionId:
               form.sectionId || undefined,
 
+            details: {
+              ...details,
+              marks: Array.isArray(details.marks)
+                ? (details.marks as MarkRow[]).filter(
+                    (row) => String(row.obtained).trim() !== "",
+                  )
+                : undefined,
+              declarationName: declarationName.trim() || undefined,
+            },
+
             declarationAccepted:
               form.declarationAccepted,
           }),
         },
       );
 
-      await readResponse(response);
+      const created = await readResponse(response);
 
       setMessage(
-        "Admission application created successfully.",
+        "Admission submitted. Upload the documents below, then print the filled form.",
       );
+
+      if (created.application) {
+        void openApplication(created.application as Admission);
+      }
 
       setShowForm(false);
       setForm({ ...INITIAL_FORM });
@@ -1675,7 +1867,15 @@ export default function AdmissionManagement() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/admission-forms"
+            className="flex h-10 items-center gap-2 rounded border border-slate-300 bg-white px-3 text-xs font-semibold hover:bg-slate-50"
+          >
+            <Printer size={14} />
+            Blank Forms
+          </Link>
+
           <button
             type="button"
             onClick={() => void loadData()}
@@ -2001,20 +2201,38 @@ export default function AdmissionManagement() {
             <section className="space-y-4">
               <div>
                 <h4 className="font-bold text-slate-800">
-                  Step 3 – Previous School Details
+                  Step 3 – {activeProfile ? activeProfile.classLabel : "Class"} Details
                 </h4>
 
                 <p className="mt-1 text-xs text-slate-500">
-                  First-time admission applicants may leave these fields blank.
+                  {activeProfile
+                    ? activeProfile.description
+                    : "First-time admission applicants may leave these fields blank."}
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {previousSchoolFields.map(
-                  ([key, label]) =>
-                    textField(key, label),
-                )}
-              </div>
+              {(!activeProfile || activeProfile.requiresPreviousSchool) && (
+                <div className="rounded border border-slate-200 p-3">
+                  <h5 className="mb-3 text-sm font-bold text-slate-800">
+                    Previous School
+                  </h5>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {previousSchoolFields.map(
+                      ([key, label]) =>
+                        textField(key, label),
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeProfile && (
+                <AdmissionClassFields
+                  profile={activeProfile}
+                  details={details}
+                  onChange={setDetails}
+                />
+              )}
 
               <div className="rounded border border-blue-100 bg-blue-50 p-3 text-xs text-blue-800">
                 <strong>Document upload:</strong> Submit the application first. Then select it from the application list to upload the student&apos;s photo, birth certificate, identity document, transfer certificate and marksheet.
@@ -2127,6 +2345,67 @@ export default function AdmissionManagement() {
                   </div>
                 </div>
               ))}
+
+              {activeProfile && (
+                <div className="rounded border border-slate-200 p-3">
+                  <h5 className="mb-3 text-sm font-bold text-slate-800">
+                    {activeProfile.classLabel} Details
+                  </h5>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {activeProfile.sections.flatMap((section) =>
+                      section.fields
+                        .filter((field) => isFieldVisible(field, details))
+                        .map((field) => {
+                          const value = details[field.key];
+
+                          return (
+                            <div key={field.key} className="min-w-0">
+                              <p className="text-[10px] text-slate-500">
+                                {field.label}
+                              </p>
+                              <p className="mt-1 wrap-break-word text-sm font-semibold text-slate-800">
+                                {(Array.isArray(value)
+                                  ? (value as string[]).join(", ")
+                                  : String(value ?? "")) || "Not provided"}
+                              </p>
+                            </div>
+                          );
+                        }),
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeProfile && activeProfile.documents.length > 0 && (
+                <div className="rounded border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
+                  <p className="font-semibold">
+                    Documents to upload after submitting:
+                  </p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {activeProfile.documents.map((doc) => (
+                      <li key={doc.type}>
+                        {doc.label}
+                        {doc.required ? " (required)" : " (optional)"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {activeProfile?.requiresDeclarationName && (
+                <label className="block text-xs font-semibold text-slate-600">
+                  Type full name as signature
+                  <input
+                    value={declarationName}
+                    onChange={(event) =>
+                      setDeclarationName(event.target.value)
+                    }
+                    maxLength={100}
+                    className={inputClass}
+                  />
+                </label>
+              )}
 
               <label className="flex items-start gap-2 rounded border border-slate-200 p-3 text-xs text-slate-700">
                 <input
@@ -2552,6 +2831,104 @@ export default function AdmissionManagement() {
                 )}
               </div>
 
+              {/* CLASS DETAILS + CHECKLIST + PRINT */}
+
+              {(() => {
+                const profile = profileForApplication(selected);
+                const data = selected.details || {};
+                const have = uploadedTypes();
+
+                return (
+                  <div className="space-y-3 border-t border-slate-100 pt-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-bold text-slate-800">
+                        {profile ? profile.title : "Admission Form"}
+                      </h4>
+
+                      <button
+                        type="button"
+                        onClick={() => printFilledForm(selected)}
+                        className="flex h-9 items-center gap-2 rounded bg-blue-800 px-3 text-xs font-semibold text-white hover:bg-blue-900"
+                      >
+                        <Printer size={14} />
+                        Print filled form
+                      </button>
+                    </div>
+
+                    {profile && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {profile.sections.flatMap((section) =>
+                          section.fields
+                            .filter((field) => isFieldVisible(field, data))
+                            .map((field) => {
+                              const value = data[field.key];
+                              const text = Array.isArray(value)
+                                ? (value as string[]).join(", ")
+                                : String(value ?? "");
+
+                              return text ? (
+                                <div key={field.key} className="min-w-0">
+                                  <p className="text-[10px] text-slate-500">
+                                    {field.label}
+                                  </p>
+                                  <p className="mt-1 wrap-break-word text-xs font-semibold text-slate-800">
+                                    {text}
+                                  </p>
+                                </div>
+                              ) : null;
+                            }),
+                        )}
+                      </div>
+                    )}
+
+                    {typeof data.percentage === "number" && (
+                      <p className="text-xs font-semibold text-emerald-700">
+                        Previous result: {data.percentage}%
+                      </p>
+                    )}
+
+                    {profile && (
+                      <div className="rounded border border-slate-200 p-3">
+                        <p className="text-xs font-bold text-slate-700">
+                          Document checklist
+                        </p>
+                        <ul className="mt-2 space-y-1">
+                          {profile.documents.map((doc) => {
+                            const done = have.includes(doc.type);
+
+                            return (
+                              <li
+                                key={doc.type}
+                                className="flex items-center justify-between gap-2 text-xs"
+                              >
+                                <span className="min-w-0 text-slate-700">
+                                  {doc.label}
+                                </span>
+                                <span
+                                  className={`shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold ${
+                                    done
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : doc.required
+                                        ? "bg-red-50 text-red-700"
+                                        : "bg-slate-100 text-slate-600"
+                                  }`}
+                                >
+                                  {done
+                                    ? "Uploaded"
+                                    : doc.required
+                                      ? "Missing"
+                                      : "Optional"}
+                                </span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* =================================================
                   DOCUMENTS
               ================================================= */}
@@ -2580,7 +2957,7 @@ export default function AdmissionManagement() {
                           key={type}
                           value={type}
                         >
-                          {type.replaceAll("_", " ")}
+                          {documentLabel(type)}
                         </option>
                       ))}
                     </select>

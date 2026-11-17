@@ -12,6 +12,14 @@ import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
+import {
+  classLevelFromName,
+  getProfile,
+  missingRequiredDocuments,
+  profileIdForClassName,
+  validateDetails,
+} from './admission-profiles';
+
 export type CreateAdmissionInput = {
   firstName: string;
   middleName?: string;
@@ -53,6 +61,7 @@ export type CreateAdmissionInput = {
 
   classId: string;
   sectionId?: string;
+  details?: Record<string, unknown>;
   declarationAccepted: boolean;
 };
 
@@ -146,6 +155,7 @@ export class StudentsService {
       id: classItem.id,
       name: classItem.name,
       code: classItem.code,
+      formProfile: profileIdForClassName(classItem.name),
 
       sections: classItem.sections.map((section) => {
         const occupied =
@@ -381,6 +391,25 @@ export class StudentsService {
       }
     }
 
+    const profile = getProfile(
+      profileIdForClassName(classItem.name),
+    );
+
+    const level = classLevelFromName(classItem.name);
+
+    if (
+      profile.requiresPreviousSchool &&
+      level !== null &&
+      level >= 1 &&
+      !this.normalizeOptional(input.previousSchool)
+    ) {
+      throw new BadRequestException(
+        `Previous school name is required for ${classItem.name}.`,
+      );
+    }
+
+    const cleanDetails = validateDetails(profile, input.details);
+
     const applicationNumber =
       `ADM-${new Date().getFullYear()}-${randomBytes(5)
         .toString('hex')
@@ -436,6 +465,10 @@ export class StudentsService {
               previousBoard: this.normalizeOptional(input.previousBoard),
               previousMarks: this.normalizeOptional(input.previousMarks),
               previousTCNumber: this.normalizeOptional(input.previousTCNumber),
+
+              formProfile: profile.id,
+              apaarId: cleanDetails.apaarId,
+              details: cleanDetails.details as any,
 
               declarationAccepted: true,
               submittedAt: new Date(),
@@ -741,6 +774,18 @@ export class StudentsService {
     if (unverifiedDocuments > 0) {
       throw new ConflictException(
         'Please verify all uploaded admission documents before approval.',
+      );
+    }
+
+    const missingDocuments = missingRequiredDocuments(
+      application.formProfile,
+      application.documents.map((doc) => doc.type),
+      application.details,
+    );
+
+    if (missingDocuments.length > 0) {
+      throw new ConflictException(
+        `Required documents missing: ${missingDocuments.join(', ')}.`,
       );
     }
 

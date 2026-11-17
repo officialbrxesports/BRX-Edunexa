@@ -17,6 +17,8 @@ import {
   SessionAuthGuard,
 } from '../../common/guards/session-auth.guard';
 
+import { PROFILES } from './admission-profiles';
+
 import {
   CreateAdmissionInput,
   ReviewAdmissionInput,
@@ -48,6 +50,11 @@ export class StudentsController {
       this.getInstitutionId(request),
       request.user!.role,
     );
+  }
+
+  @Get('admissions/form-profiles')
+  getFormProfiles() {
+    return { profiles: PROFILES };
   }
 
   @Post('admissions')
