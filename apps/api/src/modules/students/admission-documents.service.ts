@@ -8,6 +8,8 @@ import {
 
 import { randomUUID } from 'node:crypto';
 
+import { Readable } from 'node:stream';
+
 import {
   existsSync,
   createReadStream,
@@ -366,7 +368,7 @@ export class AdmissionDocumentsService {
     // Files uploaded after the move to the database.
     if (document.file) {
       return {
-        stream: Buffer.from(document.file.data),
+        stream: Readable.from([Buffer.from(document.file.data)]),
         mimeType: document.mimeType,
         originalName: document.originalName,
       };
