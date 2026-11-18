@@ -5,6 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
+  BookOpen,
+  ClipboardCheck,
   GraduationCap,
   Landmark,
   Network,
@@ -20,7 +22,36 @@ import {
 import { API_URL, apiRequest } from "../../lib/api";
 import type { Department, Program } from "./CollegeManagement";
 
+type CourseRow = {
+  id: string;
+  semester: number;
+  code: string;
+  title: string;
+  credits: number;
+  program: { name: string };
+};
+
+type EnrollmentRow = {
+  id: string;
+  name: string;
+  brxUid: string;
+  programName: string | null;
+  semester: number | null;
+  rollNo: string | null;
+};
+
 type Summary = {
+  admissions?: {
+    byStatus: Record<string, number>;
+    total: number;
+    recent: {
+      id: string;
+      applicationNumber: string;
+      status: string;
+      name: string;
+      programName: string;
+    }[];
+  };
   faculties?: {
     id: string;
     name: string;
@@ -50,6 +81,9 @@ const buildNav = (university: boolean): { label: string; icon: LucideIcon }[] =>
   ...(university ? [{ label: "Faculties", icon: Network }] : []),
   { label: "Departments", icon: Landmark },
   { label: "Programs", icon: Library },
+  { label: "Courses", icon: BookOpen },
+  { label: "Admissions", icon: ClipboardCheck },
+  { label: "Students", icon: GraduationCap },
 ];
 
 function StatCard({
@@ -95,6 +129,8 @@ export default function CollegeDashboard({
   const [summary, setSummary] = useState<Summary | null>(null);
   const [departments, setDepartments] = useState<Department[] | null>(null);
   const [programs, setPrograms] = useState<Program[] | null>(null);
+  const [courses, setCourses] = useState<CourseRow[] | null>(null);
+  const [students, setStudents] = useState<EnrollmentRow[] | null>(null);
   const [collegeName, setCollegeName] = useState(`Your ${label.toLowerCase()}`);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -105,15 +141,20 @@ export default function CollegeDashboard({
     setError("");
 
     try {
-      const [summaryData, departmentData, programData, me] = await Promise.all([
-        apiRequest<Summary>("/college/summary"),
-        apiRequest<Department[]>("/college/departments"),
-        apiRequest<Program[]>("/college/programs"),
-        apiRequest<{ institution: { name: string } }>("/dashboard/me"),
-      ]);
+      const [summaryData, departmentData, programData, courseData, studentData, me] =
+        await Promise.all([
+          apiRequest<Summary>("/college/summary"),
+          apiRequest<Department[]>("/college/departments"),
+          apiRequest<Program[]>("/college/programs"),
+          apiRequest<CourseRow[]>("/college/courses"),
+          apiRequest<EnrollmentRow[]>("/college/enrollments"),
+          apiRequest<{ institution: { name: string } }>("/dashboard/me"),
+        ]);
       setSummary(summaryData);
       setDepartments(departmentData);
       setPrograms(programData);
+      setCourses(courseData);
+      setStudents(studentData);
       setCollegeName(me.institution.name);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load dashboard.");
@@ -341,6 +382,49 @@ export default function CollegeDashboard({
                   )}
                 </section>
 
+                {summary && counts && counts.departments === 0 && (
+                  <section className="mt-6 border border-blue-200 bg-blue-50 p-4 shadow-sm">
+                    <h2 className="text-sm font-bold text-blue-900">How to start</h2>
+                    <p className="mt-1 text-xs text-blue-800">
+                      Nothing is created yet. Open <b>Add</b> (top right) and do these in order:
+                    </p>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-blue-900">
+                      {university && <li>Faculty</li>}
+                      <li>Department</li>
+                      <li>Program (for example B.Sc., 6 semesters)</li>
+                      <li>Course (subjects of each semester)</li>
+                      <li>Admissions: share the public apply link, or enter applications yourself</li>
+                    </ol>
+                  </section>
+                )}
+
+                <section className="mt-6 border border-slate-200 bg-white shadow-sm">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <h2 className="text-sm font-bold text-slate-900">Admissions</h2>
+                    <button
+                      type="button"
+                      onClick={() => setActive("Admissions")}
+                      className="text-xs font-semibold text-blue-800"
+                    >
+                      View all
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 lg:grid-cols-6">
+                    {["SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED", "APPROVED", "REJECTED", "ENROLLED"].map(
+                      (key) => (
+                        <div key={key} className="border border-slate-200 p-3">
+                          <p className="text-[10px] font-semibold text-slate-500">
+                            {key.replaceAll("_", " ")}
+                          </p>
+                          <p className="mt-1 text-2xl font-bold text-slate-900">
+                            {summary?.admissions?.byStatus[key] ?? 0}
+                          </p>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </section>
+
                 <section className="mt-6 border border-slate-200 bg-white p-4 shadow-sm">
                   <h2 className="text-sm font-bold text-slate-900">Coming soon</h2>
                   <p className="mt-1 text-xs text-slate-500">
@@ -415,6 +499,110 @@ export default function CollegeDashboard({
                           {department.facultyName ? `${department.facultyName} · ` : ""}HOD:{" "}
                           {department.hodName ?? "not assigned"} ·{" "}
                           {department.programCount} program(s)
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {active === "Courses" && (
+              <section className="border border-slate-200 bg-white shadow-sm">
+                {!courses ? (
+                  <p className="p-6 text-sm text-slate-500">Loading...</p>
+                ) : courses.length === 0 ? (
+                  <p className="p-6 text-sm text-slate-500">
+                    No courses yet. Use Add &gt; Course to create one.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {courses.map((course) => (
+                      <li
+                        key={course.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                      >
+                        <p className="font-semibold text-slate-900">
+                          {course.title}{" "}
+                          <span className="text-xs font-normal text-slate-500">{course.code}</span>
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          {course.program.name} · Semester {course.semester} · {course.credits} credits
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {active === "Admissions" && (
+              <section className="border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+                  <p className="text-sm text-slate-600">
+                    {summary?.admissions?.total ?? 0} application(s) in total
+                  </p>
+                  <Link
+                    href={`/dashboard/${variant}/add#admissions`}
+                    className="bg-blue-800 px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    Open admission desk
+                  </Link>
+                </div>
+                {!summary ? (
+                  <p className="p-6 text-sm text-slate-500">Loading...</p>
+                ) : !summary.admissions || summary.admissions.recent.length === 0 ? (
+                  <p className="p-6 text-sm text-slate-500">
+                    No applications yet. Share the public apply link from the admission desk.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {summary.admissions.recent.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                      >
+                        <p className="font-semibold text-slate-900">
+                          {item.name}{" "}
+                          <span className="text-xs font-normal text-slate-500">
+                            {item.applicationNumber}
+                          </span>
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          {item.programName} · {item.status.replaceAll("_", " ")}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
+            {active === "Students" && (
+              <section className="border border-slate-200 bg-white shadow-sm">
+                {!students ? (
+                  <p className="p-6 text-sm text-slate-500">Loading...</p>
+                ) : students.length === 0 ? (
+                  <p className="p-6 text-sm text-slate-500">
+                    No students yet. They appear here after an admission is enrolled, or when you add one.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {students.map((student) => (
+                      <li
+                        key={student.id}
+                        className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm"
+                      >
+                        <p className="font-semibold text-slate-900">
+                          {student.name}{" "}
+                          <span className="text-xs font-normal text-slate-500">{student.brxUid}</span>
+                        </p>
+                        <p className="text-xs text-slate-600">
+                          {student.programName
+                            ? `${student.programName} · Semester ${student.semester}${
+                                student.rollNo ? ` · Roll ${student.rollNo}` : ""
+                              }`
+                            : "Program not assigned"}
                         </p>
                       </li>
                     ))}

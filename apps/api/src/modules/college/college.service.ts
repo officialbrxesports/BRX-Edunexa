@@ -185,8 +185,16 @@ export class CollegeService {
   async summary(institutionId: string) {
     const type = await this.assertCollege(institutionId);
 
-    const [departments, programs, enrolled, teachers, allStudents, byDepartment] =
-      await Promise.all([
+    const [
+      departments,
+      programs,
+      enrolled,
+      teachers,
+      allStudents,
+      byDepartment,
+      admissionGroups,
+      recentApplications,
+    ] = await Promise.all([
         this.prisma.departments.count({ where: { institutionId } }),
         this.prisma.programs.count({ where: { institutionId, isActive: true } }),
         this.prisma.program_students.count({
@@ -212,7 +220,31 @@ export class CollegeService {
             },
           },
         }),
-      ]);
+        this.prisma.college_applications.groupBy({
+          by: ['status'],
+          where: { institutionId },
+          _count: { _all: true },
+        }),
+        this.prisma.college_applications.findMany({
+          where: { institutionId },
+          orderBy: { createdAt: 'desc' },
+          take: 6,
+          select: {
+            id: true,
+            applicationNumber: true,
+            status: true,
+            firstName: true,
+            lastName: true,
+            program: { select: { name: true } },
+          },
+        }),
+    ]);
+
+    const byStatus: Record<string, number> = {};
+
+    for (const group of admissionGroups) {
+      byStatus[group.status] = group._count._all;
+    }
 
     const faculties =
       type === 'UNIVERSITY'
@@ -249,6 +281,17 @@ export class CollegeService {
           0,
         ),
       })),
+      admissions: {
+        byStatus,
+        total: Object.values(byStatus).reduce((sum, n) => sum + n, 0),
+        recent: recentApplications.map((item) => ({
+          id: item.id,
+          applicationNumber: item.applicationNumber,
+          status: item.status,
+          name: [item.firstName, item.lastName].filter(Boolean).join(' '),
+          programName: item.program.name,
+        })),
+      },
       counts: {
         faculties: faculties?.length,
         departments,

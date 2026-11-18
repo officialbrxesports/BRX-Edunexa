@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -66,6 +66,10 @@ export default function CollegeAdd({
   const label = university ? "University" : "College";
   const GROUPS = buildGroups(university);
   const [selected, setSelected] = useState(university ? "Faculty" : "Department");
+
+  useEffect(() => {
+    if (window.location.hash === "#admissions") setSelected("Admissions");
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
