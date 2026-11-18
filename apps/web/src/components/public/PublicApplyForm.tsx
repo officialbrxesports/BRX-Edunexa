@@ -18,9 +18,12 @@ import {
 
 type ClassItem = { id: string; name: string; formProfile: string };
 
+type Program = { id: string; name: string; code: string };
+
 type Info = {
   institution: { name: string; city?: string | null; state?: string | null };
   classes: ClassItem[];
+  programs?: Program[];
   profiles: AdmissionProfile[];
 };
 
@@ -51,6 +54,7 @@ const EMPTY: Values = {
   parentEmail: "", address: "", city: "", state: "", pinCode: "", country: "India",
   previousSchool: "", previousClass: "", previousBoard: "", previousMarks: "",
   previousTCNumber: "",
+  programId: "", profileId: "",
 };
 
 type F = [string, string, { required?: boolean; type?: string; max?: number }?];
@@ -84,6 +88,16 @@ const PARENT: F[] = [
   ["country", "Country"],
 ];
 
+const COLLEGE_PARENT: F[] = [
+  ["fatherName", "Father's name"],
+  ["motherName", "Mother's name"],
+  ["parentPhone", "Mobile number", { required: true }],
+  ["address", "Present address"],
+  ["city", "City / district"],
+  ["state", "State"],
+  ["pinCode", "PIN code", { max: 10 }],
+];
+
 const PREVIOUS: F[] = [
   ["previousSchool", "Previous school name"],
   ["previousClass", "Last class attended"],
@@ -97,6 +111,7 @@ const input =
 
 export default function PublicApplyForm({ code }: { code: string }) {
   const [info, setInfo] = useState<Info | null>(null);
+  const [kind, setKind] = useState<"school" | "college">("school");
   const [loadError, setLoadError] = useState("");
 
   const [mode, setMode] = useState<"form" | "done" | "track">("form");
@@ -117,33 +132,60 @@ export default function PublicApplyForm({ code }: { code: string }) {
   const [uploadType, setUploadType] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
 
-  const base = `${API_URL}/public/apply/${encodeURIComponent(code)}`;
+  const college = kind === "college";
+
+  const base = `${API_URL}/public/apply${college ? "-college" : ""}/${encodeURIComponent(code)}`;
 
   useEffect(() => {
     let active = true;
 
-    fetch(base, { cache: "no-store" })
-      .then(async (res) => {
+    async function load() {
+      // Schools first; colleges and universities use their own endpoint.
+      const first = `${API_URL}/public/apply/${encodeURIComponent(code)}`;
+      const second = `${API_URL}/public/apply-college/${encodeURIComponent(code)}`;
+
+      try {
+        let res = await fetch(first, { cache: "no-store" });
+        let asCollege = false;
+
+        if (res.status === 404) {
+          res = await fetch(second, { cache: "no-store" });
+          asCollege = true;
+        }
+
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) throw new Error(data.message || "Admissions are not open for this link.");
 
-        if (active) setInfo(data as Info);
-      })
-      .catch((err) => {
+        if (!active) return;
+
+        setKind(asCollege ? "college" : "school");
+        setInfo({ classes: [], ...(data as Info) });
+
+        if (asCollege && data.profiles?.[0]) {
+          setValues((current) => ({ ...current, profileId: data.profiles[0].id }));
+        }
+      } catch (err) {
         if (active) setLoadError(err instanceof Error ? err.message : "Could not load the form.");
-      });
+      }
+    }
+
+    void load();
 
     return () => {
       active = false;
     };
-  }, [base]);
+  }, [code]);
 
   const selectedClass = info?.classes.find((c) => c.id === values.classId);
+  const selectedProgram = info?.programs?.find((p) => p.id === values.programId);
 
   const profile = useMemo(
-    () => info?.profiles.find((p) => p.id === selectedClass?.formProfile) || null,
-    [info, selectedClass?.formProfile],
+    () =>
+      info?.profiles.find((p) =>
+        college ? p.id === values.profileId : p.id === selectedClass?.formProfile,
+      ) || null,
+    [info, college, values.profileId, selectedClass?.formProfile],
   );
 
   const profileId = profile?.id;
@@ -211,7 +253,11 @@ export default function PublicApplyForm({ code }: { code: string }) {
     if (step === 1) {
       if (!values.firstName.trim()) return setError("Student first name is required.");
       if (!values.studentEmail.trim()) return setError("Student email is required.");
-      if (!values.classId) return setError("Please select the class.");
+      if (college) {
+        if (!values.programId) return setError("Please select the program.");
+      } else if (!values.classId) {
+        return setError("Please select the class.");
+      }
       if (values.identityLast4 && !/^\d{4}$/.test(values.identityLast4)) {
         return setError("Aadhaar last 4 digits must be exactly 4 numbers.");
       }
@@ -252,6 +298,13 @@ export default function PublicApplyForm({ code }: { code: string }) {
 
       for (const [key, value] of Object.entries(values)) {
         if (value.trim()) body[key] = value.trim();
+      }
+
+      if (college) {
+        body.formProfile = values.profileId;
+        body.phone = values.parentPhone.trim();
+        body.nationality =
+          typeof details.nationality === "string" ? details.nationality : undefined;
       }
 
       body.details = {
@@ -371,7 +424,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
         base: app,
         details: app.details || {},
         uploadedTypes: status.uploadedTypes,
-      }),
+      }, college ? { variant: "college" } : undefined),
     );
   }
 
@@ -412,7 +465,9 @@ export default function PublicApplyForm({ code }: { code: string }) {
     </>
   );
 
-  const steps = ["Student", "Parents", "Class details", "Review"];
+  const steps = college
+    ? ["Applicant", "Family & address", "Academic details", "Review"]
+    : ["Student", "Parents", "Class details", "Review"];
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6">
@@ -452,7 +507,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
               <input value={trackNumber} onChange={(e) => setTrackNumber(e.target.value)} className={input} placeholder="ADM-2026-XXXXXXXXXX" />
             </label>
             <label className="block text-xs font-semibold text-slate-600">
-              Parent mobile used in the form
+              {college ? "Mobile number used in the form" : "Parent mobile used in the form"}
               <input value={trackPhone} onChange={(e) => setTrackPhone(e.target.value)} className={input} />
             </label>
             <button
@@ -612,25 +667,50 @@ export default function PublicApplyForm({ code }: { code: string }) {
                   </select>
                 </label>
 
-                <label className="block text-xs font-semibold text-slate-600">
-                  Blood group
-                  <select value={values.bloodGroup} onChange={(e) => set("bloodGroup", e.target.value)} className={input}>
-                    <option value="">Select</option>
-                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((g) => (
-                      <option key={g} value={g}>{g}</option>
-                    ))}
-                  </select>
-                </label>
+                {!college && (
+                  <label className="block text-xs font-semibold text-slate-600">
+                    Blood group
+                    <select value={values.bloodGroup} onChange={(e) => set("bloodGroup", e.target.value)} className={input}>
+                      <option value="">Select</option>
+                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
-                <label className="block text-xs font-semibold text-slate-600 sm:col-span-2">
-                  Class applying for <span className="text-red-600">*</span>
-                  <select value={values.classId} onChange={(e) => set("classId", e.target.value)} className={input}>
-                    <option value="">Select class</option>
-                    {info.classes.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </label>
+                {college ? (
+                  <>
+                    <label className="block text-xs font-semibold text-slate-600">
+                      Form type <span className="text-red-600">*</span>
+                      <select value={values.profileId} onChange={(e) => set("profileId", e.target.value)} className={input}>
+                        {info.profiles.map((p) => (
+                          <option key={p.id} value={p.id}>{p.title}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block text-xs font-semibold text-slate-600">
+                      Program <span className="text-red-600">*</span>
+                      <select value={values.programId} onChange={(e) => set("programId", e.target.value)} className={input}>
+                        <option value="">Select program</option>
+                        {(info.programs || []).map((p) => (
+                          <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                ) : (
+                  <label className="block text-xs font-semibold text-slate-600 sm:col-span-2">
+                    Class applying for <span className="text-red-600">*</span>
+                    <select value={values.classId} onChange={(e) => set("classId", e.target.value)} className={input}>
+                      <option value="">Select class</option>
+                      {info.classes.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 <p className="text-xs text-slate-500 sm:col-span-2">
                   Enter only the last 4 digits of Aadhaar. Never type the full number.
@@ -638,7 +718,11 @@ export default function PublicApplyForm({ code }: { code: string }) {
               </div>
             )}
 
-            {step === 2 && <div className="grid gap-3 sm:grid-cols-2">{PARENT.map(renderField)}</div>}
+            {step === 2 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(college ? COLLEGE_PARENT : PARENT).map(renderField)}
+              </div>
+            )}
 
             {step === 3 && (
               <div className="space-y-4">
@@ -659,8 +743,8 @@ export default function PublicApplyForm({ code }: { code: string }) {
               <div className="space-y-4">
                 <div className="rounded border border-slate-200 p-3 text-sm">
                   <p><b>Student:</b> {[values.firstName, values.middleName, values.lastName].filter(Boolean).join(" ")}</p>
-                  <p><b>Class:</b> {selectedClass?.name}</p>
-                  <p><b>Parent mobile:</b> {values.parentPhone}</p>
+                  <p><b>{college ? "Program" : "Class"}:</b> {college ? selectedProgram?.name : selectedClass?.name}</p>
+                  <p><b>{college ? "Mobile" : "Parent mobile"}:</b> {values.parentPhone}</p>
                   <p><b>Student email:</b> {values.studentEmail}</p>
                 </div>
 

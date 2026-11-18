@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BookOpen,
   BriefcaseBusiness,
+  ClipboardCheck,
   Building2,
   GraduationCap,
   Landmark,
@@ -23,6 +24,7 @@ import {
   DepartmentManagement,
   ProgramManagement,
 } from "./CollegeManagement";
+import CollegeAdmissionManagement from "./CollegeAdmissionManagement";
 import EnrollmentManagement from "./EnrollmentManagement";
 import { FacultyManagement, ResultsManagement } from "./UniversityManagement";
 import ParentManagement from "./ParentManagement";
@@ -44,6 +46,7 @@ const buildGroups = (university: boolean): { title: string; items: Item[] }[] =>
   {
     title: "PEOPLE",
     items: [
+      { name: "Admissions", icon: ClipboardCheck },
       { name: "Student", icon: GraduationCap },
       { name: "Program & Semester", icon: ListChecks },
       { name: "Teacher", icon: UserRound },
@@ -124,6 +127,7 @@ export default function CollegeAdd({
             {selected === "Results" && <ResultsManagement />}
             {selected === "Program" && <ProgramManagement />}
             {selected === "Course" && <CourseManagement />}
+            {selected === "Admissions" && <CollegeAdmissionManagement />}
             {selected === "Student" && (
               <TeacherManagement
                 key="student"

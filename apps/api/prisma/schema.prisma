@@ -199,6 +199,7 @@ model institutions {
   faculties faculties[]
   course_results course_results[]
   admission_applications AdmissionApplication[]
+  college_applications college_applications[]
 
   @@index([country])
   @@index([state])
@@ -672,6 +673,7 @@ model programs {
   department   departments      @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   courses      courses[]
   students     program_students[]
+  college_applications college_applications[]
 
   @@unique([institutionId, code])
   @@index([departmentId])
@@ -1021,6 +1023,82 @@ model AdmissionStatusHistory {
 
   @@index([applicationId, createdAt])
   @@index([newStatus])
+}
+
+// ==========================================
+// COLLEGE / UNIVERSITY ADMISSIONS
+// Separate from school admissions: the applicant applies to a program.
+// ==========================================
+
+model college_applications {
+  id                String          @id
+  applicationNumber String          @unique
+  institutionId     String
+  programId         String
+  formProfile       String
+  status            AdmissionStatus @default(SUBMITTED)
+
+  firstName         String
+  middleName        String?
+  lastName          String?
+  dateOfBirth       DateTime?
+  gender            Gender?
+  studentEmail      String?
+  phone             String
+  fatherName        String?
+  motherName        String?
+  category          String?
+  nationality       String?
+  identityLast4     String?
+  address           String?
+  city              String?
+  state             String?
+  pinCode           String?
+
+  details           Json?
+  declarationAccepted Boolean       @default(false)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  reviewNote        String?
+  rejectionReason   String?
+  approvedStudentId String?         @unique
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  institutions      institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  program           programs        @relation(fields: [programId], references: [id], onDelete: Restrict)
+  documents         college_application_documents[]
+
+  @@index([institutionId, status])
+  @@index([programId])
+  @@index([phone])
+}
+
+model college_application_documents {
+  id            String   @id
+  applicationId String
+  type          String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  verified      Boolean  @default(false)
+  verifiedAt    DateTime?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application   college_applications @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  file          college_application_files?
+
+  @@index([applicationId])
+}
+
+model college_application_files {
+  documentId String                        @id
+  data       Bytes
+  document   college_application_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================

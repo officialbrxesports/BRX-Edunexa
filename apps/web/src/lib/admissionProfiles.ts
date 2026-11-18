@@ -90,10 +90,26 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   INCOME_CERTIFICATE: "Income certificate",
   BANK_PASSBOOK: "Bank passbook (first page)",
   BOARD_CERTIFICATE: "Board certificate / marksheet",
+  TENTH_MARKSHEET: "Class 10 marksheet",
+  GRADUATION_MARKSHEET: "Graduation marksheets",
+  DEGREE_CERTIFICATE: "Degree / provisional certificate",
+  ENTRANCE_SCORECARD: "Entrance exam scorecard",
+  CHARACTER_CERTIFICATE: "Character certificate",
   OTHER: "Other document",
 };
 
-export const ALL_DOCUMENT_TYPES = Object.keys(DOCUMENT_LABELS);
+const COLLEGE_ONLY_TYPES = [
+  "TENTH_MARKSHEET",
+  "GRADUATION_MARKSHEET",
+  "DEGREE_CERTIFICATE",
+  "ENTRANCE_SCORECARD",
+  "CHARACTER_CERTIFICATE",
+];
+
+/* Document types the school admission API accepts. */
+export const ALL_DOCUMENT_TYPES = Object.keys(DOCUMENT_LABELS).filter(
+  (type) => !COLLEGE_ONLY_TYPES.includes(type),
+);
 
 export function documentLabel(type: string): string {
   return DOCUMENT_LABELS[type] || type.replaceAll("_", " ");
@@ -164,4 +180,35 @@ export function percentOf(rows: MarkRow[]): string {
   }
 
   return max > 0 ? ((got / max) * 100).toFixed(2) : "";
+}
+
+/* First problem in the class-specific part of a form, or "". */
+export function firstProfileProblem(
+  profile: AdmissionProfile | null,
+  details: Details,
+): string {
+  if (!profile) return "";
+
+  for (const section of profile.sections) {
+    for (const field of section.fields) {
+      if (!field.required || !isFieldVisible(field, details)) continue;
+
+      const value = details[field.key];
+      const empty = Array.isArray(value)
+        ? value.length === 0
+        : value === undefined || String(value).trim() === "";
+
+      if (empty) return `${field.label} is required.`;
+    }
+
+    if (section.marks && !marksSkipped(section.marks, details)) {
+      const rows = Array.isArray(details.marks) ? (details.marks as MarkRow[]) : [];
+
+      if (rows.filter((r) => String(r.obtained).trim() !== "").length < 5) {
+        return `${section.marks.title}: enter marks for at least 5 subjects.`;
+      }
+    }
+  }
+
+  return "";
 }

@@ -109,6 +109,34 @@ const BASE_SECTIONS: {
   },
 ];
 
+const COLLEGE_BASE_SECTIONS: typeof BASE_SECTIONS = [
+  {
+    title: "A. Applicant Details",
+    fields: [
+      { key: "firstName", label: "First name" },
+      { key: "middleName", label: "Middle name" },
+      { key: "lastName", label: "Last name" },
+      { key: "dateOfBirth", label: "Date of birth", date: true },
+      { key: "gender", label: "Gender", options: ["Male", "Female", "Other"] },
+      { key: "category", label: "Category (General / OBC / SC / ST / EWS)" },
+      { key: "fatherName", label: "Father's name" },
+      { key: "motherName", label: "Mother's name" },
+      { key: "identityLast4", label: "Aadhaar (last 4 digits only)" },
+      { key: "parentPhone", label: "Mobile number" },
+      { key: "studentEmail", label: "Email", wide: true },
+    ],
+  },
+  {
+    title: "B. Address",
+    fields: [
+      { key: "address", label: "Address", wide: true },
+      { key: "city", label: "City / district" },
+      { key: "state", label: "State" },
+      { key: "pinCode", label: "PIN code" },
+    ],
+  },
+];
+
 const STYLE = `
 @page { size: A4; margin: 12mm; }
 * { box-sizing: border-box; }
@@ -225,15 +253,16 @@ export function buildFormHtml(
   profile: AdmissionProfile,
   institutionName: string,
   data?: PrintData,
+  options?: { variant?: "college" },
 ): string {
+  const college = options?.variant === "college";
   const blank = !data;
   const base = data?.base || {};
   const details: Details = data?.details || {};
   const uploaded = data?.uploadedTypes || [];
 
-  const baseHtml = BASE_SECTIONS.filter(
-    (s) => !s.needsPrevious || profile.requiresPreviousSchool,
-  )
+  const baseHtml = (college ? COLLEGE_BASE_SECTIONS : BASE_SECTIONS)
+    .filter((s) => !s.needsPrevious || profile.requiresPreviousSchool)
     .map((section) => {
       const fields = section.fields
         .map((field) => {
@@ -262,7 +291,7 @@ export function buildFormHtml(
     })
     .join("");
 
-  const letters = "EFGHIJKLMN";
+  const letters = college ? "CDEFGHIJKL" : "EFGHIJKLMN";
 
   const profileHtml = profile.sections
     .map((section, index) => {
@@ -352,8 +381,10 @@ export function buildFormHtml(
     : "";
 
   const classLine = blank
-    ? `<span><b>Class applying for:</b> ${esc(profile.classLabel)}</span><span><b>Session:</b> ____________</span>`
-    : `<span><b>Class:</b> ${esc(data?.className || "")}${
+    ? `<span><b>${college ? "Program applying for" : "Class applying for"}:</b> ${
+        college ? "______________________" : esc(profile.classLabel)
+      }</span><span><b>Session:</b> ____________</span>`
+    : `<span><b>${college ? "Program" : "Class"}:</b> ${esc(data?.className || "")}${
         data?.sectionName ? ` (${esc(data.sectionName)})` : ""
       }</span><span><b>Application no.:</b> ${esc(
         data?.applicationNumber || "",
