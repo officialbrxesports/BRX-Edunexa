@@ -8,6 +8,11 @@ import {
 import { randomUUID } from 'node:crypto';
 import { gradeFor } from '../../common/grading';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  COLLEGE_TEMPLATES,
+  courseCode,
+  creditsFor,
+} from './college-templates';
 
 export type DepartmentInput = {
   name?: string;
@@ -361,6 +366,131 @@ export class CollegeService {
       hodName: row.hod ? this.name(row.hod.firstName, row.hod.lastName) : null,
       programCount: row.programs.length,
     }));
+  }
+
+  /* ---------- ready-made structure ---------- */
+
+  listTemplates() {
+    return COLLEGE_TEMPLATES.map((template) => ({
+      id: template.id,
+      level: template.level,
+      programName: template.program.name,
+      departmentName: template.department.name,
+      facultyName: template.faculty.name,
+      semesters: template.semesters.length,
+      courseCount: template.semesters.reduce((sum, list) => sum + list.length, 0),
+    }));
+  }
+
+  /* Creates departments, programs and courses that do not exist yet.
+     Safe to run again: existing items are skipped, never overwritten. */
+  async applyTemplates(institutionId: string, ids: unknown) {
+    const type = await this.assertCollege(institutionId);
+
+    const wanted = Array.isArray(ids) ? ids.map(String) : [];
+    const chosen = COLLEGE_TEMPLATES.filter((t) => wanted.includes(t.id));
+
+    if (chosen.length === 0) {
+      throw new BadRequestException('Select at least one program.');
+    }
+
+    const result = { departments: 0, programs: 0, courses: 0, skipped: 0 };
+
+    for (const template of chosen) {
+      let facultyId: string | null = null;
+
+      if (type === 'UNIVERSITY') {
+        const faculty =
+          (await this.prisma.faculties.findFirst({
+            where: { institutionId, code: template.faculty.code },
+            select: { id: true },
+          })) ??
+          (await this.prisma.faculties.create({
+            data: {
+              id: randomUUID(),
+              institutionId,
+              name: template.faculty.name,
+              code: template.faculty.code,
+              updatedAt: new Date(),
+            },
+            select: { id: true },
+          }));
+
+        facultyId = faculty.id;
+      }
+
+      let department = await this.prisma.departments.findFirst({
+        where: { institutionId, code: template.department.code },
+        select: { id: true },
+      });
+
+      if (!department) {
+        department = await this.prisma.departments.create({
+          data: {
+            id: randomUUID(),
+            institutionId,
+            name: template.department.name,
+            code: template.department.code,
+            facultyId,
+            updatedAt: new Date(),
+          },
+          select: { id: true },
+        });
+
+        result.departments += 1;
+      }
+
+      let program = await this.prisma.programs.findFirst({
+        where: { institutionId, code: template.program.code },
+        select: { id: true },
+      });
+
+      if (program) {
+        result.skipped += 1;
+        continue;
+      }
+
+      program = await this.prisma.programs.create({
+        data: {
+          id: randomUUID(),
+          institutionId,
+          departmentId: department.id,
+          name: template.program.name,
+          code: template.program.code,
+          semesters: template.semesters.length,
+          updatedAt: new Date(),
+        },
+        select: { id: true },
+      });
+
+      result.programs += 1;
+
+      const now = new Date();
+      const rows = template.semesters.flatMap((titles, semesterIndex) =>
+        titles.map((title, index) => ({
+          id: randomUUID(),
+          institutionId,
+          programId: program!.id,
+          semester: semesterIndex + 1,
+          code: courseCode(template.program.code, semesterIndex + 1, index),
+          title,
+          credits: creditsFor(title),
+          updatedAt: now,
+        })),
+      );
+
+      const created = await this.prisma.courses.createMany({
+        data: rows,
+        skipDuplicates: true,
+      });
+
+      result.courses += created.count;
+    }
+
+    return {
+      message: 'Structure created.',
+      ...result,
+    };
   }
 
   async createDepartment(institutionId: string, input: DepartmentInput) {

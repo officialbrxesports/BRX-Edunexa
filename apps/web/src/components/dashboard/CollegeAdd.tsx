@@ -25,6 +25,7 @@ import {
   ProgramManagement,
 } from "./CollegeManagement";
 import CollegeAdmissionManagement from "./CollegeAdmissionManagement";
+import CollegeQuickSetup from "./CollegeQuickSetup";
 import EnrollmentManagement from "./EnrollmentManagement";
 import { FacultyManagement, ResultsManagement } from "./UniversityManagement";
 import ParentManagement from "./ParentManagement";
@@ -36,6 +37,7 @@ const buildGroups = (university: boolean): { title: string; items: Item[] }[] =>
   {
     title: "ACADEMIC STRUCTURE",
     items: [
+      { name: "Quick Setup", icon: ListChecks },
       ...(university ? [{ name: "Faculty", icon: Network }] : []),
       { name: "Department", icon: Landmark },
       { name: "Program", icon: Library },
@@ -126,6 +128,7 @@ export default function CollegeAdd({
           <div className="mx-auto max-w-5xl">
             <h1 className="mb-4 text-xl font-bold text-slate-900">{selected}</h1>
 
+            {selected === "Quick Setup" && <CollegeQuickSetup />}
             {selected === "Faculty" && <FacultyManagement />}
             {selected === "Department" && <DepartmentManagement withFaculty={university} />}
             {selected === "Results" && <ResultsManagement />}

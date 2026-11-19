@@ -160,6 +160,19 @@ export class CollegeController {
 
   /* courses */
 
+  @Get('templates')
+  templates() {
+    return this.college.listTemplates();
+  }
+
+  @Post('templates/apply')
+  applyTemplates(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: { ids?: string[] },
+  ) {
+    return this.college.applyTemplates(this.institutionId(request), body?.ids);
+  }
+
   @Get('courses')
   listCourses(
     @Req() request: AuthenticatedRequest,
