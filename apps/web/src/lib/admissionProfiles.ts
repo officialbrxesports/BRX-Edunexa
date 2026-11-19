@@ -212,3 +212,29 @@ export function firstProfileProblem(
 
   return "";
 }
+
+/* ---------- college class forms (Class 9 to 12 inside a college) ---------- */
+
+export function isCollegeClassProfile(profileId: string): boolean {
+  return /^COLLEGE_CLASS_(9|10|11|12)$/.test(profileId);
+}
+
+/* Programs whose code starts with CLS are school classes
+   (CLS9, CLS10, CLS11-PCM ...). Other forms show degree programs only. */
+export function programsForProfile<T extends { code: string }>(
+  profileId: string,
+  programs: T[],
+): T[] {
+  const match = /^COLLEGE_CLASS_(\d+)$/.exec(profileId);
+
+  if (match) {
+    const pattern = new RegExp(`^CLS${match[1]}(-|$)`, "i");
+    return programs.filter((p) => pattern.test(p.code));
+  }
+
+  return programs.filter((p) => !/^CLS/i.test(p.code));
+}
+
+export function collegeFormName(profileId: string): string {
+  return profileId.replace("COLLEGE_", "").replace(/_/g, " ");
+}

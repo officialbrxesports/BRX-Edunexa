@@ -5,7 +5,7 @@ import { API_URL } from "../../lib/api";
 
 type Template = {
   id: string;
-  level: "UG" | "PG";
+  level: "UG" | "PG" | "CLASS";
   programName: string;
   departmentName: string;
   facultyName: string;
@@ -67,7 +67,7 @@ export default function CollegeQuickSetup() {
     }
   };
 
-  const group = (level: "UG" | "PG", title: string) => {
+  const group = (level: "UG" | "PG" | "CLASS", title: string) => {
     const list = items.filter((t) => t.level === level);
     return (
       <section className="border border-slate-200 bg-white">
@@ -125,6 +125,7 @@ export default function CollegeQuickSetup() {
 
       {group("UG", "Undergraduate (UG)")}
       {group("PG", "Postgraduate (PG)")}
+      {group("CLASS", "School wing (Class 9 to 12)")}
 
       <button
         type="button"

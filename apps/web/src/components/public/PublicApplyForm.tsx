@@ -9,8 +9,10 @@ import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
 import {
   documentLabel,
   initialDetails,
+  isCollegeClassProfile,
   isFieldVisible,
   marksSkipped,
+  programsForProfile,
   type AdmissionProfile,
   type Details,
   type MarkRow,
@@ -424,7 +426,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
         base: app,
         details: app.details || {},
         uploadedTypes: status.uploadedTypes,
-      }, college ? { variant: "college" } : undefined),
+      }, college && !isCollegeClassProfile(app.formProfile ?? "") ? { variant: "college" } : undefined),
     );
   }
 
@@ -683,7 +685,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
                   <>
                     <label className="block text-xs font-semibold text-slate-600">
                       Form type <span className="text-red-600">*</span>
-                      <select value={values.profileId} onChange={(e) => set("profileId", e.target.value)} className={input}>
+                      <select value={values.profileId} onChange={(e) => { set("profileId", e.target.value); set("programId", ""); }} className={input}>
                         {info.profiles.map((p) => (
                           <option key={p.id} value={p.id}>{p.title}</option>
                         ))}
@@ -691,10 +693,10 @@ export default function PublicApplyForm({ code }: { code: string }) {
                     </label>
 
                     <label className="block text-xs font-semibold text-slate-600">
-                      Program <span className="text-red-600">*</span>
+                      {isCollegeClassProfile(values.profileId) ? "Class" : "Program"} <span className="text-red-600">*</span>
                       <select value={values.programId} onChange={(e) => set("programId", e.target.value)} className={input}>
-                        <option value="">Select program</option>
-                        {(info.programs || []).map((p) => (
+                        <option value="">{isCollegeClassProfile(values.profileId) ? "Select class" : "Select program"}</option>
+                        {programsForProfile(values.profileId, info.programs || []).map((p) => (
                           <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
                         ))}
                       </select>

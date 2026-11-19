@@ -7,7 +7,7 @@
 
 export type CollegeTemplate = {
   id: string;
-  level: 'UG' | 'PG';
+  level: 'UG' | 'PG' | 'CLASS';
   faculty: { name: string; code: string };
   department: { name: string; code: string };
   program: { name: string; code: string };
@@ -176,6 +176,59 @@ export const COLLEGE_TEMPLATES: CollegeTemplate[] = [
     ],
   },
 ];
+
+
+const JR_FACULTY = { name: 'School Wing', code: 'SCHOOLWING' };
+const JR_DEPT = { name: 'School Wing (Class 9 to 12)', code: 'SCHOOL' };
+
+const classTemplate = (
+  id: string,
+  name: string,
+  subjects: string[],
+): CollegeTemplate => ({
+  id,
+  level: 'CLASS',
+  faculty: JR_FACULTY,
+  department: JR_DEPT,
+  program: { name, code: id },
+  // A class runs for one year, so it has a single "semester".
+  semesters: [subjects],
+});
+
+const CLASS_TEMPLATES: CollegeTemplate[] = [
+  classTemplate('CLS9', 'Class 9', [
+    'English', 'Hindi', 'Mathematics', 'Science', 'Social Science', 'Information Technology', 'Physical Education',
+  ]),
+  classTemplate('CLS10', 'Class 10', [
+    'English', 'Hindi', 'Mathematics', 'Science', 'Social Science', 'Information Technology', 'Physical Education',
+  ]),
+  classTemplate('CLS11-PCM', 'Class 11 - Science (PCM)', [
+    'English', 'Physics', 'Chemistry', 'Mathematics', 'Physics Practical', 'Chemistry Practical', 'Physical Education',
+  ]),
+  classTemplate('CLS11-PCB', 'Class 11 - Science (PCB)', [
+    'English', 'Physics', 'Chemistry', 'Biology', 'Physics Practical', 'Chemistry Practical', 'Biology Practical',
+  ]),
+  classTemplate('CLS11-COM', 'Class 11 - Commerce', [
+    'English', 'Accountancy', 'Business Studies', 'Economics', 'Mathematics', 'Physical Education',
+  ]),
+  classTemplate('CLS11-ARTS', 'Class 11 - Arts', [
+    'English', 'History', 'Political Science', 'Geography', 'Economics', 'Hindi',
+  ]),
+  classTemplate('CLS12-PCM', 'Class 12 - Science (PCM)', [
+    'English', 'Physics', 'Chemistry', 'Mathematics', 'Physics Practical', 'Chemistry Practical', 'Physical Education',
+  ]),
+  classTemplate('CLS12-PCB', 'Class 12 - Science (PCB)', [
+    'English', 'Physics', 'Chemistry', 'Biology', 'Physics Practical', 'Chemistry Practical', 'Biology Practical',
+  ]),
+  classTemplate('CLS12-COM', 'Class 12 - Commerce', [
+    'English', 'Accountancy', 'Business Studies', 'Economics', 'Mathematics', 'Physical Education',
+  ]),
+  classTemplate('CLS12-ARTS', 'Class 12 - Arts', [
+    'English', 'History', 'Political Science', 'Geography', 'Economics', 'Hindi',
+  ]),
+];
+
+COLLEGE_TEMPLATES.push(...CLASS_TEMPLATES);
 
 /** Credits: practical, lab, project and similar work counts less. */
 export function creditsFor(title: string): number {

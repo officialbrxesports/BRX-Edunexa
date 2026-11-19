@@ -1,4 +1,5 @@
 import {
+  PROFILES as SCHOOL_PROFILES,
   type DocSpec,
   type Field,
   type Profile,
@@ -397,6 +398,20 @@ export const COLLEGE_PROFILES: Profile[] = [
   },
 ];
 
+/* Class 9 to 12 forms for colleges that also run school classes
+   (junior wing). They reuse the school forms. */
+const CLASS_IDS = ['CLASS_9', 'CLASS_10', 'CLASS_11', 'CLASS_12'];
+
+COLLEGE_PROFILES.push(
+  ...SCHOOL_PROFILES.filter((p) => CLASS_IDS.includes(p.id)).map(
+    (p): Profile => ({
+      ...p,
+      id: `COLLEGE_${p.id}`,
+      requiresPreviousSchool: false,
+    }),
+  ),
+);
+
 export function getCollegeProfile(id: string | null | undefined): Profile {
   return (
     COLLEGE_PROFILES.find((profile) => profile.id === id) ||
@@ -422,6 +437,9 @@ export function missingCollegeDocuments(
   const awaited =
     d.result12 === 'Result awaited' ||
     d.prevResult === 'Result awaited' ||
+    d.result9 === 'Result awaited' ||
+    d.result10 === 'Result awaited' ||
+    d.result11 === 'Result awaited' ||
     d.gradResult === 'Final year appearing';
 
   return profile.documents
@@ -431,7 +449,9 @@ export function missingCollegeDocuments(
         !uploadedTypes.includes(doc.type) &&
         !(
           awaited &&
-          (doc.type === 'MARKSHEET' || doc.type === 'GRADUATION_MARKSHEET')
+          (doc.type === 'MARKSHEET' ||
+            doc.type === 'GRADUATION_MARKSHEET' ||
+            doc.type === 'BOARD_CERTIFICATE')
         ),
     )
     .map((doc) => doc.label);

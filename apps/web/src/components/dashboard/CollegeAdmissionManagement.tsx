@@ -11,6 +11,9 @@ import {
   firstProfileProblem,
   initialDetails,
   isFieldVisible,
+  collegeFormName,
+  isCollegeClassProfile,
+  programsForProfile,
   type AdmissionProfile,
   type Details,
   type MarkRow,
@@ -373,7 +376,7 @@ export default function CollegeAdmissionManagement() {
           details: app.details || {},
           uploadedTypes: app.documents.map((d) => d.type),
         },
-        { variant: "college" },
+        isCollegeClassProfile(app.formProfile) ? undefined : { variant: "college" },
       ),
     );
   }
@@ -443,11 +446,11 @@ export default function CollegeAdmissionManagement() {
             <button
               key={p.id}
               type="button"
-              onClick={() => printHtml(buildFormHtml(p, institutionName, undefined, { variant: "college" }))}
+              onClick={() => printHtml(buildFormHtml(p, institutionName, undefined, isCollegeClassProfile(p.id) ? undefined : { variant: "college" }))}
               className="flex h-9 items-center gap-2 rounded border border-slate-300 px-3 text-xs font-semibold hover:bg-slate-50"
             >
               <Printer size={14} />
-              Blank {p.id.replace("COLLEGE_", "")} form
+              Blank {collegeFormName(p.id)} form
             </button>
           ))}
         </div>
@@ -480,7 +483,7 @@ export default function CollegeAdmissionManagement() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-xs font-semibold text-slate-600">
               Form type
-              <select value={profileId} onChange={(e) => setProfileId(e.target.value)} className={field}>
+              <select value={profileId} onChange={(e) => { setProfileId(e.target.value); setProgramId(""); }} className={field}>
                 {meta.profiles.map((p) => (
                   <option key={p.id} value={p.id}>{p.title}</option>
                 ))}
@@ -488,19 +491,21 @@ export default function CollegeAdmissionManagement() {
             </label>
 
             <label className="block text-xs font-semibold text-slate-600">
-              Program <span className="text-red-600">*</span>
+              {isCollegeClassProfile(profileId) ? "Class" : "Program"} <span className="text-red-600">*</span>
               <select value={programId} onChange={(e) => setProgramId(e.target.value)} className={field}>
-                <option value="">Select program</option>
-                {meta.programs.map((p) => (
+                <option value="">{isCollegeClassProfile(profileId) ? "Select class" : "Select program"}</option>
+                {programsForProfile(profileId, meta.programs).map((p) => (
                   <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
                 ))}
               </select>
             </label>
           </div>
 
-          {meta.programs.length === 0 && (
+          {programsForProfile(profileId, meta.programs).length === 0 && (
             <p className="text-xs text-amber-700">
-              No active program yet. Create a program first, then admissions can use it.
+              {isCollegeClassProfile(profileId)
+                ? "No class created yet. Open Quick Setup and create the Class 9 to 12 set first."
+                : "No active program yet. Create a program first, then admissions can use it."}
             </p>
           )}
 
