@@ -160,7 +160,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
         if (!active) return;
 
         setKind(asCollege ? "college" : "school");
-        setInfo({ classes: [], ...(data as Info) });
+        setInfo({ ...(data as Info), classes: (data as Info).classes ?? [] });
 
         if (asCollege && data.profiles?.[0]) {
           setValues((current) => ({ ...current, profileId: data.profiles[0].id }));
