@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Download, Plus, Printer, RefreshCw, Upload } from "lucide-react";
+import { Copy, Download, Plus, Printer, RefreshCw, Upload } from "lucide-react";
 
 import { API_URL } from "../../lib/api";
 import AdmissionClassFields from "./AdmissionClassFields";
@@ -116,6 +116,7 @@ export default function StaffJoiningManagement() {
   const [mode, setMode] = useState<"list" | "new">("list");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [institutionName, setInstitutionName] = useState("");
+  const [institutionCode, setInstitutionCode] = useState("");
 
   const [values, setValues] = useState({ ...EMPTY });
   const [details, setDetails] = useState<Details>({});
@@ -177,7 +178,10 @@ export default function StaffJoiningManagement() {
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load forms."));
 
     call("/dashboard/me")
-      .then((me) => setInstitutionName(me?.institution?.name || ""))
+      .then((me) => {
+        setInstitutionName(me?.institution?.name || "");
+        setInstitutionCode(me?.institution?.code || "");
+      })
       .catch(() => undefined);
   }, []);
 
@@ -397,6 +401,28 @@ export default function StaffJoiningManagement() {
       )}
       {message && (
         <div role="status" className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{message}</div>
+      )}
+
+      {institutionCode && typeof window !== "undefined" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-blue-100 bg-blue-50 p-3 text-xs text-blue-900">
+          <div className="min-w-0">
+            <p className="font-semibold">Public joining link (teacher, staff, guard, parent)</p>
+            <p className="mt-1 break-all">{`${window.location.origin}/join/${institutionCode}`}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              navigator.clipboard
+                .writeText(`${window.location.origin}/join/${institutionCode}`)
+                .then(() => setMessage("Link copied."))
+                .catch(() => setError("Could not copy. Select the link and copy it."))
+            }
+            className="flex h-9 items-center gap-2 rounded bg-blue-800 px-3 font-semibold text-white"
+          >
+            <Copy size={14} />
+            Copy link
+          </button>
+        </div>
       )}
 
       <div className="flex flex-wrap gap-2">
