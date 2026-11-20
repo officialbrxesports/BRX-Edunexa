@@ -12,9 +12,9 @@ import {
    digits are common fields stored on the application itself.
 ========================================================= */
 
-export type JoinRole = 'TEACHER' | 'STAFF' | 'GUARD';
+export type JoinRole = 'TEACHER' | 'STAFF' | 'GUARD' | 'PARENT';
 
-export const JOIN_ROLES: JoinRole[] = ['TEACHER', 'STAFF', 'GUARD'];
+export const JOIN_ROLES: JoinRole[] = ['TEACHER', 'STAFF', 'GUARD', 'PARENT'];
 
 const text = (key: string, label: string, extra: Partial<Field> = {}): Field => ({
   key,
@@ -311,6 +311,76 @@ export const JOIN_PROFILES: Profile[] = [
     requiresDeclarationName: true,
   },
 ];
+
+JOIN_PROFILES.push({
+  id: 'JOIN_PARENT',
+  title: 'Parent / Guardian Registration Form',
+  classLabel: 'Parent / Guardian',
+  description:
+    'For parents and guardians who need a login to see their child\'s attendance, results and notices.',
+  sections: [
+    {
+      id: 'relation',
+      title: 'Relation and Occupation',
+      fields: [
+        select('relation', 'Relation with the student', ['Father', 'Mother', 'Guardian', 'Other'], {
+          required: true,
+        }),
+        text('relationOther', 'Please specify relation', {
+          showIf: { key: 'relation', equals: 'Other' },
+        }),
+        text('occupation', 'Occupation'),
+        select('qualification', 'Education', [
+          'Below 10th',
+          '10th',
+          '12th',
+          'Graduate',
+          'Post graduate',
+          'Other',
+        ]),
+        select('familyIncome', 'Annual family income', [
+          'Below 1 lakh',
+          '1 to 2.5 lakh',
+          '2.5 to 5 lakh',
+          '5 to 8 lakh',
+          'Above 8 lakh',
+        ]),
+        text('studentName', 'Name of the student (child / ward)', { required: true }),
+        text('studentClass', 'Class / program of the student'),
+      ],
+    },
+    {
+      id: 'alternate',
+      title: 'Alternate Contact',
+      fields: [
+        text('alternateName', 'Alternate contact person'),
+        text('alternatePhone', 'Alternate mobile number', {
+          pattern: '^[0-9+\\-\\s]{7,20}$',
+          patternHint: 'Enter a valid mobile number.',
+        }),
+      ],
+    },
+  ],
+  documents: [
+    PHOTO,
+    AADHAAR,
+    SIGN,
+    {
+      type: 'GUARDIAN_PROOF',
+      label: 'Guardianship proof (for guardians)',
+      required: false,
+      note: 'Only if you are not the father or mother.',
+    },
+    ADDRESS,
+  ],
+  instructions: [
+    'Fill the form in capital letters with a blue or black pen.',
+    'The login is created only after the Head approves this form.',
+    'Bring the original Aadhaar for verification.',
+  ],
+  requiresPreviousSchool: false,
+  requiresDeclarationName: true,
+});
 
 export function profileForRole(role: string): Profile {
   return (

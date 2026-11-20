@@ -23,6 +23,7 @@ import {
   type AuthenticatedRequest,
   SessionAuthGuard,
 } from '../../common/guards/session-auth.guard';
+import type { ChildLinkInput } from '../users/parents.service';
 import {
   StaffJoiningService,
   type StaffApplicationInput,
@@ -72,6 +73,11 @@ export class StaffJoiningController {
     return { profiles: this.joining.profiles() };
   }
 
+  @Get('students')
+  students(@Req() request: AuthenticatedRequest) {
+    return this.joining.studentOptions(this.institutionId(request));
+  }
+
   @Get()
   list(
     @Req() request: AuthenticatedRequest,
@@ -100,7 +106,8 @@ export class StaffJoiningController {
   review(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { action?: string; note?: string },
+    @Body()
+    body: { action?: string; note?: string; children?: ChildLinkInput[] },
   ) {
     return this.joining.review(
       this.institutionId(request),

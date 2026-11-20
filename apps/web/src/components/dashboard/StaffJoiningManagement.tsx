@@ -14,12 +14,13 @@ import {
   type Details,
 } from "../../lib/admissionProfiles";
 
-type Role = "TEACHER" | "STAFF" | "GUARD";
+type Role = "TEACHER" | "STAFF" | "GUARD" | "PARENT";
 
 const ROLES: { id: Role; label: string }[] = [
   { id: "TEACHER", label: "Teacher" },
   { id: "STAFF", label: "Staff" },
   { id: "GUARD", label: "Security Guard" },
+  { id: "PARENT", label: "Parent / Guardian" },
 ];
 
 type Row = {
@@ -125,6 +126,11 @@ export default function StaffJoiningManagement() {
   const [note, setNote] = useState("");
   const [uploadType, setUploadType] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [students, setStudents] = useState<
+    { id: string; name: string; brxUid: string; className: string | null }[]
+  >([]);
+  const [studentFilter, setStudentFilter] = useState("");
+  const [childIds, setChildIds] = useState<string[]>([]);
   const [credentials, setCredentials] = useState<{
     eduNexaId: string;
     email: string;
@@ -185,6 +191,8 @@ export default function StaffJoiningManagement() {
       setNote("");
       setUploadType("");
       setUploadFile(null);
+      setChildIds([]);
+      setStudentFilter("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not open the application.");
     }
@@ -235,6 +243,16 @@ export default function StaffJoiningManagement() {
     }
   }
 
+  async function loadStudents() {
+    if (students.length > 0) return;
+
+    try {
+      setStudents(await call("/staff-joining/students"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load students.");
+    }
+  }
+
   async function review(action: string) {
     if (!detail) return;
 
@@ -245,7 +263,19 @@ export default function StaffJoiningManagement() {
     try {
       const data = await call(
         `/staff-joining/${detail.application.id}/review`,
-        json("POST", { action, note: note.trim() || undefined }),
+        json("POST", {
+          action,
+          note: note.trim() || undefined,
+          children:
+            action === "create_account" && detail.application.role === "PARENT"
+              ? childIds.map((studentId) => ({
+                  studentId,
+                  relation: String(
+                    (detail.application.details || {}).relation || "Guardian",
+                  ).toUpperCase(),
+                }))
+              : undefined,
+        }),
       );
 
       if (data.credentials) setCredentials(data.credentials);
@@ -670,6 +700,48 @@ export default function StaffJoiningManagement() {
                             className="min-h-16 w-full rounded border border-slate-300 p-2 text-xs"
                           />
                         )}
+                        {app.status === "APPROVED" && app.role === "PARENT" && (
+                          <div className="rounded border border-slate-200 p-3">
+                            <p className="text-xs font-bold text-slate-700">
+                              Link with student(s) <span className="text-red-600">*</span>
+                            </p>
+                            <p className="mt-0.5 text-[10px] text-slate-500">
+                              Form says: {String((app.details || {}).studentName || "-")}
+                              {(app.details || {}).studentClass ? `, ${String((app.details || {}).studentClass)}` : ""}
+                            </p>
+                            <input
+                              value={studentFilter}
+                              onFocus={() => void loadStudents()}
+                              onChange={(e) => { setStudentFilter(e.target.value); void loadStudents(); }}
+                              placeholder="Search student name or ID"
+                              className="mt-2 h-9 w-full rounded border border-slate-300 px-3 text-xs"
+                            />
+                            <ul className="mt-2 max-h-40 divide-y divide-slate-100 overflow-y-auto">
+                              {students
+                                .filter((s) => `${s.name} ${s.brxUid}`.toLowerCase().includes(studentFilter.trim().toLowerCase()))
+                                .slice(0, 50)
+                                .map((s) => (
+                                  <li key={s.id}>
+                                    <label className="flex cursor-pointer items-center gap-2 py-1.5 text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={childIds.includes(s.id)}
+                                        onChange={() =>
+                                          setChildIds((cur) => cur.includes(s.id) ? cur.filter((x) => x !== s.id) : [...cur, s.id])
+                                        }
+                                      />
+                                      <span className="min-w-0 truncate">
+                                        {s.name} · {s.brxUid}{s.className ? ` · ${s.className}` : ""}
+                                      </span>
+                                    </label>
+                                  </li>
+                                ))}
+                            </ul>
+                            {students.length === 0 && (
+                              <p className="mt-1 text-[10px] text-slate-500">Type in the box to load the student list.</p>
+                            )}
+                          </div>
+                        )}
                         <div className="flex flex-wrap gap-2">
                           {app.status === "SUBMITTED" && (
                             <button type="button" disabled={working} onClick={() => void review("start_review")} className="h-9 rounded border border-slate-300 px-3 text-xs font-semibold">
@@ -690,7 +762,12 @@ export default function StaffJoiningManagement() {
                             </>
                           )}
                           {app.status === "APPROVED" && (
-                            <button type="button" disabled={working} onClick={() => void review("create_account")} className="h-9 rounded bg-violet-700 px-3 text-xs font-semibold text-white">
+                            <button
+                              type="button"
+                              disabled={working || (app.role === "PARENT" && childIds.length === 0)}
+                              onClick={() => void review("create_account")}
+                              className="h-9 rounded bg-violet-700 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                            >
                               Create login
                             </button>
                           )}

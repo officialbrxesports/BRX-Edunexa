@@ -20,6 +20,6 @@ import { TeachersService } from './teachers.service';
     AccountsController,
   ],
   providers: [TeachersService, ParentsService],
-  exports: [TeachersService],
+  exports: [TeachersService, ParentsService],
 })
 export class UsersModule {}

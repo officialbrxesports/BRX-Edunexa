@@ -11,6 +11,7 @@ import { Readable } from 'node:stream';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { validateDetails } from '../students/admission-profiles';
+import { ParentsService, type ChildLinkInput } from '../users/parents.service';
 import { TeachersService } from '../users/teachers.service';
 import {
   JOIN_DOCUMENT_TYPES,
@@ -66,7 +67,12 @@ export class StaffJoiningService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly people: TeachersService,
+    private readonly parents: ParentsService,
   ) {}
+
+  studentOptions(institutionId: string) {
+    return this.parents.studentOptions(institutionId);
+  }
 
   profiles() {
     return JOIN_PROFILES;
@@ -76,7 +82,9 @@ export class StaffJoiningService {
     const role = String(value || '');
 
     if (!JOIN_ROLES.includes(role as JoinRole)) {
-      throw new BadRequestException('Choose Teacher, Staff or Security Guard.');
+      throw new BadRequestException(
+        'Choose Teacher, Staff, Security Guard or Parent.',
+      );
     }
 
     return role as JoinRole;
@@ -276,7 +284,7 @@ export class StaffJoiningService {
     institutionId: string,
     userId: string,
     id: string,
-    body: { action?: string; note?: string },
+    body: { action?: string; note?: string; children?: ChildLinkInput[] },
   ) {
     const found = await this.get(institutionId, id);
     const application = found.application;
@@ -340,16 +348,33 @@ export class StaffJoiningService {
         throw new BadRequestException('Approve the application before creating the login.');
       }
 
-      const created = await this.people.create(
-        institutionId,
-        {
-          firstName: application.firstName,
-          lastName: application.lastName ?? undefined,
-          email: application.email,
-          phone: application.phone,
-        },
-        application.role as JoinRole,
-      );
+      const person = {
+        firstName: application.firstName,
+        lastName: application.lastName ?? undefined,
+        email: application.email,
+        phone: application.phone,
+      };
+
+      let created;
+
+      if (application.role === 'PARENT') {
+        if (!Array.isArray(body.children) || body.children.length === 0) {
+          throw new BadRequestException(
+            'Select at least one student to link with this parent.',
+          );
+        }
+
+        created = await this.parents.create(institutionId, {
+          ...person,
+          children: body.children,
+        });
+      } else {
+        created = await this.people.create(
+          institutionId,
+          person,
+          application.role as JoinRole,
+        );
+      }
 
       await update({ status: 'ENROLLED', createdUserId: created.teacher.id as string });
 
