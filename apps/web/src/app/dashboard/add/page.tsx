@@ -41,6 +41,7 @@ import SubjectManagement from "../../../components/dashboard/SubjectManagement";
 import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 import AdmissionManagement from "../../../components/dashboard/AdmissionManagement";
 import TeacherManagement from "../../../components/dashboard/TeacherManagement";
+import StaffJoiningManagement from "../../../components/dashboard/StaffJoiningManagement";
 import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
 import { API_URL } from "../../../lib/api";
@@ -149,6 +150,7 @@ const categories = [
       { name: "Admission Form", icon: GraduationCap },
       { name: "Teacher", icon: UserRound },
       { name: "Staff", icon: BriefcaseBusiness },
+      { name: "Staff Joining", icon: BriefcaseBusiness },
       { name: "Parent / Guardian", icon: Users },
       { name: "Security Guard", icon: ShieldCheck },
     ],
@@ -1410,6 +1412,8 @@ function AddHubContent() {
                     ? "Teacher Management"
                   : selected === "Staff"
                     ? "Staff Management"
+                  : selected === "Staff Joining"
+                    ? "Staff Joining (Hiring)"
                   : selected === "Parent / Guardian"
                     ? "Parent / Guardian Management"
                   : selected === "Security Guard"
@@ -1445,6 +1449,8 @@ function AddHubContent() {
               <TeacherManagement key="teacher" kind="teacher" />
             ) : selected === "Staff" ? (
               <TeacherManagement key="staff" kind="staff" />
+            ) : selected === "Staff Joining" ? (
+              <StaffJoiningManagement />
             ) : selected === "Security Guard" ? (
               <TeacherManagement key="guard" kind="guard" />
             ) : selected === "Parent / Guardian" ? (

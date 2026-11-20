@@ -137,6 +137,32 @@ const COLLEGE_BASE_SECTIONS: typeof BASE_SECTIONS = [
   },
 ];
 
+const STAFF_BASE_SECTIONS: typeof BASE_SECTIONS = [
+  {
+    title: "A. Applicant Details",
+    fields: [
+      { key: "firstName", label: "First name" },
+      { key: "middleName", label: "Middle name" },
+      { key: "lastName", label: "Last name" },
+      { key: "dateOfBirth", label: "Date of birth", date: true },
+      { key: "gender", label: "Gender", options: ["Male", "Female", "Other"] },
+      { key: "fatherName", label: "Father's / husband's name" },
+      { key: "identityLast4", label: "Aadhaar (last 4 digits only)" },
+      { key: "phone", label: "Mobile number" },
+      { key: "email", label: "Email", wide: true },
+    ],
+  },
+  {
+    title: "B. Address",
+    fields: [
+      { key: "address", label: "Address", wide: true },
+      { key: "city", label: "City / district" },
+      { key: "state", label: "State" },
+      { key: "pinCode", label: "PIN code" },
+    ],
+  },
+];
+
 const STYLE = `
 @page { size: A4; margin: 12mm; }
 * { box-sizing: border-box; }
@@ -253,15 +279,16 @@ export function buildFormHtml(
   profile: AdmissionProfile,
   institutionName: string,
   data?: PrintData,
-  options?: { variant?: "college" },
+  options?: { variant?: "college" | "staff" },
 ): string {
   const college = options?.variant === "college";
+  const staff = options?.variant === "staff";
   const blank = !data;
   const base = data?.base || {};
   const details: Details = data?.details || {};
   const uploaded = data?.uploadedTypes || [];
 
-  const baseHtml = (college ? COLLEGE_BASE_SECTIONS : BASE_SECTIONS)
+  const baseHtml = (staff ? STAFF_BASE_SECTIONS : college ? COLLEGE_BASE_SECTIONS : BASE_SECTIONS)
     .filter((s) => !s.needsPrevious || profile.requiresPreviousSchool)
     .map((section) => {
       const fields = section.fields
@@ -291,7 +318,7 @@ export function buildFormHtml(
     })
     .join("");
 
-  const letters = college ? "CDEFGHIJKL" : "EFGHIJKLMN";
+  const letters = college || staff ? "CDEFGHIJKL" : "EFGHIJKLMN";
 
   const profileHtml = profile.sections
     .map((section, index) => {
@@ -362,16 +389,16 @@ export function buildFormHtml(
 
   const signer = String(details.declarationName || "");
 
-  const declaration = `<div class="decl"><b>Declaration</b><p style="margin:5px 0 0">I declare that all information given in this form is true and complete to the best of my knowledge. I will follow the rules of the institution. If any information is found false, the admission may be cancelled.${
+  const declaration = `<div class="decl"><b>Declaration</b><p style="margin:5px 0 0">I declare that all information given in this form is true and complete to the best of my knowledge. I will follow the rules of the institution. If any information is found false, the ${staff ? "appointment" : "admission"} may be cancelled.${
     signer ? `</p><p style="margin:6px 0 0">Signed (typed): <b>${esc(signer)}</b>` : ""
-  }</p><div class="sign"><div>Signature of parent / guardian</div><div>Signature of student</div><div>Date &amp; place</div></div></div>`;
+  }</p><div class="sign">${staff ? "<div>Signature of applicant</div><div>Signature of Head / Principal</div><div>Date &amp; place</div>" : "<div>Signature of parent / guardian</div><div>Signature of student</div><div>Date &amp; place</div>"}</div></div>`;
 
   const office = `<div class="office"><h3>For office use only</h3><div class="grid"><div class="f"><div class="l">Application no.</div><div class="v">${esc(
     data?.applicationNumber || "",
   )}</div></div><div class="f"><div class="l">Date received</div><div class="v">${esc(
     data?.submittedAt ? fmtDate(data.submittedAt) : "",
-  )}</div></div><div class="f"><div class="l">Documents verified by</div><div class="v"></div></div><div class="f"><div class="l">Fee receipt no.</div><div class="v"></div></div><div class="f"><div class="l">Section allotted</div><div class="v">${esc(
-    data?.sectionName || "",
+  )}</div></div><div class="f"><div class="l">Documents verified by</div><div class="v"></div></div><div class="f"><div class="l">${staff ? "Appointment letter no." : "Fee receipt no."}</div><div class="v"></div></div><div class="f"><div class="l">${staff ? "Joining date" : "Section allotted"}</div><div class="v">${esc(
+    staff ? "" : data?.sectionName || "",
   )}</div></div><div class="f"><div class="l">Remarks / decision</div><div class="v"></div></div></div></div>`;
 
   const instructions = profile.instructions.length
@@ -381,10 +408,10 @@ export function buildFormHtml(
     : "";
 
   const classLine = blank
-    ? `<span><b>${college ? "Program applying for" : "Class applying for"}:</b> ${
-        college ? "______________________" : esc(profile.classLabel)
+    ? `<span><b>${staff ? "Post applied for" : college ? "Program applying for" : "Class applying for"}:</b> ${
+        staff ? esc(profile.classLabel) : college ? "______________________" : esc(profile.classLabel)
       }</span><span><b>Session:</b> ____________</span>`
-    : `<span><b>${college ? "Program" : "Class"}:</b> ${esc(data?.className || "")}${
+    : `<span><b>${staff ? "Post" : college ? "Program" : "Class"}:</b> ${esc(data?.className || "")}${
         data?.sectionName ? ` (${esc(data.sectionName)})` : ""
       }</span><span><b>Application no.:</b> ${esc(
         data?.applicationNumber || "",

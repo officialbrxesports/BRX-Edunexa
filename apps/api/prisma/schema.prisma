@@ -200,6 +200,7 @@ model institutions {
   course_results course_results[]
   admission_applications AdmissionApplication[]
   college_applications college_applications[]
+  staff_applications staff_applications[]
 
   @@index([country])
   @@index([state])
@@ -1099,6 +1100,72 @@ model college_application_files {
   documentId String                        @id
   data       Bytes
   document   college_application_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model staff_applications {
+  id                String          @id
+  applicationNumber String          @unique
+  institutionId     String
+  role              String
+  status            AdmissionStatus @default(SUBMITTED)
+
+  firstName         String
+  middleName        String?
+  lastName          String?
+  dateOfBirth       DateTime?
+  gender            Gender?
+  email             String
+  phone             String
+  fatherName        String?
+  identityLast4     String?
+  address           String?
+  city              String?
+  state             String?
+  pinCode           String?
+
+  details           Json?
+  declarationAccepted Boolean       @default(false)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  reviewNote        String?
+  rejectionReason   String?
+  createdUserId     String?         @unique
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  institutions      institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  documents         staff_application_documents[]
+
+  @@index([institutionId, status])
+  @@index([institutionId, role])
+  @@index([email])
+}
+
+model staff_application_documents {
+  id            String   @id
+  applicationId String
+  type          String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  verified      Boolean  @default(false)
+  verifiedAt    DateTime?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application   staff_applications @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  file          staff_application_files?
+
+  @@index([applicationId])
+}
+
+model staff_application_files {
+  documentId String                      @id
+  data       Bytes
+  document   staff_application_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================

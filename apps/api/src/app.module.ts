@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users/users.module';
 import { CoachingModule } from './modules/coaching/coaching.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { CollegeModule } from './modules/college/college.module';
+import { StaffJoiningModule } from './modules/staff-joining/staff-joining.module';
 import { InstituteModule } from './modules/institute/institute.module';
 import { OtherModule } from './modules/other/other.module';
 
@@ -28,6 +29,7 @@ import { OtherModule } from './modules/other/other.module';
     CoachingModule,
     AttendanceModule,
     CollegeModule,
+    StaffJoiningModule,
     InstituteModule,
     OtherModule,
   ],
