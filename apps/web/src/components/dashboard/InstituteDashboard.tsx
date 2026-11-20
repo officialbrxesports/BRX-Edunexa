@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { API_URL, apiRequest } from "../../lib/api";
 import type { CertificateRow, ShortCourse } from "./InstituteManagement";
+import ProgramAdmissionsCard, { type AdmissionsSummary } from "./ProgramAdmissionsCard";
 
 type Summary = {
   counts: {
@@ -26,6 +27,7 @@ type Summary = {
     completed: number;
     certificates: number;
   };
+  admissions?: AdmissionsSummary;
   recentCertificates: {
     certificateNo: string;
     issuedOn: string;
@@ -271,6 +273,11 @@ export default function InstituteDashboard() {
                     tint="bg-amber-50 text-amber-700"
                   />
                 </div>
+
+                <ProgramAdmissionsCard
+                  admissions={summary?.admissions}
+                  href="/dashboard/institute/add#admissions"
+                />
 
                 <section className="mt-6 border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-4 py-3">

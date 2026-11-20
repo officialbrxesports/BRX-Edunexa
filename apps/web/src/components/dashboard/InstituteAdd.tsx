@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Award,
@@ -52,6 +52,17 @@ const GROUPS: { title: string; items: Item[] }[] = [
 
 export default function InstituteAdd() {
   const [selected, setSelected] = useState("Course");
+
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash === "#admissions") setSelected("Admissions");
+    };
+
+    sync();
+    window.addEventListener("hashchange", sync);
+
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">

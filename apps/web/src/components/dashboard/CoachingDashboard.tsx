@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import ProgramAdmissionsCard, { type AdmissionsSummary } from "./ProgramAdmissionsCard";
 import {
   Building2,
   CalendarClock,
@@ -46,6 +47,7 @@ type Summary = {
   };
   batches: Record<string, number>;
   enquiries: Record<string, number>;
+  admissions?: AdmissionsSummary;
   recentEnquiries: {
     id: string;
     name: string;
@@ -336,6 +338,11 @@ export default function CoachingDashboard() {
                     tint="bg-amber-50 text-amber-700"
                   />
                 </div>
+
+                <ProgramAdmissionsCard
+                  admissions={summary?.admissions}
+                  href="/dashboard/coaching/add#admissions"
+                />
 
                 <div className="mt-6 grid gap-6 xl:grid-cols-[2fr_1fr]">
                   <section className="border border-slate-200 bg-white shadow-sm">

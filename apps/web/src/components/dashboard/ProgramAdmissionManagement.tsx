@@ -128,6 +128,30 @@ export default function ProgramAdmissionManagement() {
 
   const noun = kind === "COACHING" ? "batch" : "course";
 
+  // Details sent from an enquiry ("Make admission") open the form pre-filled.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("brx-admission-prefill");
+
+      if (!raw) return;
+
+      sessionStorage.removeItem("brx-admission-prefill");
+
+      const data = JSON.parse(raw) as Partial<typeof EMPTY>;
+
+      setValues({
+        ...EMPTY,
+        firstName: String(data.firstName || "").slice(0, 100),
+        lastName: String(data.lastName || "").slice(0, 100),
+        phone: String(data.phone || "").slice(0, 20),
+        studentEmail: String(data.studentEmail || "").slice(0, 160),
+      });
+      setMode("new");
+    } catch {
+      // Ignore unreadable data.
+    }
+  }, []);
+
   useEffect(() => {
     setDetails(profile ? initialDetails(profile) : {});
     setDeclarationName("");

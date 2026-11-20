@@ -118,6 +118,7 @@ export class InstituteService {
         completed: count('COMPLETED'),
         certificates,
       },
+      admissions: await this.admissionsSummary(institutionId),
       recentCertificates: recent.map((row) => ({
         certificateNo: row.certificateNo,
         issuedOn: row.issuedOn,
@@ -126,6 +127,50 @@ export class InstituteService {
           row.enrollment.student.firstName,
           row.enrollment.student.lastName,
         ),
+      })),
+    };
+  }
+
+  /* Admission counts for the dashboard. */
+  private async admissionsSummary(institutionId: string) {
+    const [groups, recent] = await Promise.all([
+      this.prisma.program_applications.groupBy({
+        by: ['status'],
+        where: { institutionId },
+        _count: { _all: true },
+      }),
+      this.prisma.program_applications.findMany({
+        where: { institutionId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          applicationNumber: true,
+          firstName: true,
+          lastName: true,
+          status: true,
+          submittedAt: true,
+        },
+      }),
+    ]);
+
+    const byStatus: Record<string, number> = {};
+    let total = 0;
+
+    for (const row of groups) {
+      byStatus[row.status] = row._count._all;
+      total += row._count._all;
+    }
+
+    return {
+      byStatus,
+      total,
+      recent: recent.map((row) => ({
+        id: row.id,
+        applicationNumber: row.applicationNumber,
+        name: [row.firstName, row.lastName].filter(Boolean).join(' '),
+        status: row.status,
+        submittedAt: row.submittedAt,
       })),
     };
   }

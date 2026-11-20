@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CalendarCheck,
@@ -53,6 +53,17 @@ const GROUPS: { title: string; items: Item[] }[] = [
 
 export default function CoachingAdd() {
   const [selected, setSelected] = useState("Batch");
+
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash === "#admissions") setSelected("Admissions");
+    };
+
+    sync();
+    window.addEventListener("hashchange", sync);
+
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">

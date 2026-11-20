@@ -82,6 +82,29 @@ export default function EnquiryManagement() {
     setForm(EMPTY);
   }
 
+  /* Opens the admissions form with this person's details filled in. */
+  function makeAdmission(item: Enquiry) {
+    const parts = item.name.trim().split(/\s+/);
+
+    try {
+      sessionStorage.setItem(
+        "brx-admission-prefill",
+        JSON.stringify({
+          firstName: parts[0] || "",
+          lastName: parts.slice(1).join(" "),
+          phone: item.phone,
+          studentEmail: item.email || "",
+        }),
+      );
+    } catch {
+      // Without storage the form simply opens empty.
+    }
+
+    // Clear the hash first so choosing it again still triggers a change.
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    window.location.hash = "admissions";
+  }
+
   function startEdit(item: Enquiry) {
     setEditingId(item.id);
     setError("");
@@ -354,6 +377,15 @@ export default function EnquiryManagement() {
                       </option>
                     ))}
                   </select>
+                  {item.status !== "JOINED" && item.status !== "LOST" && (
+                    <button
+                      type="button"
+                      onClick={() => makeAdmission(item)}
+                      className="flex h-8 items-center gap-1 border border-blue-300 px-2.5 text-xs font-semibold text-blue-800 hover:bg-blue-50"
+                    >
+                      Make admission
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => startEdit(item)}
