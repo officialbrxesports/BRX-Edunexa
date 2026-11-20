@@ -279,16 +279,17 @@ export function buildFormHtml(
   profile: AdmissionProfile,
   institutionName: string,
   data?: PrintData,
-  options?: { variant?: "college" | "staff" },
+  options?: { variant?: "college" | "staff" | "program" },
 ): string {
   const college = options?.variant === "college";
   const staff = options?.variant === "staff";
+  const program = options?.variant === "program";
   const blank = !data;
   const base = data?.base || {};
   const details: Details = data?.details || {};
   const uploaded = data?.uploadedTypes || [];
 
-  const baseHtml = (staff ? STAFF_BASE_SECTIONS : college ? COLLEGE_BASE_SECTIONS : BASE_SECTIONS)
+  const baseHtml = (staff ? STAFF_BASE_SECTIONS : college || program ? COLLEGE_BASE_SECTIONS : BASE_SECTIONS)
     .filter((s) => !s.needsPrevious || profile.requiresPreviousSchool)
     .map((section) => {
       const fields = section.fields
@@ -318,7 +319,7 @@ export function buildFormHtml(
     })
     .join("");
 
-  const letters = college || staff ? "CDEFGHIJKL" : "EFGHIJKLMN";
+  const letters = college || staff || program ? "CDEFGHIJKL" : "EFGHIJKLMN";
 
   const profileHtml = profile.sections
     .map((section, index) => {
@@ -408,10 +409,10 @@ export function buildFormHtml(
     : "";
 
   const classLine = blank
-    ? `<span><b>${staff ? "Post applied for" : college ? "Program applying for" : "Class applying for"}:</b> ${
-        staff ? esc(profile.classLabel) : college ? "______________________" : esc(profile.classLabel)
+    ? `<span><b>${staff ? "Post applied for" : program ? `${profile.classLabel} applying for` : college ? "Program applying for" : "Class applying for"}:</b> ${
+        staff ? esc(profile.classLabel) : program || college ? "______________________" : esc(profile.classLabel)
       }</span><span><b>Session:</b> ____________</span>`
-    : `<span><b>${staff ? "Post" : college ? "Program" : "Class"}:</b> ${esc(data?.className || "")}${
+    : `<span><b>${staff ? "Post" : program ? profile.classLabel : college ? "Program" : "Class"}:</b> ${esc(data?.className || "")}${
         data?.sectionName ? ` (${esc(data.sectionName)})` : ""
       }</span><span><b>Application no.:</b> ${esc(
         data?.applicationNumber || "",

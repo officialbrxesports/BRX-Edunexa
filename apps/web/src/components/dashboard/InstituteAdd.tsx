@@ -22,6 +22,7 @@ import {
 } from "./InstituteManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
+import ProgramAdmissionManagement from "./ProgramAdmissionManagement";
 import StaffJoiningManagement from "./StaffJoiningManagement";
 
 type Item = { name: string; icon: LucideIcon };
@@ -38,6 +39,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "PEOPLE",
     items: [
+      { name: "Admissions", icon: GraduationCap },
       { name: "Student", icon: GraduationCap },
       { name: "Teacher", icon: UserRound },
       { name: "Staff", icon: BriefcaseBusiness },
@@ -120,6 +122,7 @@ export default function InstituteAdd() {
               <TeacherManagement key="teacher" kind="teacher" />
             )}
             {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
+            {selected === "Admissions" && <ProgramAdmissionManagement />}
             {selected === "Staff Joining" && <StaffJoiningManagement />}
             {selected === "Parent / Guardian" && <ParentManagement />}
             {selected === "Security Guard" && (

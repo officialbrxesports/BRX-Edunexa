@@ -155,6 +155,19 @@ export default function PublicApplyForm({ code }: { code: string }) {
           asCollege = true;
         }
 
+        // Coaching and institutes have their own form.
+        if (res.status === 404) {
+          const third = await fetch(
+            `${API_URL}/public/apply-program/${encodeURIComponent(code)}`,
+            { cache: "no-store" },
+          );
+
+          if (third.ok) {
+            window.location.replace(`/enroll/${encodeURIComponent(code)}`);
+            return;
+          }
+        }
+
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) throw new Error(data.message || "Admissions are not open for this link.");

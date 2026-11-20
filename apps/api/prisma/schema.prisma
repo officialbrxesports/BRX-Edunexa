@@ -201,6 +201,7 @@ model institutions {
   admission_applications AdmissionApplication[]
   college_applications college_applications[]
   staff_applications staff_applications[]
+  program_applications program_applications[]
 
   @@index([country])
   @@index([state])
@@ -1166,6 +1167,77 @@ model staff_application_files {
   documentId String                      @id
   data       Bytes
   document   staff_application_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model program_applications {
+  id                String          @id
+  applicationNumber String          @unique
+  institutionId     String
+  kind              String
+  targetId          String
+  formProfile       String
+  status            AdmissionStatus @default(SUBMITTED)
+
+  firstName         String
+  middleName        String?
+  lastName          String?
+  dateOfBirth       DateTime?
+  gender            Gender?
+  studentEmail      String?
+  phone             String
+  fatherName        String?
+  motherName        String?
+  category          String?
+  nationality       String?
+  identityLast4     String?
+  address           String?
+  city              String?
+  state             String?
+  pinCode           String?
+
+  details           Json?
+  declarationAccepted Boolean       @default(false)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedById      String?
+  reviewNote        String?
+  rejectionReason   String?
+  approvedStudentId String?         @unique
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  institutions      institutions    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  documents         program_application_documents[]
+
+  @@index([institutionId, status])
+  @@index([institutionId, targetId])
+  @@index([phone])
+}
+
+model program_application_documents {
+  id            String   @id
+  applicationId String
+  type          String
+  originalName  String
+  mimeType      String
+  sizeBytes     Int
+  verified      Boolean  @default(false)
+  verifiedAt    DateTime?
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  application   program_applications @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  file          program_application_files?
+
+  @@index([applicationId])
+}
+
+model program_application_files {
+  documentId String                        @id
+  data       Bytes
+  document   program_application_documents @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================

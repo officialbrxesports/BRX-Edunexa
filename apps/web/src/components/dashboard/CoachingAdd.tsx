@@ -21,6 +21,7 @@ import BatchManagement from "./BatchManagement";
 import EnquiryManagement from "./EnquiryManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
+import ProgramAdmissionManagement from "./ProgramAdmissionManagement";
 import StaffJoiningManagement from "./StaffJoiningManagement";
 import TestManagement from "./TestManagement";
 
@@ -39,6 +40,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "PEOPLE",
     items: [
+      { name: "Admissions", icon: GraduationCap },
       { name: "Student", icon: GraduationCap },
       { name: "Teacher", icon: UserRound },
       { name: "Staff", icon: BriefcaseBusiness },
@@ -118,6 +120,7 @@ export default function CoachingAdd() {
               <TeacherManagement key="teacher" kind="teacher" />
             )}
             {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
+            {selected === "Admissions" && <ProgramAdmissionManagement />}
             {selected === "Staff Joining" && <StaffJoiningManagement />}
             {selected === "Parent / Guardian" && <ParentManagement />}
             {selected === "Security Guard" && (

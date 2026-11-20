@@ -12,6 +12,7 @@ import { CoachingModule } from './modules/coaching/coaching.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { CollegeModule } from './modules/college/college.module';
 import { StaffJoiningModule } from './modules/staff-joining/staff-joining.module';
+import { ProgramAdmissionsModule } from './modules/program-admissions/program-admissions.module';
 import { InstituteModule } from './modules/institute/institute.module';
 import { OtherModule } from './modules/other/other.module';
 
@@ -30,6 +31,7 @@ import { OtherModule } from './modules/other/other.module';
     AttendanceModule,
     CollegeModule,
     StaffJoiningModule,
+    ProgramAdmissionsModule,
     InstituteModule,
     OtherModule,
   ],
