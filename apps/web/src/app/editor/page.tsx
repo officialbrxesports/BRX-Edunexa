@@ -21,8 +21,7 @@ import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
-import { Mark, mergeAttributes } from "@tiptap/core";
-import AIWritingPanel from "@/modules/ai-writing/components/AIWritingPanel";
+import { Mark, Node as TiptapNode, mergeAttributes } from "@tiptap/core";
 import {
   AlignCenter,
   AlignJustify,
@@ -32,12 +31,10 @@ import {
   Bold,
   Check,
   CloudUpload,
-  Columns3,
   Clipboard,
   Copy,
   Download,
   Scissors,
-  Sparkles,
   FilePlus,
   FileText,
   FolderOpen,
@@ -151,6 +148,30 @@ const Superscript = Mark.create({
     return ["sup", mergeAttributes(HTMLAttributes), 0];
   },
 });
+
+const PageBreak = TiptapNode.create({
+  name: "pageBreak",
+  group: "block",
+  atom: true,
+  selectable: true,
+  parseHTML() {
+    return [{ tag: 'div[data-type="page-break"]' }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", mergeAttributes(HTMLAttributes, { "data-type": "page-break" })];
+  },
+  addKeyboardShortcuts() {
+    return {
+      "Mod-Enter": () => this.editor.commands.insertContent({ type: this.name }),
+    };
+  },
+});
+
+const SYMBOLS = [
+  "©", "®", "™", "°", "±", "×", "÷", "≠", "≤", "≥", "≈", "∞", "√", "∑", "π", "Ω",
+  "α", "β", "γ", "θ", "λ", "μ", "→", "←", "↑", "↓", "✓", "✗", "★", "•", "§", "¶",
+  "₹", "€", "£", "¥", "½", "¼", "¾", "²", "³",
+];
 
 const DOC_TEMPLATES: { name: string; title: string; html: string }[] = [
   {
@@ -289,7 +310,6 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | null>(null);
-  const [showAIWriting, setShowAIWriting] = useState(false);
   const [fontFamily, setFontFamily] = useState("Arial");
   const [fontSize, setFontSize] = useState("16px");
   const [zoom, setZoom] = useState(100);
@@ -299,6 +319,14 @@ export default function EditorPage() {
   const [lineSpacing, setLineSpacing] = useState("1.5");
   const [showNavigation, setShowNavigation] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
+  const [headerText, setHeaderText] = useState("");
+  const [footerText, setFooterText] = useState("");
+  const [pageNumbers, setPageNumbers] = useState(false);
+  const [pageColor, setPageColor] = useState("#ffffff");
+  const [watermark, setWatermark] = useState("none");
+  const [columns, setColumns] = useState("1");
+  const [focusMode, setFocusMode] = useState(false);
+  const [spellcheck, setSpellcheck] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [replaceText, setReplaceText] = useState("");
   const [wordStats, setWordStats] = useState({ words: 0, characters: 0 });
@@ -341,13 +369,14 @@ export default function EditorPage() {
       TableCell,
       Subscript,
       Superscript,
+      PageBreak,
     ],
     [],
   );
 
   const editor = useEditor({
     extensions,
-    content: "<h1>Welcome to BRX AI Editor</h1><p>Start writing here.</p>",
+    content: "<h1>Welcome to BRX Notes</h1><p>Start writing here.</p>",
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -781,7 +810,16 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
       `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(safeTitle)}</title>` +
       "<style>body{font-family:Calibri,Arial,sans-serif;font-size:12pt;line-height:1.5}" +
       "table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}" +
-      `</style></head><body>${editor.getHTML()}</body></html>`;
+      "div[data-type='page-break']{page-break-after:always}" +
+      `</style></head><body>${
+        headerText.trim()
+          ? `<p style="text-align:center;color:#555;font-size:10pt">${escapeHtml(headerText)}</p>`
+          : ""
+      }${editor.getHTML()}${
+        footerText.trim()
+          ? `<p style="text-align:center;color:#555;font-size:10pt">${escapeHtml(footerText)}</p>`
+          : ""
+      }</body></html>`;
 
     const url = URL.createObjectURL(
       new Blob(["\ufeff", html], { type: "application/msword" }),
@@ -826,6 +864,99 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           .run();
       })
       .catch(() => notify("Paste blocked by the browser. Use Ctrl+V."));
+  }
+
+  function insertPageBreak() {
+    editor?.chain().focus().insertContent({ type: "pageBreak" }).run();
+  }
+
+  function insertTime() {
+    editor?.chain().focus().insertContent(new Date().toLocaleTimeString()).run();
+  }
+
+  function insertSymbol(symbol: string) {
+    if (symbol) editor?.chain().focus().insertContent(symbol).run();
+  }
+
+  function insertToc() {
+    if (!editor) return;
+
+    const items: { level: number; text: string }[] = [];
+
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === "heading" && node.textContent.trim()) {
+        items.push({
+          level: Number(node.attrs.level) || 1,
+          text: node.textContent.trim(),
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      notify("Add headings (H1, H2, H3) first, then insert the table of contents.");
+      return;
+    }
+
+    const lines = items
+      .map(
+        (item) =>
+          `<p>${"&nbsp;".repeat((item.level - 1) * 6)}${escapeHtml(item.text)}</p>`,
+      )
+      .join("");
+
+    editor
+      .chain()
+      .focus()
+      .insertContent(`<h2>Table of contents</h2>${lines}`)
+      .run();
+  }
+
+  function changeCase(mode: string) {
+    if (!editor || !mode) return;
+
+    const { from, to, empty } = editor.state.selection;
+
+    if (empty) {
+      notify("Select some text first.");
+      return;
+    }
+
+    const text = editor.state.doc.textBetween(from, to, "\n");
+    let result = text;
+
+    if (mode === "upper") result = text.toUpperCase();
+    else if (mode === "lower") result = text.toLowerCase();
+    else if (mode === "title")
+      result = text
+        .toLowerCase()
+        .replace(/(^|\s)(\S)/g, (_m, a: string, b: string) => a + b.toUpperCase());
+    else if (mode === "sentence")
+      result = text
+        .toLowerCase()
+        .replace(/(^\s*|[.!?]\s+)(\S)/g, (_m, a: string, b: string) => a + b.toUpperCase());
+
+    editor.chain().focus().insertContentAt({ from, to }, result).run();
+  }
+
+  function showStats() {
+    if (!editor) return;
+
+    const text = editor.getText();
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const noSpaces = text.replace(/\s/g, "").length;
+    const minutes = Math.max(1, Math.round(words / 200));
+
+    notify(
+      `${words} words · ${text.length} characters (${noSpaces} without spaces) · ${editor.state.doc.childCount} blocks · about ${minutes} min read`,
+    );
+  }
+
+  function toggleSpellcheck() {
+    const next = !spellcheck;
+
+    setSpellcheck(next);
+    editor?.view.dom.setAttribute("spellcheck", String(next));
+    notify(next ? "Spell check is on." : "Spell check is off.");
   }
 
   function applyFontSize(value: string) {
@@ -957,8 +1088,28 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
 
   const activeEditor = Boolean(editor);
 
+  const cssText = (value: string) =>
+    `"${value.replace(/[\\"\r\n]/g, " ").slice(0, 120)}"`;
+  const hasHeaderFooter = Boolean(headerText.trim() || footerText.trim() || pageNumbers);
+  const pageCss =
+    `@page { size: ${pageSize === "A4" ? "A4" : "letter"} ${orientation};` +
+    (hasHeaderFooter
+      ? ` margin: 20mm 18mm;` +
+        (headerText.trim()
+          ? ` @top-center { content: ${cssText(headerText)}; font-size: 10pt; color: #555; }`
+          : "") +
+        (footerText.trim()
+          ? ` @bottom-left { content: ${cssText(footerText)}; font-size: 10pt; color: #555; }`
+          : "") +
+        (pageNumbers
+          ? ` @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 10pt; color: #555; }`
+          : "")
+      : "") +
+    " }";
+
   return (
     <main className="min-h-screen bg-slate-100 text-slate-800">
+      <style>{pageCss}</style>
       {/* Top application bar */}
       <header className="sticky top-0 z-40 bg-[#174ea6] text-white shadow">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -1011,16 +1162,6 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
             </button>
 
             <button
-              type="button"
-              className="top-action"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => setShowAIWriting((value) => !value)}
-            >
-              <Sparkles size={16} />
-              AI Writing
-            </button>
-
-            <button
               className="top-action"
               onClick={createNewDocument}
               type="button"
@@ -1052,7 +1193,7 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
         </div>
 
         {/* Ribbon tabs */}
-        <nav className="flex gap-1 overflow-x-auto border-t border-white/15 px-3">
+        <nav className={`flex gap-1 overflow-x-auto border-t border-white/15 px-3 ${focusMode ? "hidden" : ""}`}>
           {tabs.map((tab) => (
             <button
               type="button"
@@ -1078,7 +1219,8 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
       </header>
 
       {/* Ribbon controls */}
-      <section className="sticky top-29 z-30 border-b border-slate-300 bg-white shadow-sm">
+      <section className={`sticky top-29 z-30 border-b border-slate-300 bg-white shadow-sm ${focusMode ? "hidden" : ""}`}>
+        {/* ribbon */}
         <div className="flex min-h-23 items-stretch gap-1 overflow-x-auto px-2 py-2">
           {activeTab === "Home" && (
             <>
@@ -1105,6 +1247,12 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 </RibbonButton>
                 <RibbonButton label="Paste text" onClick={pasteFromClipboard}>
                   <Clipboard size={17} />
+                </RibbonButton>
+                <RibbonButton
+                  label="Select all"
+                  onClick={() => editor?.chain().focus().selectAll().run()}
+                >
+                  All
                 </RibbonButton>
                 <RibbonButton
                   label="Undo"
@@ -1298,13 +1446,19 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
             <>
               <RibbonGroup label="Pages">
                 <RibbonButton
-                  label="Insert page break"
-                  onClick={insertHorizontalLine}
+                  label="Insert page break (Ctrl+Enter)"
+                  onClick={insertPageBreak}
                 >
                   <FilePlus size={18} /> Page break
                 </RibbonButton>
                 <RibbonButton label="Insert date" onClick={insertDate}>
                   <FileText size={18} /> Date
+                </RibbonButton>
+                <RibbonButton label="Insert time" onClick={insertTime}>
+                  Time
+                </RibbonButton>
+                <RibbonButton label="Insert table of contents" onClick={insertToc}>
+                  Contents
                 </RibbonButton>
               </RibbonGroup>
               <RibbonGroup label="Tables">
@@ -1359,6 +1513,23 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 >
                   <Trash2 size={17} />
                 </RibbonButton>
+              </RibbonGroup>
+              <RibbonGroup label="Symbols">
+                <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+                  <span>Insert symbol</span>
+                  <select
+                    value=""
+                    onChange={(event) => insertSymbol(event.target.value)}
+                    className="h-8 w-24 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Choose...</option>
+                    {SYMBOLS.map((symbol) => (
+                      <option key={symbol} value={symbol}>
+                        {symbol}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </RibbonGroup>
               <RibbonGroup label="Illustrations">
                 <RibbonButton
@@ -1462,6 +1633,20 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 >
                   Quote
                 </RibbonButton>
+                <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+                  <span>Change case</span>
+                  <select
+                    value=""
+                    onChange={(event) => changeCase(event.target.value)}
+                    className="h-8 w-28 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Aa...</option>
+                    <option value="upper">UPPERCASE</option>
+                    <option value="lower">lowercase</option>
+                    <option value="title">Title Case</option>
+                    <option value="sentence">Sentence case</option>
+                  </select>
+                </label>
               </RibbonGroup>
             </>
           )}
@@ -1522,12 +1707,75 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 </RibbonButton>
               </RibbonGroup>
               <RibbonGroup label="Columns">
-                <RibbonButton
-                  label="Columns layout information"
-                  onClick={() => notify("Multi-column page layout is not enabled in this version.")}
-                >
-                  <Columns3 size={18} /> Columns
-                </RibbonButton>
+                <SelectControl
+                  label="Columns"
+                  value={columns}
+                  onChange={setColumns}
+                  className="w-28"
+                  options={[
+                    { label: "One", value: "1" },
+                    { label: "Two", value: "2" },
+                    { label: "Three", value: "3" },
+                  ]}
+                />
+              </RibbonGroup>
+              <RibbonGroup label="Header and footer">
+                <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+                  <span>Header text</span>
+                  <input
+                    id="notes-header"
+                    value={headerText}
+                    maxLength={120}
+                    onChange={(event) => setHeaderText(event.target.value)}
+                    className="h-8 w-36 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+                  <span>Footer text</span>
+                  <input
+                    id="notes-footer"
+                    value={footerText}
+                    maxLength={120}
+                    onChange={(event) => setFooterText(event.target.value)}
+                    className="h-8 w-36 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 self-end pb-2 text-xs text-slate-600">
+                  <input
+                    id="notes-page-numbers"
+                    type="checkbox"
+                    checked={pageNumbers}
+                    onChange={(event) => setPageNumbers(event.target.checked)}
+                  />
+                  Page numbers
+                </label>
+              </RibbonGroup>
+              <RibbonGroup label="Page background">
+                <SelectControl
+                  label="Page colour"
+                  value={pageColor}
+                  onChange={setPageColor}
+                  className="w-28"
+                  options={[
+                    { label: "White", value: "#ffffff" },
+                    { label: "Cream", value: "#fffbeb" },
+                    { label: "Light grey", value: "#f1f5f9" },
+                    { label: "Light blue", value: "#eff6ff" },
+                  ]}
+                />
+                <SelectControl
+                  label="Watermark"
+                  value={watermark}
+                  onChange={setWatermark}
+                  className="w-32"
+                  options={[
+                    { label: "None", value: "none" },
+                    { label: "DRAFT", value: "DRAFT" },
+                    { label: "CONFIDENTIAL", value: "CONFIDENTIAL" },
+                    { label: "SAMPLE", value: "SAMPLE" },
+                    { label: "COPY", value: "COPY" },
+                  ]}
+                />
               </RibbonGroup>
             </>
           )}
@@ -1535,17 +1783,13 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           {activeTab === "Review" && (
             <>
               <RibbonGroup label="Proofing">
-                <RibbonButton
-                  label="Word count"
-                  onClick={() =>
-                    notify(`${wordStats.words} words · ${wordStats.characters} characters`)
-                  }
-                >
-                  <FileText size={18} /> Word count
+                <RibbonButton label="Word count and statistics" onClick={showStats}>
+                  <FileText size={18} /> Statistics
                 </RibbonButton>
                 <RibbonButton
-                  label="Spell check"
-                  onClick={() => notify("Browser spell-check is enabled in the editor.")}
+                  label="Turn spell check on or off"
+                  active={spellcheck}
+                  onClick={toggleSpellcheck}
                 >
                   ABC ✓
                 </RibbonButton>
@@ -1596,6 +1840,21 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                   onClick={() => setShowNavigation((value) => !value)}
                 >
                   <Search size={18} /> Navigation
+                </RibbonButton>
+              </RibbonGroup>
+              <RibbonGroup label="Focus">
+                <RibbonButton label="Hide the ribbon and write" onClick={() => setFocusMode(true)}>
+                  Focus mode
+                </RibbonButton>
+                <RibbonButton
+                  label="Keyboard shortcuts"
+                  onClick={() =>
+                    notify(
+                      "Ctrl+B bold · Ctrl+I italic · Ctrl+U underline · Ctrl+Z undo · Ctrl+Y redo · Ctrl+S save · Ctrl+Enter page break · Ctrl+Shift+7/8 lists",
+                    )
+                  }
+                >
+                  Shortcuts
                 </RibbonButton>
               </RibbonGroup>
               <RibbonGroup label="Display">
@@ -1746,6 +2005,8 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
               style={{
                 minHeight: `${orientation === "portrait" ? pageHeight : pageWidth}px`,
                 padding: marginValue,
+                position: "relative",
+                background: pageColor,
                 fontFamily,
                 fontSize,
                 lineHeight: lineSpacing,
@@ -1754,7 +2015,38 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 width: `${100 / (zoom / 100)}%`,
               }}
             >
-              <EditorContent editor={editor} />
+              {watermark !== "none" && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+                >
+                  <span
+                    style={{
+                      fontSize: "96px",
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      color: "rgba(100,116,139,0.18)",
+                      transform: "rotate(-30deg)",
+                    }}
+                  >
+                    {watermark}
+                  </span>
+                </div>
+              )}
+              {headerText.trim() && (
+                <div className="mb-3 border-b border-slate-200 pb-1 text-center text-xs text-slate-500 print:hidden">
+                  {headerText}
+                </div>
+              )}
+              <div style={{ columnCount: Number(columns), columnGap: "32px" }}>
+                <EditorContent editor={editor} />
+              </div>
+              {(footerText.trim() || pageNumbers) && (
+                <div className="mt-4 flex justify-between border-t border-slate-200 pt-1 text-xs text-slate-500 print:hidden">
+                  <span>{footerText}</span>
+                  <span>{pageNumbers ? "Page 1" : ""}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1766,17 +2058,20 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
         </section>
       </div>
 
-      {showAIWriting && editor && (
-        <AIWritingPanel
-          editor={editor}
-          onClose={() => setShowAIWriting(false)}
-        />
+      {focusMode && (
+        <button
+          type="button"
+          onClick={() => setFocusMode(false)}
+          className="fixed right-4 top-24 z-50 rounded bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-slate-700"
+        >
+          Exit focus mode
+        </button>
       )}
-      
+
       {/* Bottom status bar */}
       <footer className="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 border-t border-slate-300 bg-white px-4 py-2 text-xs text-slate-500">
         <div className="flex flex-wrap items-center gap-3">
-          <span>BRX AI Editor</span>
+          <span>BRX Notes</span>
           <span>{wordStats.words} words</span>
           <span>{pageSize} · {orientation}</span>
           <span className="flex items-center gap-1">
@@ -2014,7 +2309,33 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
         .brx-editor-content [style*="text-align: justify"] {
           text-align: justify;
         }
+        .brx-editor-content div[data-type="page-break"] {
+          border-top: 2px dashed #94a3b8;
+          margin: 1.5rem 0;
+          height: 0;
+          position: relative;
+        }
+        .brx-editor-content div[data-type="page-break"]::after {
+          content: "Page break";
+          position: absolute;
+          top: -9px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #fff;
+          padding: 0 8px;
+          font-size: 11px;
+          color: #64748b;
+        }
         @media print {
+          .brx-editor-content div[data-type="page-break"] {
+            break-after: page;
+            page-break-after: always;
+            border: 0 !important;
+            margin: 0 !important;
+          }
+          .brx-editor-content div[data-type="page-break"]::after {
+            display: none;
+          }
           body {
             background: white !important;
           }
