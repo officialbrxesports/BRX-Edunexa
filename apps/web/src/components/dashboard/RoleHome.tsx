@@ -499,6 +499,19 @@ export default function RoleHome() {
               </div>
             )}
 
+            {me.role === "TEACHER" && (
+              <Card title="Notes">
+                <div className="flex flex-wrap gap-2 p-4">
+                  <Link
+                    href="/dashboard/teacher/notes"
+                    className="h-9 bg-blue-800 px-4 text-xs font-semibold leading-9 text-white hover:bg-blue-900"
+                  >
+                    Open notes
+                  </Link>
+                </div>
+              </Card>
+            )}
+
             {me.role === "TEACHER" &&
               (me.institution.type === "SCHOOL" ||
                 me.institution.type === "COACHING") && (

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { ArrowLeft, Building2 } from "lucide-react";
 import AttendanceManagement from "./AttendanceManagement";
 import TestManagement from "./TestManagement";
+import NotesEditor from "./NotesEditor";
 
 function Shell({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -51,6 +52,14 @@ export function TeacherTestsPage() {
         batchesPath="/teacher/tests/batches"
         canDelete={false}
       />
+    </Shell>
+  );
+}
+
+export function TeacherNotesPage() {
+  return (
+    <Shell title="Notes">
+      <NotesEditor />
     </Shell>
   );
 }

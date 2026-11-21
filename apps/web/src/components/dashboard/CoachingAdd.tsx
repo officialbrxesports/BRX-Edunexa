@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   UserRound,
   Users,
+  FileText as NotesIcon,
   type LucideIcon,
 } from "lucide-react";
 import AttendanceManagement from "./AttendanceManagement";
@@ -23,6 +24,7 @@ import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
 import ProgramAdmissionManagement from "./ProgramAdmissionManagement";
 import StaffJoiningManagement from "./StaffJoiningManagement";
+import NotesEditor from "./NotesEditor";
 import TestManagement from "./TestManagement";
 
 type Item = { name: string; icon: LucideIcon };
@@ -48,6 +50,10 @@ const GROUPS: { title: string; items: Item[] }[] = [
       { name: "Parent / Guardian", icon: Users },
       { name: "Security Guard", icon: ShieldCheck },
     ],
+  },
+  {
+    title: "WORKSPACE",
+    items: [{ name: "Notes", icon: NotesIcon }],
   },
 ];
 
@@ -133,6 +139,7 @@ export default function CoachingAdd() {
             {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
             {selected === "Admissions" && <ProgramAdmissionManagement />}
             {selected === "Staff Joining" && <StaffJoiningManagement />}
+            {selected === "Notes" && <NotesEditor />}
             {selected === "Parent / Guardian" && <ParentManagement />}
             {selected === "Security Guard" && (
               <TeacherManagement key="guard" kind="guard" />

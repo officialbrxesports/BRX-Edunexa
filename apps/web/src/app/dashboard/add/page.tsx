@@ -42,6 +42,7 @@ import DashboardAuth from "../../../components/dashboard/DashboardAuth";
 import AdmissionManagement from "../../../components/dashboard/AdmissionManagement";
 import TeacherManagement from "../../../components/dashboard/TeacherManagement";
 import StaffJoiningManagement from "../../../components/dashboard/StaffJoiningManagement";
+import NotesEditor from "../../../components/dashboard/NotesEditor";
 import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
 import { API_URL } from "../../../lib/api";
@@ -170,6 +171,10 @@ const categories = [
       { name: "Fee Plan", icon: Wallet },
       { name: "Invitation", icon: UserPlus },
     ],
+  },
+  {
+    title: "WORKSPACE",
+    items: [{ name: "Notes", icon: FileText }],
   },
 ];
 
@@ -1412,6 +1417,8 @@ function AddHubContent() {
                     ? "Teacher Management"
                   : selected === "Staff"
                     ? "Staff Management"
+                  : selected === "Notes"
+                    ? "Notes"
                   : selected === "Staff Joining"
                     ? "Staff Joining (Hiring)"
                   : selected === "Parent / Guardian"
@@ -1449,6 +1456,8 @@ function AddHubContent() {
               <TeacherManagement key="teacher" kind="teacher" />
             ) : selected === "Staff" ? (
               <TeacherManagement key="staff" kind="staff" />
+            ) : selected === "Notes" ? (
+              <NotesEditor />
             ) : selected === "Staff Joining" ? (
               <StaffJoiningManagement />
             ) : selected === "Security Guard" ? (
