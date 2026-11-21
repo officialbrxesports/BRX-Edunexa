@@ -14,12 +14,17 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './login.dto';
 import { GoogleLoginDto } from './google-login.dto';
 import { ChangePasswordDto } from './change-password.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './password-reset.dto';
+import { PasswordResetService } from './password-reset.service';
 
 const COOKIE_NAME = 'brx_session';
 
 // 8 wrong passwords per person and device in 15 minutes, then a short lock.
 const loginLimiter = new AttemptLimiter(8, 15 * 60 * 1000);
 const passwordChangeLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
+// Forgot-password: 5 code requests, and 8 reset tries, per device in 15 minutes.
+const forgotRequestLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
+const forgotConfirmLimiter = new AttemptLimiter(8, 15 * 60 * 1000);
 
 function getSessionToken(request: Request): string | undefined {
   const cookieHeader = request.headers.cookie;
@@ -44,7 +49,10 @@ function getSessionToken(request: Request): string | undefined {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordReset: PasswordResetService,
+  ) {}
 
   private setSessionCookie(response: Response, session: {
     sessionToken: string;
@@ -126,6 +134,35 @@ export class AuthController {
       if (error instanceof BadRequestException) {
         passwordChangeLimiter.recordFailure(key);
       }
+      throw error;
+    }
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() request: Request) {
+    const key = request.ip ?? 'unknown';
+    forgotRequestLimiter.assertAllowed(key);
+    // Every request counts, so nobody can flood one inbox.
+    forgotRequestLimiter.recordFailure(key);
+
+    return this.passwordReset.request(dto.identifier);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto, @Req() request: Request) {
+    const key = `${request.ip ?? 'unknown'}|${dto.identifier.trim().toLowerCase()}`;
+    forgotConfirmLimiter.assertAllowed(key);
+
+    try {
+      const result = await this.passwordReset.confirm(
+        dto.identifier,
+        dto.code,
+        dto.newPassword,
+      );
+      forgotConfirmLimiter.clear(key);
+      return result;
+    } catch (error) {
+      if (error instanceof BadRequestException) forgotConfirmLimiter.recordFailure(key);
       throw error;
     }
   }

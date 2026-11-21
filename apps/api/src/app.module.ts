@@ -15,10 +15,12 @@ import { StaffJoiningModule } from './modules/staff-joining/staff-joining.module
 import { ProgramAdmissionsModule } from './modules/program-admissions/program-admissions.module';
 import { InstituteModule } from './modules/institute/institute.module';
 import { OtherModule } from './modules/other/other.module';
+import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
     PrismaModule,
+    EmailModule,
     HealthModule,
     AuthModule,
     InstitutionsModule,
