@@ -10,6 +10,7 @@ import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApplicationMailService } from '../email/application-mail.service';
 import { validateDetails } from '../students/admission-profiles';
 import { TeachersService } from '../users/teachers.service';
 import { CollegeService } from './college.service';
@@ -70,6 +71,7 @@ export class CollegeAdmissionsService {
     private readonly prisma: PrismaService,
     private readonly college: CollegeService,
     private readonly people: TeachersService,
+    private readonly mail: ApplicationMailService,
   ) {}
 
   profiles() {
@@ -317,12 +319,24 @@ export class CollegeAdmissionsService {
     const action = String(body.action || '');
     const now = new Date();
 
-    const update = (data: Record<string, unknown>) =>
-      this.prisma.college_applications.update({
+    const update = async (data: Record<string, unknown>) => {
+      const saved = await this.prisma.college_applications.update({
         where: { id },
         data: { ...data, reviewedAt: now, reviewedById: userId, updatedAt: now } as never,
         select: { id: true, status: true },
       });
+
+      void this.mail.notify({
+        institutionId,
+        to: application.studentEmail,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: String(data.status ?? saved.status),
+        note: (data.rejectionReason ?? data.reviewNote ?? null) as string | null,
+      });
+
+      return saved;
+    };
 
     if (action === 'start_review') {
       if (application.status !== 'SUBMITTED') {

@@ -11,6 +11,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApplicationMailService } from '../email/application-mail.service';
 
 import {
   classLevelFromName,
@@ -74,6 +75,7 @@ export type ReviewAdmissionInput = {
 export class StudentsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly mail: ApplicationMailService,
   ) {}
 
   // -----------------------------------------
@@ -697,6 +699,15 @@ export class StudentsService {
         },
       });
 
+      void this.mail.notify({
+        institutionId,
+        to: application.studentEmail || application.parentEmail,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: newStatus,
+        note,
+      });
+
       return {
         success: true,
         message: 'Admission application reviewed.',
@@ -1000,6 +1011,14 @@ export class StudentsService {
           },
         );
 
+      void this.mail.notify({
+        institutionId,
+        to: application.studentEmail || application.parentEmail,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: 'ENROLLED',
+      });
+
       return {
         success: true,
         message: 'Admission approved and student enrolled.',
@@ -1114,6 +1133,15 @@ export class StudentsService {
           changedById: reviewerId,
           note: reason,
         },
+      });
+
+      void this.mail.notify({
+        institutionId,
+        to: application.studentEmail || application.parentEmail,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: 'REJECTED',
+        note: reason,
       });
 
       return {

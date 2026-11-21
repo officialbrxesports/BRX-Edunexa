@@ -10,6 +10,7 @@ import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApplicationMailService } from '../email/application-mail.service';
 import { validateDetails } from '../students/admission-profiles';
 import { ParentsService, type ChildLinkInput } from '../users/parents.service';
 import { TeachersService } from '../users/teachers.service';
@@ -68,6 +69,7 @@ export class StaffJoiningService {
     private readonly prisma: PrismaService,
     private readonly people: TeachersService,
     private readonly parents: ParentsService,
+    private readonly mail: ApplicationMailService,
   ) {}
 
   studentOptions(institutionId: string) {
@@ -292,12 +294,25 @@ export class StaffJoiningService {
     const action = String(body.action || '');
     const now = new Date();
 
-    const update = (data: Record<string, unknown>) =>
-      this.prisma.staff_applications.update({
+    const update = async (data: Record<string, unknown>) => {
+      const saved = await this.prisma.staff_applications.update({
         where: { id },
         data: { ...data, reviewedAt: now, reviewedById: userId, updatedAt: now } as never,
         select: { id: true, status: true },
       });
+
+      void this.mail.notify({
+        institutionId,
+        to: application.email,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: String(data.status ?? saved.status),
+        note: (data.rejectionReason ?? data.reviewNote ?? null) as string | null,
+        kind: 'joining',
+      });
+
+      return saved;
+    };
 
     const open = () => {
       if (!OPEN_STATUSES.includes(application.status)) {

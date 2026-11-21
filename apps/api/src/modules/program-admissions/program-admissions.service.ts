@@ -11,6 +11,7 @@ import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { ApplicationMailService } from '../email/application-mail.service';
 import { validateDetails } from '../students/admission-profiles';
 import { TeachersService } from '../users/teachers.service';
 import {
@@ -69,6 +70,7 @@ export class ProgramAdmissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly people: TeachersService,
+    private readonly mail: ApplicationMailService,
   ) {}
 
   /* Coaching and institutes only. Anything else is refused. */
@@ -383,12 +385,24 @@ export class ProgramAdmissionsService {
     const action = String(body.action || '');
     const now = new Date();
 
-    const update = (data: Record<string, unknown>) =>
-      this.prisma.program_applications.update({
+    const update = async (data: Record<string, unknown>) => {
+      const saved = await this.prisma.program_applications.update({
         where: { id },
         data: { ...data, reviewedAt: now, reviewedById: userId, updatedAt: now } as never,
         select: { id: true, status: true },
       });
+
+      void this.mail.notify({
+        institutionId,
+        to: application.studentEmail,
+        name: application.firstName,
+        number: application.applicationNumber,
+        status: String(data.status ?? saved.status),
+        note: (data.rejectionReason ?? data.reviewNote ?? null) as string | null,
+      });
+
+      return saved;
+    };
 
     const open = () => {
       if (!OPEN_STATUSES.includes(application.status)) {
