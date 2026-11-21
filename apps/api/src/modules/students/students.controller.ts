@@ -112,7 +112,7 @@ export class StudentsController {
   approveAdmission(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { sectionId?: string },
+    @Body() body: { sectionId?: string; createParent?: boolean },
   ) {
     return this.studentsService.approveAdmission(
       this.getInstitutionId(request),

@@ -355,6 +355,7 @@ export default function AdmissionManagement() {
   const [classes, setClasses] = useState<SchoolClass[]>([]);
 
   const [selected, setSelected] = useState<Admission | null>(null);
+  const [createParent, setCreateParent] = useState(false);
 
   const [documents, setDocuments] = useState<
     AdmissionDocument[]
@@ -1701,20 +1702,55 @@ export default function AdmissionManagement() {
           body: JSON.stringify({
             sectionId:
               sectionId || undefined,
+            createParent:
+              createParent && Boolean(selected.parentEmail),
           }),
         },
       );
 
       const data = await readResponse(response);
 
-      setMessage(
-        data.temporaryPassword
-          ? `Student enrolled successfully. Login email: ${
-              data.student?.email ||
-              selected.studentEmail
-            }. A temporary password was generated; share it securely with the student or guardian.`
+      type Creds = {
+        email?: string;
+        eduNexaId?: string;
+        temporaryPassword?: string;
+      };
+      const creds = data.credentials as Creds | undefined;
+      const parent = data.parent as
+        | {
+            created?: boolean;
+            reason?: string;
+            credentials?: Creds;
+          }
+        | null
+        | undefined;
+
+      const parts = [
+        creds?.temporaryPassword
+          ? `Student enrolled. Login: ${
+              creds.email || selected.studentEmail
+            } (EduNexa ID ${creds.eduNexaId ?? "-"}). Temporary password: ${
+              creds.temporaryPassword
+            }. Copy it now and share it securely, it is not shown again.`
           : "Admission approved and student enrolled successfully.",
-      );
+      ];
+
+      if (parent) {
+        parts.push(
+          parent.created && parent.credentials?.temporaryPassword
+            ? `Parent account created. Login: ${
+                parent.credentials.email ?? ""
+              } (EduNexa ID ${
+                parent.credentials.eduNexaId ?? "-"
+              }). Temporary password: ${
+                parent.credentials.temporaryPassword
+              }.`
+            : `Parent account: ${parent.reason ?? "not created."}`,
+        );
+      }
+
+      setMessage(parts.join(" "));
+      setCreateParent(false);
 
       setSelected(null);
       setDocuments([]);
@@ -3509,6 +3545,19 @@ export default function AdmissionManagement() {
                           ))}
                         </select>
                       </label>
+
+                      {selected.parentEmail && (
+                        <label className="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-600">
+                          <input
+                            type="checkbox"
+                            checked={createParent}
+                            onChange={(event) =>
+                              setCreateParent(event.target.checked)
+                            }
+                          />
+                          Also create a parent account ({selected.parentEmail})
+                        </label>
+                      )}
 
                       <button
                         type="button"

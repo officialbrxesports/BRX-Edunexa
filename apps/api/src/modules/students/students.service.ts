@@ -12,6 +12,7 @@ import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { ApplicationMailService } from '../email/application-mail.service';
+import { ParentsService } from '../users/parents.service';
 
 import {
   classLevelFromName,
@@ -76,7 +77,106 @@ export class StudentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mail: ApplicationMailService,
+    private readonly parents: ParentsService,
   ) {}
+
+  // -----------------------------------------
+  // OPTIONAL PARENT ACCOUNT AFTER ENROLLMENT
+  // -----------------------------------------
+
+  /**
+   * Never throws: the student is already enrolled by now, so a problem here
+   * is reported back as a reason instead of undoing the admission.
+   */
+  private async createParentFor(
+    institutionId: string,
+    application: {
+      parentEmail?: string | null;
+      guardianName?: string | null;
+      fatherName?: string | null;
+      motherName?: string | null;
+      guardianPhone?: string | null;
+    },
+    studentId: string,
+  ) {
+    const email = application.parentEmail?.trim().toLowerCase();
+
+    if (!email) {
+      return { created: false, reason: 'No parent email on the application.' };
+    }
+
+    const relation = application.guardianName
+      ? 'GUARDIAN'
+      : application.fatherName
+        ? 'FATHER'
+        : application.motherName
+          ? 'MOTHER'
+          : 'GUARDIAN';
+
+    const fullName = (
+      application.guardianName ||
+      application.fatherName ||
+      application.motherName ||
+      'Parent'
+    ).trim();
+    const [firstName, ...rest] = fullName.split(/\s+/);
+
+    try {
+      const made = await this.parents.create(institutionId, {
+        firstName,
+        lastName: rest.join(' ') || undefined,
+        email,
+        phone: application.guardianPhone ?? undefined,
+        children: [{ studentId, relation }],
+      });
+
+      return { created: true, linked: false, credentials: made.credentials };
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        const existing = await this.prisma.users.findFirst({
+          where: {
+            email: { equals: email, mode: 'insensitive' },
+            institutionId,
+            role: 'PARENT',
+            status: { not: 'DELETED' },
+          },
+          select: { id: true },
+        });
+
+        if (existing) {
+          await this.prisma.parent_students.createMany({
+            data: [
+              {
+                id: randomUUID(),
+                institutionId,
+                parentId: existing.id,
+                studentId,
+                relation,
+                updatedAt: new Date(),
+              },
+            ],
+            skipDuplicates: true,
+          });
+
+          return {
+            created: false,
+            linked: true,
+            reason: 'This parent already had an account. The child was linked to it.',
+          };
+        }
+
+        return { created: false, reason: 'This email is already used by another account.' };
+      }
+
+      return {
+        created: false,
+        reason:
+          error instanceof BadRequestException
+            ? error.message
+            : 'The parent account could not be created.',
+      };
+    }
+  }
 
   // -----------------------------------------
   // ROLE VALIDATION
@@ -725,7 +825,7 @@ export class StudentsService {
     reviewerId: string,
     role: string,
     id: string,
-    input: { sectionId?: string },
+    input: { sectionId?: string; createParent?: boolean },
   ) {
     this.checkRole(role);
 
@@ -1019,9 +1119,18 @@ export class StudentsService {
         status: 'ENROLLED',
       });
 
+      const parent = input.createParent
+        ? await this.createParentFor(
+            institutionId,
+            application,
+            (result.student as { id: string }).id,
+          )
+        : null;
+
       return {
         success: true,
         message: 'Admission approved and student enrolled.',
+        parent,
         student: result.student,
         application: result.application,
         credentials: {
