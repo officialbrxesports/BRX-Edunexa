@@ -15,6 +15,7 @@ import {
   Users,
   UsersRound,
   type LucideIcon,
+  FileText as NotesIcon,
 } from "lucide-react";
 import { API_URL, apiRequest } from "../../lib/api";
 import type { OtherGroup, OtherNotice } from "./OtherManagement";
@@ -181,6 +182,14 @@ export default function OtherDashboard() {
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+            <Link
+              href="/editor"
+              title="Notes (Word-style editor)"
+              className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20"
+            >
+              <NotesIcon size={14} />
+              <span className="hidden sm:inline">Notes</span>
+            </Link>
             <Link
               href="/dashboard/other/add"
               className="flex h-8 items-center gap-1.5 bg-amber-400 px-2.5 text-xs font-bold text-white hover:bg-amber-500"

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   Building2,
+  FileText,
   GraduationCap,
   KeyRound,
   LogOut,
@@ -292,6 +293,16 @@ export default function RoleHome() {
           </Link>
 
           <div className="flex items-center gap-2">
+            {me?.role === "TEACHER" && (
+              <Link
+                href="/editor"
+                title="Notes (Word-style editor)"
+                className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20"
+              >
+                <FileText size={14} />
+                <span className="hidden sm:inline">Notes</span>
+              </Link>
+            )}
             <Link
               href="/change-password"
               className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20"
@@ -497,19 +508,6 @@ export default function RoleHome() {
                   </div>
                 )}
               </div>
-            )}
-
-            {me.role === "TEACHER" && (
-              <Card title="Notes">
-                <div className="flex flex-wrap gap-2 p-4">
-                  <Link
-                    href="/dashboard/teacher/notes"
-                    className="h-9 bg-blue-800 px-4 text-xs font-semibold leading-9 text-white hover:bg-blue-900"
-                  >
-                    Open notes
-                  </Link>
-                </div>
-              </Card>
             )}
 
             {me.role === "TEACHER" &&

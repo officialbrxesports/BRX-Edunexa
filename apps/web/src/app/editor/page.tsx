@@ -21,18 +21,22 @@ import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
+import { Mark, mergeAttributes } from "@tiptap/core";
 import AIWritingPanel from "@/modules/ai-writing/components/AIWritingPanel";
 import {
   AlignCenter,
   AlignJustify,
   AlignLeft,
   AlignRight,
+  ArrowLeft,
   Bold,
   Check,
   CloudUpload,
   Columns3,
+  Clipboard,
   Copy,
   Download,
+  Scissors,
   Sparkles,
   FilePlus,
   FileText,
@@ -125,6 +129,76 @@ function escapeHtml(value: string) {
 function safeFilename(value: string) {
   return value.replace(/[\\/:*?"<>|]/g, "_").trim() || "Document";
 }
+
+const Subscript = Mark.create({
+  name: "subscript",
+  excludes: "superscript",
+  parseHTML() {
+    return [{ tag: "sub" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["sub", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+const Superscript = Mark.create({
+  name: "superscript",
+  excludes: "subscript",
+  parseHTML() {
+    return [{ tag: "sup" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["sup", mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+const DOC_TEMPLATES: { name: string; title: string; html: string }[] = [
+  {
+    name: "Notice",
+    title: "Notice",
+    html:
+      "<h1>Notice</h1><p><strong>Date:</strong> [date]</p><p><strong>To:</strong> [students / parents / staff]</p>" +
+      "<p>This is to inform everyone that [details].</p><p>For any questions, please contact the office.</p>",
+  },
+  {
+    name: "Homework",
+    title: "Homework",
+    html:
+      "<h1>Homework</h1><p><strong>Class / Batch:</strong> [class]</p><p><strong>Subject:</strong> [subject]</p>" +
+      "<p><strong>Submit by:</strong> [date]</p><ol><li>[Question or task 1]</li><li>[Question or task 2]</li></ol>",
+  },
+  {
+    name: "Lesson plan",
+    title: "Lesson plan",
+    html:
+      "<h1>Lesson plan</h1><p><strong>Topic:</strong> [topic]</p><p><strong>Class:</strong> [class] &nbsp; <strong>Period:</strong> [period]</p>" +
+      "<h2>Objectives</h2><ul><li>[objective]</li></ul><h2>Activities</h2><ul><li>[activity]</li></ul>" +
+      "<h2>Assessment</h2><p>[how learning will be checked]</p>",
+  },
+  {
+    name: "Meeting minutes",
+    title: "Meeting minutes",
+    html:
+      "<h1>Meeting minutes</h1><p><strong>Date:</strong> [date] &nbsp; <strong>Time:</strong> [time]</p>" +
+      "<p><strong>Present:</strong> [names]</p><h2>Points discussed</h2><ol><li>[point]</li></ol>" +
+      "<h2>Decisions and owners</h2><ul><li>[decision] - [owner]</li></ul>",
+  },
+  {
+    name: "Letter",
+    title: "Letter",
+    html:
+      "<p>[Your name]<br>[Address]</p><p>[Date]</p><p>To,<br>[Recipient name]<br>[Recipient address]</p>" +
+      "<p><strong>Subject: [subject]</strong></p><p>Dear [name],</p><p>[Body of the letter]</p><p>Yours sincerely,<br>[Your name]</p>",
+  },
+  {
+    name: "Leave application",
+    title: "Leave application",
+    html:
+      "<p>Date: [date]</p><p>To,<br>The Principal / Head,<br>[Institution name]</p><p><strong>Subject: Application for leave</strong></p>" +
+      "<p>Respected Sir / Madam,</p><p>I request leave from [start date] to [end date] because [reason]. Kindly grant me leave for this period.</p>" +
+      "<p>Thank you.</p><p>Yours faithfully,<br>[Name], [Class / Designation]</p>",
+  },
+];
 
 function RibbonButton({
   label,
@@ -224,6 +298,7 @@ export default function EditorPage() {
   const [margin, setMargin] = useState("normal");
   const [lineSpacing, setLineSpacing] = useState("1.5");
   const [showNavigation, setShowNavigation] = useState(false);
+  const [autoSave, setAutoSave] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [replaceText, setReplaceText] = useState("");
   const [wordStats, setWordStats] = useState({ words: 0, characters: 0 });
@@ -264,6 +339,8 @@ export default function EditorPage() {
       TableRow,
       TableHeader,
       TableCell,
+      Subscript,
+      Superscript,
     ],
     [],
   );
@@ -346,7 +423,7 @@ export default function EditorPage() {
     }
   }, [editor, notify]);
 
-  const saveToCloud = useCallback(async () => {
+  const saveToCloud = useCallback(async (silent = false) => {
     if (!editor || saving) return;
 
     setSaving(true);
@@ -390,14 +467,53 @@ export default function EditorPage() {
         ...previous.filter((item) => item.id !== saved.id),
       ]);
 
-      notify("Saved to BRX Cloud.");
+      if (!silent) notify("Saved to BRX Cloud.");
     } catch (error) {
       console.error("BRX cloud save error:", error);
-      notify("Cloud save failed. Check login, API and database.");
+      notify(
+        silent
+          ? "Auto-save failed. Use Cloud Save to try again."
+          : "Cloud save failed. Check login, API and database.",
+      );
     } finally {
       setSaving(false);
     }
   }, [editor, notify, saving]);
+
+  // Auto-save a cloud document 3 seconds after you stop typing, and Ctrl+S.
+  const saveRef = useRef(saveToCloud);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    saveRef.current = saveToCloud;
+  }, [saveToCloud]);
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const onUpdate = () => {
+      if (!autoSave || !documentIdRef.current) return;
+
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      autosaveTimer.current = setTimeout(() => void saveRef.current(true), 3000);
+    };
+
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void saveRef.current();
+      }
+    };
+
+    editor.on("update", onUpdate);
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      editor.off("update", onUpdate);
+      window.removeEventListener("keydown", onKey);
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [editor, autoSave]);
 
   const loadCloudDocuments = useCallback(async () => {
     setLoading(true);
@@ -657,6 +773,61 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
     notify("Text file downloaded.");
   }
 
+  function downloadWord() {
+    if (!editor) return;
+
+    const safeTitle = title.trim() || "Document";
+    const html =
+      `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(safeTitle)}</title>` +
+      "<style>body{font-family:Calibri,Arial,sans-serif;font-size:12pt;line-height:1.5}" +
+      "table{border-collapse:collapse;width:100%}td,th{border:1px solid #777;padding:6px}" +
+      `</style></head><body>${editor.getHTML()}</body></html>`;
+
+    const url = URL.createObjectURL(
+      new Blob(["\ufeff", html], { type: "application/msword" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${safeFilename(safeTitle)}.doc`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+
+    notify("Word file downloaded.");
+  }
+
+  function applyTemplate(name: string) {
+    const template = DOC_TEMPLATES.find((item) => item.name === name);
+
+    if (!template || !editor) return;
+
+    if (
+      editor.getText().trim() &&
+      !window.confirm("Replace the current document with this template? Save your work first.")
+    ) {
+      return;
+    }
+
+    documentIdRef.current = null;
+    setDocumentId(null);
+    titleRef.current = template.title;
+    setTitle(template.title);
+    editor.commands.setContent(template.html);
+    notify(`${template.name} template opened.`);
+  }
+
+  function pasteFromClipboard() {
+    navigator.clipboard
+      .readText()
+      .then((text) => {
+        editor
+          ?.chain()
+          .focus()
+          .insertContent(escapeHtml(text).replace(/\r?\n/g, "<br>"))
+          .run();
+      })
+      .catch(() => notify("Paste blocked by the browser. Use Ctrl+V."));
+  }
+
   function applyFontSize(value: string) {
     setFontSize(value);
     if (!editor) return;
@@ -792,11 +963,18 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
       <header className="sticky top-0 z-40 bg-[#174ea6] text-white shadow">
         <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
+            <a
+              href="/dashboard"
+              className="top-action"
+              title="Back to dashboard"
+            >
+              <ArrowLeft size={16} /> Dashboard
+            </a>
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15">
               <FileText size={23} />
             </div>
             <div>
-              <h1 className="text-lg font-bold">BRX AI Editor</h1>
+              <h1 className="text-lg font-bold">BRX Notes</h1>
               <p className="text-[11px] text-blue-100">
                 EduNexa Document Workspace
               </p>
@@ -824,7 +1002,7 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
 
             <button
               className="top-action"
-              onClick={() => void saveToCloud()}
+              onClick={() => void saveToCloud(false)}
               disabled={saving}
               type="button"
             >
@@ -860,6 +1038,16 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
             >
               <FolderOpen size={16} /> Documents
             </button>
+
+            <label className="flex items-center gap-1.5 text-xs text-blue-50">
+              <input
+                id="notes-autosave"
+                type="checkbox"
+                checked={autoSave}
+                onChange={(event) => setAutoSave(event.target.checked)}
+              />
+              Auto-save
+            </label>
           </div>
         </div>
 
@@ -908,6 +1096,17 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                   <Copy size={17} />
                 </RibbonButton>
                 <RibbonButton
+                  label="Cut selected text"
+                  onClick={() => {
+                    document.execCommand("cut");
+                  }}
+                >
+                  <Scissors size={17} />
+                </RibbonButton>
+                <RibbonButton label="Paste text" onClick={pasteFromClipboard}>
+                  <Clipboard size={17} />
+                </RibbonButton>
+                <RibbonButton
                   label="Undo"
                   onClick={() => editor?.chain().focus().undo().run()}
                 >
@@ -919,6 +1118,24 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 >
                   <Redo2 size={17} />
                 </RibbonButton>
+              </RibbonGroup>
+
+              <RibbonGroup label="Templates">
+                <label className="flex flex-col gap-1 text-[10px] text-slate-500">
+                  <span>New from template</span>
+                  <select
+                    value=""
+                    onChange={(event) => applyTemplate(event.target.value)}
+                    className="h-8 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-500"
+                  >
+                    <option value="">Choose...</option>
+                    {DOC_TEMPLATES.map((item) => (
+                      <option key={item.name} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </RibbonGroup>
 
               <RibbonGroup label="Font">
@@ -1107,6 +1324,36 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                   + Column
                 </RibbonButton>
                 <RibbonButton
+                  label="Delete row"
+                  onClick={() => editor?.chain().focus().deleteRow().run()}
+                >
+                  - Row
+                </RibbonButton>
+                <RibbonButton
+                  label="Delete column"
+                  onClick={() => editor?.chain().focus().deleteColumn().run()}
+                >
+                  - Column
+                </RibbonButton>
+                <RibbonButton
+                  label="Merge selected cells"
+                  onClick={() => editor?.chain().focus().mergeCells().run()}
+                >
+                  Merge
+                </RibbonButton>
+                <RibbonButton
+                  label="Split cell"
+                  onClick={() => editor?.chain().focus().splitCell().run()}
+                >
+                  Split
+                </RibbonButton>
+                <RibbonButton
+                  label="Toggle header row"
+                  onClick={() => editor?.chain().focus().toggleHeaderRow().run()}
+                >
+                  Header
+                </RibbonButton>
+                <RibbonButton
                   label="Delete table"
                   onClick={() => editor?.chain().focus().deleteTable().run()}
                 >
@@ -1198,14 +1445,14 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
               </RibbonGroup>
               <RibbonGroup label="Text effects">
                 <RibbonButton
-                  label="Subscript is not enabled"
-                  onClick={() => notify("Subscript requires an additional editor extension.")}
+                  label="Subscript"
+                  onClick={() => editor?.chain().focus().toggleMark("subscript").run()}
                 >
                   x₂
                 </RibbonButton>
                 <RibbonButton
-                  label="Superscript is not enabled"
-                  onClick={() => notify("Superscript requires an additional editor extension.")}
+                  label="Superscript"
+                  onClick={() => editor?.chain().focus().toggleMark("superscript").run()}
                 >
                   x²
                 </RibbonButton>
@@ -1314,7 +1561,7 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
               <RibbonGroup label="Document">
                 <RibbonButton
                   label="Save a review copy"
-                  onClick={() => void saveToCloud()}
+                  onClick={() => void saveToCloud(false)}
                 >
                   <CloudUpload size={18} /> Save review
                 </RibbonButton>
@@ -1589,6 +1836,14 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           onClick={downloadHtml}
         >
           <Download size={18} /> HTML
+        </button>
+        <button
+          type="button"
+          className="floating-action"
+          title="Download Word file"
+          onClick={downloadWord}
+        >
+          <Download size={18} /> DOC
         </button>
         <button
           type="button"

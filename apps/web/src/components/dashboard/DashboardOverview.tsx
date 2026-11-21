@@ -21,6 +21,7 @@ import {
   UserCheck,
   Users,
   type LucideIcon,
+  FileText as NotesIcon,
 } from "lucide-react";
 
 type Summary = {
@@ -207,6 +208,15 @@ export default function DashboardOverview({ type }: { type: string }) {
                   <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
                   <span className="hidden sm:inline">Refresh</span>
                 </button>
+
+<Link
+                  href="/editor"
+                  title="Notes (Word-style editor)"
+                  className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold text-white hover:bg-white/20"
+                >
+                  <NotesIcon size={14} />
+                  <span className="hidden sm:inline">Notes</span>
+                </Link>
 
                 <Link
                   href="/dashboard/add"
