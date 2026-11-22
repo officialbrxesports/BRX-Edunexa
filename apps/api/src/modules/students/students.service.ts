@@ -278,6 +278,100 @@ export class StudentsService {
     }));
   }
 
+  // Enrolled students of the institution, with class, section and parents.
+  async listEnrolled(
+    institutionId: string,
+    role: string,
+    query: { classId?: string; sectionId?: string; q?: string },
+  ) {
+    this.checkRole(role);
+
+    const text = query.q?.trim();
+    const enrollment = {
+      ...(query.classId ? { classId: query.classId } : {}),
+      ...(query.sectionId ? { sectionId: query.sectionId } : {}),
+    };
+
+    const rows = await this.prisma.users.findMany({
+      where: {
+        institutionId,
+        role: 'STUDENT' as const,
+        ...(Object.keys(enrollment).length
+          ? { student_enrollments: { some: enrollment } }
+          : {}),
+        ...(text
+          ? {
+              OR: [
+                { firstName: { contains: text, mode: 'insensitive' as const } },
+                { lastName: { contains: text, mode: 'insensitive' as const } },
+                { email: { contains: text, mode: 'insensitive' as const } },
+                { brxUid: { contains: text, mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      take: 500,
+      select: {
+        id: true,
+        brxUid: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        status: true,
+        createdAt: true,
+        student_enrollments: {
+          take: 1,
+          select: {
+            classes: { select: { id: true, name: true } },
+            sections: { select: { id: true, name: true } },
+          },
+        },
+        child_links: {
+          select: {
+            relation: true,
+            isPrimary: true,
+            parent: {
+              select: {
+                firstName: true,
+                lastName: true,
+                phone: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return rows.map((row) => {
+      const current = row.student_enrollments[0];
+
+      return {
+        id: row.id,
+        brxUid: row.brxUid,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        email: row.email,
+        phone: row.phone,
+        status: row.status,
+        joinedAt: row.createdAt,
+        class: current?.classes ?? null,
+        section: current?.sections ?? null,
+        parents: row.child_links.map((link) => ({
+          relation: link.relation,
+          isPrimary: link.isPrimary,
+          name: [link.parent.firstName, link.parent.lastName]
+            .filter(Boolean)
+            .join(' '),
+          phone: link.parent.phone,
+          email: link.parent.email,
+        })),
+      };
+    });
+  }
+
   // Classes for the public apply page (no sections, no seat counts).
   async publicClassList(classes: { id: string; name: string }[]) {
     return classes.map((classItem) => ({

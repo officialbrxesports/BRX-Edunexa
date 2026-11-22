@@ -52,6 +52,20 @@ export class StudentsController {
     );
   }
 
+  @Get('enrolled')
+  listEnrolled(
+    @Req() request: AuthenticatedRequest,
+    @Query('classId') classId?: string,
+    @Query('sectionId') sectionId?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.studentsService.listEnrolled(
+      this.getInstitutionId(request),
+      request.user!.role,
+      { classId, sectionId, q },
+    );
+  }
+
   @Get('admissions/form-profiles')
   getFormProfiles() {
     return { profiles: PROFILES };

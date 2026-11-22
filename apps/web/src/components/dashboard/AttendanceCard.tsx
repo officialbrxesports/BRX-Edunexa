@@ -45,7 +45,7 @@ export default function AttendanceCard() {
         <p className="p-4 text-sm text-slate-500">Loading...</p>
       ) : marked === 0 ? (
         <p className="p-4 text-sm text-slate-500">
-          Not marked yet today. Use Add &gt; Attendance.
+          Not marked yet today. Open the Attendance section to mark it.
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-4">

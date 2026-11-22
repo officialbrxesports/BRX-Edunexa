@@ -33,6 +33,8 @@ export class DashboardService {
       enrolledStudents,
       teachers,
       staff,
+      guards,
+      parents,
       admissionGroups,
       recentAdmissions,
     ] = await Promise.all([
@@ -47,6 +49,12 @@ export class DashboardService {
       }),
       this.prisma.users.count({
         where: { institutionId, role: 'STAFF', status: 'ACTIVE' },
+      }),
+      this.prisma.users.count({
+        where: { institutionId, role: 'GUARD', status: 'ACTIVE' },
+      }),
+      this.prisma.users.count({
+        where: { institutionId, role: 'PARENT', status: 'ACTIVE' },
       }),
       this.prisma.admissionApplication.groupBy({
         by: ['status'],
@@ -80,7 +88,16 @@ export class DashboardService {
         type: institution.type,
         status: institution.status,
       },
-      counts: { classes, sections, subjects, enrolledStudents, teachers, staff },
+      counts: {
+        classes,
+        sections,
+        subjects,
+        enrolledStudents,
+        teachers,
+        staff,
+        guards,
+        parents,
+      },
       admissions,
       recentAdmissions,
     };

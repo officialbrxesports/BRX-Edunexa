@@ -6,10 +6,23 @@ import { useRouter } from "next/navigation";
 import { API_URL } from "../../lib/api";
 import AttendanceCard from "./AttendanceCard";
 import ClassesView from "./ClassesView";
+import SchoolStudents from "./SchoolStudents";
+import TeacherManagement from "./TeacherManagement";
+import ParentManagement from "./ParentManagement";
+import AttendanceManagement from "./AttendanceManagement";
+import AdmissionManagement from "./AdmissionManagement";
+import StaffJoiningManagement from "./StaffJoiningManagement";
+import SubjectManagement from "./SubjectManagement";
 import {
   BookOpen,
+  BriefcaseBusiness,
   Building2,
+  CalendarCheck,
+  ClipboardList,
   GraduationCap,
+  Layers3,
+  UserPlus,
+  UserRound,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -33,6 +46,8 @@ type Summary = {
     enrolledStudents: number;
     teachers: number;
     staff: number;
+    guards: number;
+    parents: number;
   };
   admissions: Record<string, number>;
   recentAdmissions: {
@@ -49,7 +64,16 @@ type NavItem = { label: string; icon: LucideIcon; href?: string };
 
 const NAV: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard },
+  { label: "Students", icon: GraduationCap },
   { label: "Classes & Sections", icon: BookOpen },
+  { label: "Subjects", icon: Layers3 },
+  { label: "Teachers", icon: Users },
+  { label: "Staff", icon: BriefcaseBusiness },
+  { label: "Guards", icon: ShieldCheck },
+  { label: "Parents", icon: UserRound },
+  { label: "Attendance", icon: CalendarCheck },
+  { label: "Admissions", icon: ClipboardList },
+  { label: "Joining links", icon: UserPlus },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -62,21 +86,33 @@ const STATUS_LABELS: Record<string, string> = {
   ENROLLED: "Enrolled",
 };
 
-const COMING_SOON = ["Exams & results", "Fees", "Notices"];
+const COMING_SOON = ["Exams & rank", "Notices", "Fees"];
 
 function StatCard({
   title,
   value,
   icon: Icon,
   tint,
+  onClick,
 }: {
   title: string;
   value: number | string;
   icon: LucideIcon;
   tint: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="border border-slate-200 bg-white p-4 shadow-sm">
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (onClick && event.key === "Enter") onClick();
+      }}
+      className={`border border-slate-200 bg-white p-4 shadow-sm ${
+        onClick ? "cursor-pointer transition hover:border-blue-300 hover:shadow" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold text-slate-500">{title}</p>
@@ -348,6 +384,24 @@ export default function DashboardOverview({ type }: { type: string }) {
               </div>
             ) : active === "Classes & Sections" ? (
               <ClassesView refreshSignal={refreshSignal} />
+            ) : active === "Students" ? (
+              <SchoolStudents key={refreshSignal} />
+            ) : active === "Subjects" ? (
+              <SubjectManagement />
+            ) : active === "Teachers" ? (
+              <TeacherManagement key="teacher" kind="teacher" />
+            ) : active === "Staff" ? (
+              <TeacherManagement key="staff" kind="staff" />
+            ) : active === "Guards" ? (
+              <TeacherManagement key="guard" kind="guard" />
+            ) : active === "Parents" ? (
+              <ParentManagement />
+            ) : active === "Attendance" ? (
+              <AttendanceManagement />
+            ) : active === "Admissions" ? (
+              <AdmissionManagement />
+            ) : active === "Joining links" ? (
+              <StaffJoiningManagement />
             ) : (
               <>
                 {error && (
@@ -366,27 +420,62 @@ export default function DashboardOverview({ type }: { type: string }) {
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <StatCard
                     title="Enrolled students"
+                    onClick={() => setActive("Students")}
                     value={counts ? counts.enrolledStudents : "-"}
                     icon={GraduationCap}
                     tint="bg-blue-50 text-blue-700"
                   />
                   <StatCard
                     title="Teachers"
+                    onClick={() => setActive("Teachers")}
                     value={counts ? counts.teachers : "-"}
                     icon={Users}
                     tint="bg-violet-50 text-violet-700"
                   />
                   <StatCard
                     title="Classes / sections"
+                    onClick={() => setActive("Classes & Sections")}
                     value={counts ? `${counts.classes} / ${counts.sections}` : "-"}
                     icon={BookOpen}
                     tint="bg-emerald-50 text-emerald-700"
                   />
                   <StatCard
                     title="Admissions to review"
+                    onClick={() => setActive("Admissions")}
                     value={summary ? pendingAdmissions : "-"}
                     icon={UserCheck}
                     tint="bg-amber-50 text-amber-700"
+                  />
+                </div>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <StatCard
+                    title="Staff"
+                    onClick={() => setActive("Staff")}
+                    value={counts ? counts.staff : "-"}
+                    icon={BriefcaseBusiness}
+                    tint="bg-sky-50 text-sky-700"
+                  />
+                  <StatCard
+                    title="Security guards"
+                    onClick={() => setActive("Guards")}
+                    value={counts ? counts.guards : "-"}
+                    icon={ShieldCheck}
+                    tint="bg-rose-50 text-rose-700"
+                  />
+                  <StatCard
+                    title="Parents"
+                    onClick={() => setActive("Parents")}
+                    value={counts ? counts.parents : "-"}
+                    icon={UserRound}
+                    tint="bg-teal-50 text-teal-700"
+                  />
+                  <StatCard
+                    title="Subjects"
+                    onClick={() => setActive("Subjects")}
+                    value={counts ? counts.subjects : "-"}
+                    icon={Layers3}
+                    tint="bg-indigo-50 text-indigo-700"
                   />
                 </div>
 
