@@ -17,6 +17,7 @@ import { InstituteModule } from './modules/institute/institute.module';
 import { OtherModule } from './modules/other/other.module';
 import { EmailModule } from './modules/email/email.module';
 import { ExamsModule } from './modules/exams/exams.module';
+import { NoticesModule } from './modules/notices/notices.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ExamsModule } from './modules/exams/exams.module';
     InstituteModule,
     OtherModule,
     ExamsModule,
+    NoticesModule,
   ],
 })
 export class AppModule {}

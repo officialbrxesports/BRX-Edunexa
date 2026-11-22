@@ -8,6 +8,7 @@ import AttendanceCard from "./AttendanceCard";
 import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
+import SchoolNotices from "./SchoolNotices";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
 import SchoolAttendance from "./SchoolAttendance";
@@ -19,6 +20,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CalendarCheck,
+  Bell,
   ClipboardList,
   GraduationCap,
   Layers3,
@@ -75,6 +77,7 @@ const NAV: NavItem[] = [
   { label: "Parents", icon: UserRound },
   { label: "Attendance", icon: CalendarCheck },
   { label: "Exams & Rank", icon: Trophy },
+  { label: "Notices", icon: Bell },
   { label: "Admissions", icon: ClipboardList },
   { label: "Joining links", icon: UserPlus },
 ];
@@ -89,7 +92,7 @@ const STATUS_LABELS: Record<string, string> = {
   ENROLLED: "Enrolled",
 };
 
-const COMING_SOON = ["Notices", "Fees"];
+const COMING_SOON = ["Fees"];
 
 function StatCard({
   title,
@@ -401,6 +404,8 @@ export default function DashboardOverview({ type }: { type: string }) {
               <ParentManagement />
             ) : active === "Attendance" ? (
               <SchoolAttendance />
+            ) : active === "Notices" ? (
+              <SchoolNotices />
             ) : active === "Exams & Rank" ? (
               <SchoolExams />
             ) : active === "Admissions" ? (
