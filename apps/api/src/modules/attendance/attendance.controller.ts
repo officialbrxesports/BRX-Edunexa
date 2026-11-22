@@ -62,6 +62,26 @@ export class AttendanceController {
     );
   }
 
+  @Get('overview')
+  overview(@Req() request: AuthenticatedRequest, @Query('date') date?: string) {
+    return this.attendance.overview(this.institutionId(request), date);
+  }
+
+  @Get('trend')
+  trend(@Req() request: AuthenticatedRequest, @Query('days') days?: string) {
+    return this.attendance.trend(this.institutionId(request), days);
+  }
+
+  @Get('absentees')
+  absentees(@Req() request: AuthenticatedRequest, @Query('date') date?: string) {
+    return this.attendance.absentees(this.institutionId(request), date);
+  }
+
+  @Get('low')
+  low(@Req() request: AuthenticatedRequest, @Query('below') below?: string) {
+    return this.attendance.lowAttendance(this.institutionId(request), below);
+  }
+
   @Get('summary')
   summary(@Req() request: AuthenticatedRequest, @Query('date') date?: string) {
     return this.attendance.summary(this.institutionId(request), date);

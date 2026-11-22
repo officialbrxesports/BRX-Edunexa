@@ -10,7 +10,7 @@ import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
-import AttendanceManagement from "./AttendanceManagement";
+import SchoolAttendance from "./SchoolAttendance";
 import AdmissionManagement from "./AdmissionManagement";
 import StaffJoiningManagement from "./StaffJoiningManagement";
 import SubjectManagement from "./SubjectManagement";
@@ -400,7 +400,7 @@ export default function DashboardOverview({ type }: { type: string }) {
             ) : active === "Parents" ? (
               <ParentManagement />
             ) : active === "Attendance" ? (
-              <AttendanceManagement />
+              <SchoolAttendance />
             ) : active === "Exams & Rank" ? (
               <SchoolExams />
             ) : active === "Admissions" ? (
