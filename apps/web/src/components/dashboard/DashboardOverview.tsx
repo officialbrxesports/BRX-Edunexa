@@ -7,6 +7,7 @@ import { API_URL } from "../../lib/api";
 import AttendanceCard from "./AttendanceCard";
 import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
+import SchoolExams from "./SchoolExams";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
 import AttendanceManagement from "./AttendanceManagement";
@@ -21,6 +22,7 @@ import {
   ClipboardList,
   GraduationCap,
   Layers3,
+  Trophy,
   UserPlus,
   UserRound,
   LayoutDashboard,
@@ -72,6 +74,7 @@ const NAV: NavItem[] = [
   { label: "Guards", icon: ShieldCheck },
   { label: "Parents", icon: UserRound },
   { label: "Attendance", icon: CalendarCheck },
+  { label: "Exams & Rank", icon: Trophy },
   { label: "Admissions", icon: ClipboardList },
   { label: "Joining links", icon: UserPlus },
 ];
@@ -86,7 +89,7 @@ const STATUS_LABELS: Record<string, string> = {
   ENROLLED: "Enrolled",
 };
 
-const COMING_SOON = ["Exams & rank", "Notices", "Fees"];
+const COMING_SOON = ["Notices", "Fees"];
 
 function StatCard({
   title,
@@ -398,6 +401,8 @@ export default function DashboardOverview({ type }: { type: string }) {
               <ParentManagement />
             ) : active === "Attendance" ? (
               <AttendanceManagement />
+            ) : active === "Exams & Rank" ? (
+              <SchoolExams />
             ) : active === "Admissions" ? (
               <AdmissionManagement />
             ) : active === "Joining links" ? (

@@ -16,6 +16,7 @@ import { ProgramAdmissionsModule } from './modules/program-admissions/program-ad
 import { InstituteModule } from './modules/institute/institute.module';
 import { OtherModule } from './modules/other/other.module';
 import { EmailModule } from './modules/email/email.module';
+import { ExamsModule } from './modules/exams/exams.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EmailModule } from './modules/email/email.module';
     ProgramAdmissionsModule,
     InstituteModule,
     OtherModule,
+    ExamsModule,
   ],
 })
 export class AppModule {}
