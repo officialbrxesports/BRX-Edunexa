@@ -907,7 +907,14 @@ async function transformImage(
     : canvas.toDataURL("image/jpeg", 0.9);
 }
 
-function ImageView({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
+function ImageView({
+  node,
+  updateAttributes,
+  selected,
+  editor,
+  deleteNode,
+  getPos,
+}: NodeViewProps) {
   const imgRef = useRef<HTMLImageElement>(null);
   const [live, setLive] = useState<{ w: number; h: number | null } | null>(null);
   const attrs = node.attrs as ImageAttrs;
@@ -968,6 +975,145 @@ function ImageView({ node, updateAttributes, selected, editor, deleteNode }: Nod
     window.addEventListener("pointerup", up);
   }
 
+  function startMove(event: React.PointerEvent) {
+    if (event.button !== 0 || !editor.isEditable) return;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startPos = getPos();
+
+    if (typeof startPos !== "number") return;
+
+    editor.chain().setNodeSelection(startPos).run();
+
+    let ghost: HTMLElement | null = null;
+    let line: HTMLElement | null = null;
+    let label: HTMLElement | null = null;
+    let target: number | null = null;
+    let mode = attrs.layout;
+    let moving = false;
+
+    const place = (clientX: number, clientY: number) => {
+      const rect = (editor.view.dom as HTMLElement).getBoundingClientRect();
+      const relative = (clientX - rect.left) / Math.max(1, rect.width);
+
+      if (relative < 0.33) mode = "float-left";
+      else if (relative > 0.67) mode = "float-right";
+      else mode = attrs.layout.startsWith("float") ? "block-center" : attrs.layout;
+
+      const found = editor.view.posAtCoords({ left: clientX, top: clientY });
+
+      target = null;
+
+      if (found) {
+        const $pos = editor.state.doc.resolve(found.pos);
+
+        if ($pos.parent.inlineContent) target = found.pos;
+      }
+
+      if (ghost) {
+        ghost.style.left = `${clientX + 10}px`;
+        ghost.style.top = `${clientY + 10}px`;
+      }
+
+      if (label) {
+        label.textContent =
+          mode === "float-left"
+            ? "Left: text wraps on the right"
+            : mode === "float-right"
+              ? "Right: text wraps on the left"
+              : mode === "block-center"
+                ? "Center: text above and below"
+                : "In the text line";
+        label.style.left = `${clientX + 10}px`;
+        label.style.top = `${clientY + 10 + (ghost?.offsetHeight ?? 0)}px`;
+      }
+
+      if (line) {
+        if (target !== null) {
+          const caret = editor.view.coordsAtPos(target);
+
+          line.style.display = "block";
+          line.style.left = `${caret.left}px`;
+          line.style.top = `${caret.top}px`;
+          line.style.height = `${Math.max(14, caret.bottom - caret.top)}px`;
+        } else {
+          line.style.display = "none";
+        }
+      }
+    };
+
+    const move = (moveEvent: PointerEvent) => {
+      if (!moving) {
+        if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) < 6) return;
+
+        moving = true;
+
+        const element = imgRef.current;
+
+        ghost = document.createElement("img");
+        ghost.setAttribute("src", attrs.src);
+        ghost.style.cssText =
+          "position:fixed;z-index:100;pointer-events:none;opacity:.65;max-width:160px;max-height:120px;border:2px solid #2b579a;background:#fff";
+        label = document.createElement("div");
+        label.style.cssText =
+          "position:fixed;z-index:100;pointer-events:none;background:#2b579a;color:#fff;font:11px sans-serif;padding:2px 6px;border-radius:3px";
+        line = document.createElement("div");
+        line.style.cssText =
+          "position:fixed;z-index:100;pointer-events:none;width:2px;background:#2b579a;display:none";
+        document.body.append(ghost, label, line);
+
+        if (element) element.style.opacity = "0.4";
+      }
+
+      place(moveEvent.clientX, moveEvent.clientY);
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      ghost?.remove();
+      label?.remove();
+      line?.remove();
+
+      if (imgRef.current) imgRef.current.style.opacity = "";
+
+      if (!moving || target === null) return;
+
+      const from = getPos();
+
+      if (typeof from !== "number") return;
+
+      const { state } = editor;
+      const size = node.nodeSize;
+      const dropAt = target;
+
+      if (dropAt >= from && dropAt <= from + size) {
+        if (mode !== attrs.layout) updateAttributes({ layout: mode });
+        return;
+      }
+
+      try {
+        const transaction = state.tr.delete(from, from + size);
+        const mapped = transaction.mapping.map(dropAt);
+
+        if (!transaction.doc.resolve(mapped).parent.inlineContent) return;
+
+        transaction.insert(
+          mapped,
+          node.type.create({ ...node.attrs, layout: mode }),
+        );
+        editor.view.dispatch(transaction.scrollIntoView());
+        editor.chain().setNodeSelection(mapped).run();
+      } catch {
+        // the drop spot is not valid for a picture
+      }
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
   const handles: [string, CSSProperties][] = [
     ["nw", { left: -6, top: -6, cursor: "nwse-resize" }],
     ["ne", { right: -6, top: -6, cursor: "nesw-resize" }],
@@ -991,7 +1137,9 @@ function ImageView({ node, updateAttributes, selected, editor, deleteNode }: Nod
         alt={attrs.alt ?? ""}
         title={attrs.title ?? undefined}
         draggable={false}
-        style={imgStyle}
+        style={{ ...imgStyle, cursor: editor.isEditable ? "move" : "default" }}
+        onMouseDown={(event) => event.preventDefault()}
+        onPointerDown={startMove}
       />
       {selected && editor.isEditable && (
         <>
@@ -1137,8 +1285,18 @@ const ResizableImage = Image.extend({
       },
     };
   },
+  draggable: false,
   addNodeView() {
-    return ReactNodeViewRenderer(ImageView);
+    return ReactNodeViewRenderer(ImageView, {
+      stopEvent: ({ event }) => {
+        const target = event.target as HTMLElement | null;
+
+        return (
+          Boolean(target?.closest?.(".brx-img-wrap")) &&
+          ["mousedown", "pointerdown", "touchstart", "dragstart"].includes(event.type)
+        );
+      },
+    });
   },
 });
 
@@ -4947,7 +5105,8 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           height: auto;
         }
         .brx-editor-content .brx-img-wrap {
-          cursor: grab;
+          cursor: move;
+          touch-action: none;
         }
         .brx-editor-content .brx-img-ui button,
         .brx-editor-content button.brx-img-ui {
