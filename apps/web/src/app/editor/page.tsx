@@ -10,7 +10,13 @@ import {
   useState,
 } from "react";
 import type { ChangeEvent, CSSProperties, ReactNode } from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
+import {
+  EditorContent,
+  NodeViewWrapper,
+  ReactNodeViewRenderer,
+  useEditor,
+} from "@tiptap/react";
+import type { NodeViewProps } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
@@ -92,7 +98,8 @@ type TabName =
   | "References"
   | "Review"
   | "View"
-  | "Table";
+  | "Table"
+  | "Picture";
 
 type FileView = "new" | "open" | "save" | "export" | "print";
 type ViewMode = "print" | "web" | "read";
@@ -752,6 +759,646 @@ function CheckRow({
   );
 }
 
+type ImageAttrs = {
+  src: string;
+  alt?: string | null;
+  title?: string | null;
+  width: number | null;
+  height: number | null;
+  layout: string;
+  border: string;
+  borderColor: string;
+  rounded: boolean;
+  shadow: boolean;
+  fx: string;
+};
+
+type PMNode = NodeViewProps["node"];
+
+function cssString(values: Record<string, string>) {
+  return Object.entries(values)
+    .map(([key, value]) => `${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}: ${value}`)
+    .join("; ");
+}
+
+function layoutCss(layout: string): Record<string, string> {
+  switch (layout) {
+    case "float-left":
+      return { float: "left", margin: "4px 14px 8px 0" };
+    case "float-right":
+      return { float: "right", margin: "4px 0 8px 14px" };
+    case "block-left":
+      return { display: "block", margin: "8px auto 8px 0" };
+    case "block-center":
+      return { display: "block", margin: "8px auto" };
+    case "block-right":
+      return { display: "block", margin: "8px 0 8px auto" };
+    default:
+      return { display: "inline-block", verticalAlign: "middle" };
+  }
+}
+
+function decoCss(attrs: Partial<ImageAttrs>): Record<string, string> {
+  const out: Record<string, string> = {};
+
+  if (attrs.border && attrs.border !== "none") {
+    out.border = `${attrs.border}px solid ${attrs.borderColor || "#334155"}`;
+  }
+  if (attrs.rounded) out.borderRadius = "12px";
+  if (attrs.shadow) out.boxShadow = "0 4px 14px rgba(0,0,0,0.3)";
+  if (attrs.fx && attrs.fx !== "none") out.filter = attrs.fx;
+
+  return out;
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const element = document.createElement("img");
+
+    element.onload = () => resolve(element);
+    element.onerror = () => reject(new Error("Could not load the image."));
+    element.src = src;
+  });
+}
+
+async function fileToDataUrl(file: File): Promise<string> {
+  const raw = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read the image."));
+    reader.readAsDataURL(file);
+  });
+
+  const element = await loadImageElement(raw);
+
+  if (!element.naturalWidth || !element.naturalHeight) return raw;
+
+  const scale = Math.min(1, 1600 / Math.max(element.naturalWidth, element.naturalHeight));
+
+  if (scale === 1 && raw.length < 600_000) return raw;
+
+  const width = Math.round(element.naturalWidth * scale);
+  const height = Math.round(element.naturalHeight * scale);
+  const keepAlpha = ["image/png", "image/gif", "image/webp"].includes(file.type);
+
+  const draw = (white: boolean) => {
+    const canvas = document.createElement("canvas");
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return null;
+    if (white) {
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, width, height);
+    }
+    context.drawImage(element, 0, 0, width, height);
+
+    return canvas;
+  };
+
+  if (keepAlpha) {
+    const png = draw(false)?.toDataURL("image/png");
+
+    if (png && png.length < 900_000) return png;
+  }
+
+  return draw(true)?.toDataURL("image/jpeg", 0.85) ?? raw;
+}
+
+async function transformImage(
+  src: string,
+  operation: "rotate-right" | "rotate-left" | "flip-h" | "flip-v",
+): Promise<string> {
+  const element = await loadImageElement(src);
+  const w = element.naturalWidth;
+  const h = element.naturalHeight;
+  const canvas = document.createElement("canvas");
+  const turn = operation === "rotate-right" || operation === "rotate-left";
+
+  canvas.width = turn ? h : w;
+  canvas.height = turn ? w : h;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) return src;
+
+  if (operation === "rotate-right") {
+    context.translate(h, 0);
+    context.rotate(Math.PI / 2);
+  } else if (operation === "rotate-left") {
+    context.translate(0, w);
+    context.rotate(-Math.PI / 2);
+  } else if (operation === "flip-h") {
+    context.translate(w, 0);
+    context.scale(-1, 1);
+  } else {
+    context.translate(0, h);
+    context.scale(1, -1);
+  }
+
+  context.drawImage(element, 0, 0);
+
+  return src.startsWith("data:image/png")
+    ? canvas.toDataURL("image/png")
+    : canvas.toDataURL("image/jpeg", 0.9);
+}
+
+function ImageView({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [live, setLive] = useState<{ w: number; h: number | null } | null>(null);
+  const attrs = node.attrs as ImageAttrs;
+  const width = live ? live.w : attrs.width;
+  const height = live ? live.h : attrs.height;
+
+  const wrapStyle = {
+    ...layoutCss(attrs.layout),
+    position: "relative",
+    maxWidth: "100%",
+    lineHeight: 0,
+  } as CSSProperties;
+
+  const imgStyle = {
+    display: "block",
+    maxWidth: "100%",
+    width: width ?? undefined,
+    height: height ?? "auto",
+    ...decoCss(attrs),
+    outline: selected ? "2px solid #2b579a" : undefined,
+    outlineOffset: 1,
+  } as CSSProperties;
+
+  function startResize(event: React.PointerEvent, direction: string) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const element = imgRef.current;
+
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+    const scale = element.offsetWidth ? rect.width / element.offsetWidth : 1;
+    const startX = event.clientX;
+    const startWidth = element.offsetWidth;
+    const ratio = element.offsetHeight / Math.max(1, element.offsetWidth);
+    const explicitHeight = attrs.height != null;
+    const limit = (editor.view.dom as HTMLElement).clientWidth || 2000;
+    const sign = direction.endsWith("e") ? 1 : -1;
+    let latest = { w: startWidth, h: explicitHeight ? element.offsetHeight : null as number | null };
+
+    const move = (moveEvent: PointerEvent) => {
+      const delta = ((moveEvent.clientX - startX) / (scale || 1)) * sign;
+      const next = Math.round(Math.min(limit, Math.max(24, startWidth + delta)));
+
+      latest = { w: next, h: explicitHeight ? Math.round(next * ratio) : null };
+      setLive(latest);
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      updateAttributes({ width: latest.w, height: latest.h });
+      setLive(null);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  const handles: [string, CSSProperties][] = [
+    ["nw", { left: -6, top: -6, cursor: "nwse-resize" }],
+    ["ne", { right: -6, top: -6, cursor: "nesw-resize" }],
+    ["sw", { left: -6, bottom: -6, cursor: "nesw-resize" }],
+    ["se", { right: -6, bottom: -6, cursor: "nwse-resize" }],
+  ];
+
+  const quick: [string, string, string][] = [
+    ["inline", "In line", "Keep the picture in the line of text"],
+    ["float-left", "Left", "Picture on the left, text wraps on the right"],
+    ["float-right", "Right", "Picture on the right, text wraps on the left"],
+    ["block-center", "Center", "Picture alone in the middle, text above and below"],
+  ];
+
+  return (
+    <NodeViewWrapper as="span" style={wrapStyle} className="brx-img-wrap">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imgRef}
+        src={attrs.src}
+        alt={attrs.alt ?? ""}
+        title={attrs.title ?? undefined}
+        draggable={false}
+        style={imgStyle}
+      />
+      {selected && editor.isEditable && (
+        <>
+          {handles.map(([direction, style]) => (
+            <button
+              key={direction}
+              type="button"
+              aria-label="Resize picture"
+              title="Drag to resize"
+              className="brx-img-ui"
+              style={{
+                position: "absolute",
+                width: 11,
+                height: 11,
+                padding: 0,
+                background: "#ffffff",
+                border: "2px solid #2b579a",
+                borderRadius: 2,
+                ...style,
+              }}
+              onPointerDown={(event) => startResize(event, direction)}
+            />
+          ))}
+          <span
+            className="brx-img-ui"
+            contentEditable={false}
+            style={{
+              position: "absolute",
+              left: 0,
+              top: -34,
+              display: "flex",
+              gap: 2,
+              padding: 2,
+              background: "#ffffff",
+              border: "1px solid #c6c6c6",
+              borderRadius: 4,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              whiteSpace: "nowrap",
+              lineHeight: 1.2,
+              zIndex: 5,
+            }}
+          >
+            {quick.map(([value, label, hint]) => (
+              <button
+                key={value}
+                type="button"
+                title={hint}
+                onClick={() => updateAttributes({ layout: value })}
+                style={{
+                  padding: "3px 7px",
+                  fontSize: 11,
+                  color: "#1e293b",
+                  borderRadius: 3,
+                  background: attrs.layout === value ? "#c7e0f4" : "transparent",
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            <button
+              type="button"
+              title="Crop picture"
+              onClick={() => window.dispatchEvent(new Event("brx-crop-image"))}
+              style={{ padding: "3px 7px", fontSize: 11, color: "#1e293b" }}
+            >
+              Crop
+            </button>
+            <button
+              type="button"
+              title="Delete picture"
+              onClick={() => deleteNode()}
+              style={{ padding: "3px 7px", fontSize: 11, color: "#b91c1c" }}
+            >
+              Delete
+            </button>
+          </span>
+        </>
+      )}
+    </NodeViewWrapper>
+  );
+}
+
+const ResizableImage = Image.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      width: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          Number(element.getAttribute("width")) || parseInt(element.style.width, 10) || null,
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.width ? { width: String(attributes.width) } : {},
+      },
+      height: {
+        default: null,
+        parseHTML: (element: HTMLElement) =>
+          Number(element.getAttribute("height")) || parseInt(element.style.height, 10) || null,
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.height ? { height: String(attributes.height) } : {},
+      },
+      layout: {
+        default: "inline",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-layout") || "inline",
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          "data-layout": String(attributes.layout),
+          style: cssString({
+            ...layoutCss(String(attributes.layout)),
+            ...decoCss(attributes as unknown as Partial<ImageAttrs>),
+          }),
+        }),
+      },
+      border: {
+        default: "none",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-border") || "none",
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          "data-border": String(attributes.border),
+        }),
+      },
+      borderColor: {
+        default: "#334155",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-bcolor") || "#334155",
+        renderHTML: (attributes: Record<string, unknown>) => ({
+          "data-bcolor": String(attributes.borderColor),
+        }),
+      },
+      rounded: {
+        default: false,
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-rounded") === "true",
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.rounded ? { "data-rounded": "true" } : {},
+      },
+      shadow: {
+        default: false,
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-shadow") === "true",
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.shadow ? { "data-shadow": "true" } : {},
+      },
+      fx: {
+        default: "none",
+        parseHTML: (element: HTMLElement) => element.getAttribute("data-fx") || "none",
+        renderHTML: (attributes: Record<string, unknown>) =>
+          attributes.fx && attributes.fx !== "none" ? { "data-fx": String(attributes.fx) } : {},
+      },
+    };
+  },
+  addNodeView() {
+    return ReactNodeViewRenderer(ImageView);
+  },
+});
+
+function CropDialog({
+  src,
+  onApply,
+  onClose,
+}: {
+  src: string;
+  onApply: (dataUrl: string, widthFraction: number) => void;
+  onClose: () => void;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const ratioRef = useRef<number | null>(null);
+  const [box, setBox] = useState({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+  const [ratioName, setRatioName] = useState("free");
+
+  const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+
+  function begin(event: React.PointerEvent, mode: string) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const wrap = wrapRef.current;
+
+    if (!wrap) return;
+
+    const rect = wrap.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const start = box;
+
+    const move = (moveEvent: PointerEvent) => {
+      const dx = (moveEvent.clientX - startX) / rect.width;
+      const dy = (moveEvent.clientY - startY) / rect.height;
+
+      if (mode === "move") {
+        setBox({
+          ...start,
+          x: clamp(start.x + dx, 0, 1 - start.w),
+          y: clamp(start.y + dy, 0, 1 - start.h),
+        });
+        return;
+      }
+
+      let x1 = start.x;
+      let y1 = start.y;
+      let x2 = start.x + start.w;
+      let y2 = start.y + start.h;
+
+      if (mode.includes("w")) x1 = clamp(start.x + dx, 0, x2 - 0.05);
+      if (mode.includes("e")) x2 = clamp(start.x + start.w + dx, x1 + 0.05, 1);
+      if (mode.includes("n")) y1 = clamp(start.y + dy, 0, y2 - 0.05);
+      if (mode.includes("s")) y2 = clamp(start.y + start.h + dy, y1 + 0.05, 1);
+
+      const ratio = ratioRef.current;
+
+      if (ratio) {
+        const heightFraction = ((x2 - x1) * rect.width) / ratio / rect.height;
+
+        if (mode.includes("n")) y1 = y2 - heightFraction;
+        else y2 = y1 + heightFraction;
+
+        if (y1 < 0 || y2 > 1) return;
+      }
+
+      setBox({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  function chooseRatio(name: string, ratio: number | null) {
+    setRatioName(name);
+    ratioRef.current = ratio;
+
+    const wrap = wrapRef.current;
+
+    if (!ratio || !wrap) return;
+
+    const area = wrap.clientWidth / wrap.clientHeight;
+    const w = Math.min(0.9, (0.9 * ratio) / area);
+    const h = (w * area) / ratio;
+
+    setBox({ x: (1 - w) / 2, y: (1 - h) / 2, w, h });
+  }
+
+  function apply() {
+    const element = imgRef.current;
+
+    if (!element || !element.naturalWidth) return;
+
+    const sw = Math.max(1, Math.round(element.naturalWidth * box.w));
+    const sh = Math.max(1, Math.round(element.naturalHeight * box.h));
+    const canvas = document.createElement("canvas");
+
+    canvas.width = sw;
+    canvas.height = sh;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) return;
+
+    context.drawImage(
+      element,
+      Math.round(element.naturalWidth * box.x),
+      Math.round(element.naturalHeight * box.y),
+      sw,
+      sh,
+      0,
+      0,
+      sw,
+      sh,
+    );
+
+    onApply(
+      src.startsWith("data:image/png")
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", 0.92),
+      box.w,
+    );
+  }
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", onKey);
+
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const corners: [string, CSSProperties][] = [
+    ["nw", { left: -7, top: -7, cursor: "nwse-resize" }],
+    ["ne", { right: -7, top: -7, cursor: "nesw-resize" }],
+    ["sw", { left: -7, bottom: -7, cursor: "nesw-resize" }],
+    ["se", { right: -7, bottom: -7, cursor: "nwse-resize" }],
+  ];
+
+  const ratios: [string, string, number | null][] = [
+    ["free", "Free", null],
+    ["square", "1:1", 1],
+    ["43", "4:3", 4 / 3],
+    ["34", "3:4", 3 / 4],
+    ["169", "16:9", 16 / 9],
+    ["916", "9:16", 9 / 16],
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4 print:hidden">
+      <div className="max-h-full max-w-full overflow-auto rounded bg-white p-4 shadow-2xl">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="mr-2 text-[15px] font-semibold text-slate-800">Crop picture</h2>
+          {ratios.map(([name, label, ratio]) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => chooseRatio(name, ratio)}
+              className={`rounded border px-2 py-1 text-[12px] ${
+                ratioName === name
+                  ? "border-[#2b579a] bg-[#c7e0f4]"
+                  : "border-slate-300 hover:bg-slate-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div
+          ref={wrapRef}
+          className="relative mx-auto inline-block select-none overflow-hidden"
+          style={{ touchAction: "none" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={imgRef}
+            src={src}
+            alt="Picture to crop"
+            draggable={false}
+            className="block max-h-[60vh] max-w-[80vw]"
+          />
+          <div
+            onPointerDown={(event) => begin(event, "move")}
+            style={{
+              position: "absolute",
+              left: `${box.x * 100}%`,
+              top: `${box.y * 100}%`,
+              width: `${box.w * 100}%`,
+              height: `${box.h * 100}%`,
+              border: "2px solid #ffffff",
+              boxShadow: "0 0 0 9999px rgba(0,0,0,0.55)",
+              cursor: "move",
+              touchAction: "none",
+            }}
+          >
+            {corners.map(([direction, style]) => (
+              <div
+                key={direction}
+                onPointerDown={(event) => begin(event, direction)}
+                style={{
+                  position: "absolute",
+                  width: 14,
+                  height: 14,
+                  background: "#ffffff",
+                  border: "2px solid #2b579a",
+                  touchAction: "none",
+                  ...style,
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">
+          Drag the box to move it. Drag a corner to change the size. Ctrl+Z undoes the crop.
+        </p>
+        <div className="mt-3 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setBox({ x: 0, y: 0, w: 1, h: 1 });
+              chooseRatio("free", null);
+            }}
+            className="secondary-action"
+          >
+            Reset
+          </button>
+          <button type="button" onClick={onClose} className="secondary-action">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={apply}
+            className="rounded bg-[#2b579a] px-4 py-1.5 text-[13px] text-white hover:bg-[#244a82]"
+          >
+            Apply crop
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CropGlyph({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+      <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+    </svg>
+  );
+}
+
 export default function EditorPage() {
   const [title, setTitle] = useState("Untitled Document");
   const [message, setMessage] = useState("");
@@ -799,6 +1446,8 @@ export default function EditorPage() {
   const [pageBorder, setPageBorder] = useState("none");
   const [tellQuery, setTellQuery] = useState("");
   const [pages, setPages] = useState(1);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [lockAspect, setLockAspect] = useState(true);
   const painterRef = useRef<PainterSource | null>(null);
   const pageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLElement>(null);
@@ -808,6 +1457,7 @@ export default function EditorPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const notifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -831,7 +1481,7 @@ export default function EditorPage() {
       Color,
       Highlight.configure({ multicolor: true }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Image.configure({ allowBase64: true }),
+      ResizableImage.configure({ allowBase64: true, inline: true }),
       Table.configure({
         resizable: true,
         HTMLAttributes: { class: "brx-table" },
@@ -1151,34 +1801,32 @@ export default function EditorPage() {
 
   function insertImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+
+    event.target.value = "";
+
     if (!file || !editor) return;
 
     if (!file.type.startsWith("image/")) {
       notify("Please choose an image.");
-      event.target.value = "";
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      notify("Image must be smaller than 2 MB.");
-      event.target.value = "";
+    if (file.size > 10 * 1024 * 1024) {
+      notify("Image must be smaller than 10 MB.");
       return;
     }
 
-    const reader = new FileReader();
+    fileToDataUrl(file)
+      .then((src) => {
+        if (editor.getHTML().length + src.length > 1_900_000) {
+          notify("This document is too large to add another picture. Use a smaller picture.");
+          return;
+        }
 
-    reader.onload = () => {
-      editor.chain().focus().setImage({
-        src: String(reader.result),
-        alt: file.name,
-      }).run();
-
-      notify("Image inserted.");
-    };
-
-    reader.onerror = () => notify("Could not load this image.");
-    reader.readAsDataURL(file);
-    event.target.value = "";
+        editor.chain().focus().setImage({ src, alt: file.name }).run();
+        notify("Picture added. Drag the corners to resize, drag it to move, or use the Picture Format tab.");
+      })
+      .catch(() => notify("Could not load this image."));
   }
 
   function addLink() {
@@ -1801,8 +2449,214 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
     editor?.chain().focus().setTextSelection(pos + 1).scrollIntoView().run();
   }
 
+  // ---- Picture tools ----
+  function getSelectedImage(): { attrs: ImageAttrs; pos: number; node: PMNode } | null {
+    if (!editor) return null;
+
+    const selection = editor.state.selection as unknown as {
+      node?: PMNode;
+      from: number;
+    };
+
+    if (selection.node && selection.node.type.name === "image") {
+      return {
+        attrs: selection.node.attrs as ImageAttrs,
+        pos: selection.from,
+        node: selection.node,
+      };
+    }
+
+    return null;
+  }
+
+  const imageInfo = getSelectedImage();
+  const inImage = Boolean(imageInfo);
+
+  function measureImage(): { w: number; h: number } {
+    const info = getSelectedImage();
+
+    if (!editor || !info) return { w: 0, h: 0 };
+
+    try {
+      const dom = editor.view.nodeDOM(info.pos) as HTMLElement | null;
+      const element = dom?.querySelector("img");
+
+      if (element) {
+        return { w: element.offsetWidth, h: element.offsetHeight };
+      }
+    } catch {
+      // the picture is not on screen yet
+    }
+
+    return { w: info.attrs.width ?? 0, h: info.attrs.height ?? 0 };
+  }
+
+  function setImageAttrs(values: Partial<ImageAttrs>) {
+    editor?.chain().focus().updateAttributes("image", values).run();
+  }
+
+  function commitImageSize(kind: "w" | "h", value: number) {
+    const info = getSelectedImage();
+
+    if (!info || !Number.isFinite(value) || value < 8) return;
+
+    const size = measureImage();
+    const ratio = size.w ? size.h / size.w : 1;
+    const next = Math.round(value);
+
+    if (lockAspect) {
+      if (kind === "w") {
+        setImageAttrs({
+          width: next,
+          height: info.attrs.height != null ? Math.round(next * ratio) : null,
+        });
+      } else {
+        setImageAttrs({
+          width: Math.round(next / (ratio || 1)),
+          height: info.attrs.height != null ? next : null,
+        });
+      }
+    } else if (kind === "w") {
+      setImageAttrs({ width: next, height: info.attrs.height ?? size.h });
+    } else {
+      setImageAttrs({ width: info.attrs.width ?? size.w, height: next });
+    }
+  }
+
+  function setImagePercent(percent: number) {
+    const full = (editor?.view.dom as HTMLElement | undefined)?.clientWidth ?? 600;
+
+    setImageAttrs({ width: Math.round((full * percent) / 100), height: null });
+  }
+
+  async function transformSelectedImage(
+    operation: "rotate-right" | "rotate-left" | "flip-h" | "flip-v",
+  ) {
+    const info = getSelectedImage();
+
+    if (!info) return;
+
+    try {
+      const src = await transformImage(info.attrs.src, operation);
+      const size = measureImage();
+      const turned = operation === "rotate-right" || operation === "rotate-left";
+
+      setImageAttrs(
+        turned && size.h
+          ? { src, width: size.h, height: null }
+          : { src },
+      );
+    } catch {
+      notify("Could not change this picture.");
+    }
+  }
+
+  function applyCrop(dataUrl: string, widthFraction: number) {
+    const info = getSelectedImage();
+
+    if (!info) return;
+
+    const size = measureImage();
+    const base = info.attrs.width ?? size.w;
+
+    setImageAttrs({
+      src: dataUrl,
+      width: base ? Math.max(24, Math.round(base * widthFraction)) : null,
+      height: null,
+    });
+    setCropOpen(false);
+    notify("Picture cropped.");
+  }
+
+  function replaceImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (!file || !file.type.startsWith("image/")) return;
+
+    fileToDataUrl(file)
+      .then((src) => setImageAttrs({ src, alt: file.name }))
+      .catch(() => notify("Could not load this image."));
+  }
+
+  function editAltText() {
+    const info = getSelectedImage();
+
+    if (!info) return;
+
+    const text = window.prompt("Alt text (describes the picture):", info.attrs.alt ?? "");
+
+    if (text !== null) setImageAttrs({ alt: text });
+  }
+
+  function moveImage(direction: "up" | "down") {
+    if (!editor) return;
+
+    const info = getSelectedImage();
+
+    if (!info) return;
+
+    const { state } = editor;
+    const from = info.pos;
+    const $from = state.doc.resolve(from);
+    const blockStart = $from.before();
+    const blockEnd = $from.after();
+    let target: number;
+
+    if (direction === "up") {
+      const previous = state.doc.resolve(blockStart).nodeBefore;
+
+      if (!previous || !previous.isTextblock) {
+        notify("The picture is already at the top here.");
+        return;
+      }
+
+      target = blockStart - 1;
+    } else {
+      const next = state.doc.nodeAt(blockEnd);
+
+      if (!next || !next.isTextblock) {
+        notify("The picture is already at the bottom here.");
+        return;
+      }
+
+      target = blockEnd + next.nodeSize - 1;
+    }
+
+    const transaction = state.tr.delete(from, from + info.node.nodeSize);
+    const mapped = transaction.mapping.map(target);
+
+    transaction.insert(mapped, info.node);
+    editor.view.dispatch(transaction.scrollIntoView());
+    editor.chain().setNodeSelection(mapped).run();
+  }
+
+  useEffect(() => {
+    const open = () => setCropOpen(true);
+
+    window.addEventListener("brx-crop-image", open);
+
+    return () => window.removeEventListener("brx-crop-image", open);
+  }, []);
+
+  const wasInImage = useRef(false);
+
+  useEffect(() => {
+    if (inImage && !wasInImage.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveTab("Picture");
+      setRibbonOpen(true);
+    }
+
+    wasInImage.current = inImage;
+  }, [inImage]);
+
   const inTable = Boolean(editor?.isActive("table"));
-  const currentTab: TabName = activeTab === "Table" && !inTable ? "Home" : activeTab;
+  const currentTab: TabName =
+    (activeTab === "Table" && !inTable) || (activeTab === "Picture" && !inImage)
+      ? "Home"
+      : activeTab;
 
   const tabs: TabName[] = [
     "Home",
@@ -1815,6 +2669,7 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
   ];
 
   if (inTable) tabs.push("Table");
+  if (inImage) tabs.push("Picture");
 
   function openFile(view: FileView) {
     setFileView(view);
@@ -2029,12 +2884,12 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                   className={`whitespace-nowrap px-4 py-1.5 text-[13px] transition ${
                     selected
                       ? "border-x border-t border-[#d4d4d4] bg-[#f3f3f3] font-medium text-[#2b579a]"
-                      : tab === "Table"
+                      : tab === "Table" || tab === "Picture"
                         ? "text-amber-200 hover:bg-white/15"
                         : "text-white hover:bg-white/15"
                   }`}
                 >
-                  {tab === "Table" ? "Table Layout" : tab}
+                  {tab === "Table" ? "Table Layout" : tab === "Picture" ? "Picture Format" : tab}
                 </button>
               );
             })}
@@ -3066,6 +3921,242 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
                 </>
               )}
 
+              {currentTab === "Picture" && imageInfo && (
+                <>
+                  <RibbonGroup label="Adjust">
+                    <BigButton
+                      label="Crop"
+                      icon={<CropGlyph />}
+                      onClick={() => setCropOpen(true)}
+                    />
+                    <Stack>
+                      <DropMenu
+                        label="Effects"
+                        icon={<span className="text-[12px] font-semibold">✦</span>}
+                        minWidth={170}
+                      >
+                        {(close) => (
+                          <>
+                            {[
+                              ["none", "Normal"],
+                              ["grayscale(1)", "Black and white"],
+                              ["sepia(0.8)", "Sepia"],
+                              ["brightness(1.25)", "Brighter"],
+                              ["brightness(0.8)", "Darker"],
+                              ["contrast(1.35)", "High contrast"],
+                            ].map(([value, label]) => (
+                              <MenuItem
+                                key={value}
+                                label={label}
+                                active={imageInfo.attrs.fx === value}
+                                onClick={() => setImageAttrs({ fx: value })}
+                                close={close}
+                              />
+                            ))}
+                          </>
+                        )}
+                      </DropMenu>
+                      <SmallButton
+                        label="Replace"
+                        icon={<ImagePlus size={14} />}
+                        onClick={() => replaceInputRef.current?.click()}
+                      />
+                      <SmallButton
+                        label="Alt text"
+                        icon={<span className="text-[11px] font-semibold">Alt</span>}
+                        onClick={editAltText}
+                      />
+                    </Stack>
+                  </RibbonGroup>
+
+                  <RibbonGroup label="Picture Styles">
+                    <Stack>
+                      <DropMenu
+                        label="Border"
+                        icon={<Square size={14} />}
+                        minWidth={190}
+                      >
+                        {(close) => (
+                          <>
+                            {[
+                              ["none", "No border"],
+                              ["1", "Thin"],
+                              ["3", "Medium"],
+                              ["6", "Thick"],
+                            ].map(([value, label]) => (
+                              <MenuItem
+                                key={value}
+                                label={label}
+                                active={imageInfo.attrs.border === value}
+                                onClick={() => setImageAttrs({ border: value })}
+                                close={close}
+                              />
+                            ))}
+                            <div className="px-3 py-1 text-[11px] text-slate-500">Border colour</div>
+                            <SwatchGrid
+                              colors={HEADING_COLORS}
+                              onPick={(color) =>
+                                setImageAttrs({
+                                  borderColor: color,
+                                  border:
+                                    imageInfo.attrs.border === "none" ? "3" : imageInfo.attrs.border,
+                                })
+                              }
+                              close={close}
+                            />
+                          </>
+                        )}
+                      </DropMenu>
+                      <SmallButton
+                        label="Rounded corners"
+                        icon={<span className="text-[12px]">▢</span>}
+                        active={imageInfo.attrs.rounded}
+                        onClick={() => setImageAttrs({ rounded: !imageInfo.attrs.rounded })}
+                      />
+                      <SmallButton
+                        label="Shadow"
+                        icon={<span className="text-[12px]">◧</span>}
+                        active={imageInfo.attrs.shadow}
+                        onClick={() => setImageAttrs({ shadow: !imageInfo.attrs.shadow })}
+                      />
+                    </Stack>
+                  </RibbonGroup>
+
+                  <RibbonGroup label="Arrange">
+                    <DropMenu
+                      variant="big"
+                      label="Wrap Text"
+                      icon={<AlignJustify size={28} />}
+                      minWidth={260}
+                    >
+                      {(close) => (
+                        <>
+                          {[
+                            ["inline", "In Line with Text", "Picture sits in the line like a letter"],
+                            ["float-left", "Square - Picture on Left", "Text wraps around on the right"],
+                            ["float-right", "Square - Picture on Right", "Text wraps around on the left"],
+                            ["block-left", "Top and Bottom - Left", "No text beside the picture"],
+                            ["block-center", "Top and Bottom - Center", "No text beside the picture"],
+                            ["block-right", "Top and Bottom - Right", "No text beside the picture"],
+                          ].map(([value, label, hint]) => (
+                            <MenuItem
+                              key={value}
+                              label={label}
+                              hint={hint}
+                              active={imageInfo.attrs.layout === value}
+                              onClick={() => setImageAttrs({ layout: value })}
+                              close={close}
+                            />
+                          ))}
+                        </>
+                      )}
+                    </DropMenu>
+                    <Stack>
+                      <SmallButton
+                        label="Move up"
+                        title="Move the picture to the paragraph above (you can also drag it)"
+                        icon={<span className="text-[12px]">↑</span>}
+                        onClick={() => moveImage("up")}
+                      />
+                      <SmallButton
+                        label="Move down"
+                        title="Move the picture to the paragraph below (you can also drag it)"
+                        icon={<span className="text-[12px]">↓</span>}
+                        onClick={() => moveImage("down")}
+                      />
+                      <DropMenu
+                        label="Rotate"
+                        icon={<span className="text-[12px]">↻</span>}
+                        minWidth={170}
+                      >
+                        {(close) => (
+                          <>
+                            <MenuItem label="Rotate right 90°" onClick={() => void transformSelectedImage("rotate-right")} close={close} />
+                            <MenuItem label="Rotate left 90°" onClick={() => void transformSelectedImage("rotate-left")} close={close} />
+                            <MenuItem label="Flip horizontal" onClick={() => void transformSelectedImage("flip-h")} close={close} />
+                            <MenuItem label="Flip vertical" onClick={() => void transformSelectedImage("flip-v")} close={close} />
+                          </>
+                        )}
+                      </DropMenu>
+                    </Stack>
+                  </RibbonGroup>
+
+                  <RibbonGroup label="Size">
+                    {(() => {
+                      const size = measureImage();
+
+                      return (
+                        <Stack>
+                          <label className="flex items-center justify-between gap-2 text-[11px]">
+                            Height
+                            <input
+                              key={`h${size.h}`}
+                              type="number"
+                              min={8}
+                              defaultValue={size.h}
+                              onBlur={(event) => commitImageSize("h", Number(event.target.value))}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") event.currentTarget.blur();
+                              }}
+                              className="h-6 w-16 rounded-sm border border-[#c6c6c6] px-1 text-[12px]"
+                            />
+                          </label>
+                          <label className="flex items-center justify-between gap-2 text-[11px]">
+                            Width
+                            <input
+                              key={`w${size.w}`}
+                              type="number"
+                              min={8}
+                              defaultValue={size.w}
+                              onBlur={(event) => commitImageSize("w", Number(event.target.value))}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") event.currentTarget.blur();
+                              }}
+                              className="h-6 w-16 rounded-sm border border-[#c6c6c6] px-1 text-[12px]"
+                            />
+                          </label>
+                          <CheckRow label="Lock aspect ratio" checked={lockAspect} onChange={setLockAspect} />
+                        </Stack>
+                      );
+                    })()}
+                    <Stack>
+                      <DropMenu
+                        label="Preset size"
+                        icon={<ZoomIn size={14} />}
+                        minWidth={170}
+                      >
+                        {(close) => (
+                          <>
+                            <MenuItem label="Small (25% of width)" onClick={() => setImagePercent(25)} close={close} />
+                            <MenuItem label="Medium (50%)" onClick={() => setImagePercent(50)} close={close} />
+                            <MenuItem label="Large (75%)" onClick={() => setImagePercent(75)} close={close} />
+                            <MenuItem label="Full width (100%)" onClick={() => setImagePercent(100)} close={close} />
+                          </>
+                        )}
+                      </DropMenu>
+                      <SmallButton
+                        label="Reset size"
+                        icon={<ZoomOut size={14} />}
+                        onClick={() => setImageAttrs({ width: null, height: null })}
+                      />
+                    </Stack>
+                  </RibbonGroup>
+
+                  <RibbonGroup label="Other">
+                    <BigButton
+                      label="Caption"
+                      icon={<span className="text-[16px] font-bold leading-none">Fig</span>}
+                      onClick={() => insertCaption("Figure")}
+                    />
+                    <BigButton
+                      label="Delete Picture"
+                      icon={<Trash2 size={28} />}
+                      onClick={() => editor?.chain().focus().deleteSelection().run()}
+                    />
+                  </RibbonGroup>
+                </>
+              )}
+
               {currentTab === "Table" && (
                 <>
                   <RibbonGroup label="Rows & Columns">
@@ -3471,6 +4562,13 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
         onChange={insertImage}
       />
       <input
+        ref={replaceInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={replaceImage}
+      />
+      <input
         ref={importInputRef}
         type="file"
         accept=".html,.htm,.txt"
@@ -3691,6 +4789,14 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
         </div>
       )}
 
+      {cropOpen && imageInfo && (
+        <CropDialog
+          src={imageInfo.attrs.src}
+          onApply={applyCrop}
+          onClose={() => setCropOpen(false)}
+        />
+      )}
+
       {message && (
         <div
           role="status"
@@ -3840,6 +4946,21 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           max-width: 100%;
           height: auto;
         }
+        .brx-editor-content .brx-img-wrap {
+          cursor: grab;
+        }
+        .brx-editor-content .brx-img-ui button,
+        .brx-editor-content button.brx-img-ui {
+          cursor: pointer;
+        }
+        .brx-editor-content .brx-img-ui button:hover {
+          background: #dcebf7;
+        }
+        .brx-editor-content::after {
+          content: "";
+          display: block;
+          clear: both;
+        }
         .brx-editor-content a {
           color: #1d4ed8;
           text-decoration: underline;
@@ -3904,6 +5025,9 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
           }
           .brx-editor-content {
             min-height: auto !important;
+          }
+          .brx-img-ui {
+            display: none !important;
           }
         }
       `}</style>
