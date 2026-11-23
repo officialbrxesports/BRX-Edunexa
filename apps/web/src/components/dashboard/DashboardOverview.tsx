@@ -9,7 +9,6 @@ import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
 import SchoolNotices from "./SchoolNotices";
-import ClassesView from "./ClassesView";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
 import SchoolAttendance from "./SchoolAttendance";
