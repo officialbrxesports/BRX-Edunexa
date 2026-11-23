@@ -104,9 +104,9 @@ const json = (method: string, body: unknown): RequestInit => ({
   body: JSON.stringify(body),
 });
 
-export default function StaffJoiningManagement() {
+export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role } = {}) {
   const [profiles, setProfiles] = useState<AdmissionProfile[]>([]);
-  const [role, setRole] = useState<Role>("TEACHER");
+  const [role, setRole] = useState<Role>(fixedRole ?? "TEACHER");
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -425,7 +425,7 @@ export default function StaffJoiningManagement() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className={`flex flex-wrap gap-2 ${fixedRole ? "hidden" : ""}`}>
         {ROLES.map((r) => (
           <button
             key={r.id}

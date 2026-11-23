@@ -53,7 +53,6 @@ const PEOPLE_TABS = [
   { key: "student", label: "Student", icon: GraduationCap },
   { key: "teacher", label: "Teacher", icon: UserRound },
   { key: "staff", label: "Staff", icon: BriefcaseBusiness },
-  { key: "joining", label: "Staff joining", icon: BriefcaseBusiness },
   { key: "guard", label: "Security", icon: ShieldCheck },
   { key: "parent", label: "Parents", icon: Users },
 ] as const;
@@ -86,15 +85,13 @@ function PeopleHub() {
       {tab === "student" ? (
         <AdmissionManagement />
       ) : tab === "teacher" ? (
-        <TeacherManagement key="teacher" kind="teacher" />
+        <StaffJoiningManagement key="teacher" fixedRole="TEACHER" />
       ) : tab === "staff" ? (
-        <TeacherManagement key="staff" kind="staff" />
-      ) : tab === "joining" ? (
-        <StaffJoiningManagement />
+        <StaffJoiningManagement key="staff" fixedRole="STAFF" />
       ) : tab === "guard" ? (
-        <TeacherManagement key="guard" kind="guard" />
+        <StaffJoiningManagement key="guard" fixedRole="GUARD" />
       ) : (
-        <ParentManagement />
+        <StaffJoiningManagement key="parent" fixedRole="PARENT" />
       )}
     </div>
   );
