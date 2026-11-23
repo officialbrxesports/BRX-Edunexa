@@ -270,15 +270,6 @@ export default function DashboardOverview({ type }: { type: string }) {
               </>
             )}
 
-            <Link
-              href="/editor"
-              title="BRX AI Editor"
-              className="flex h-9 items-center gap-2 bg-white/10 px-3 text-xs font-semibold text-white hover:bg-white/20"
-            >
-              <Sparkles size={17} />
-              <span className="hidden sm:inline">AI Editor</span>
-            </Link>
-
             <button
               type="button"
               title="Logout"
@@ -407,7 +398,7 @@ export default function DashboardOverview({ type }: { type: string }) {
             ) : active === "Attendance" ? (
               <SchoolAttendance reportOnly />
             ) : active === "Notices" ? (
-              <SchoolNotices mode="history" />
+              <SchoolNotices />
             ) : active === "Exams & Rank" ? (
               <SchoolExams viewOnly />
             ) : (

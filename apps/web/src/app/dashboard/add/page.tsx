@@ -13,7 +13,6 @@ import {
   BriefcaseBusiness,
   Users,
   Trophy,
-  Bell,
   Plus,
   ChevronRight,
   ShieldCheck,
@@ -27,7 +26,6 @@ import StaffJoiningManagement from "../../../components/dashboard/StaffJoiningMa
 import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
 import SchoolExams from "../../../components/dashboard/SchoolExams";
-import SchoolNotices from "../../../components/dashboard/SchoolNotices";
 import { CreateClassPanel, SectionsPanel } from "../../../components/dashboard/ClassSetup";
 
 /* The Add hub is for creating and entering things.
@@ -46,20 +44,61 @@ const categories = [
   },
   {
     title: "PEOPLE",
-    items: [
-      { name: "Admission Form", icon: GraduationCap },
-      { name: "Teacher", icon: UserRound },
-      { name: "Staff", icon: BriefcaseBusiness },
-      { name: "Staff Joining", icon: BriefcaseBusiness },
-      { name: "Parent / Guardian", icon: Users },
-      { name: "Security Guard", icon: ShieldCheck },
-    ],
-  },
-  {
-    title: "COMMUNICATION",
-    items: [{ name: "Notice", icon: Bell }],
+    items: [{ name: "Admission Form", icon: GraduationCap }],
   },
 ];
+
+/* Inside "Admission Form": one bar to admit or create every kind of person. */
+const PEOPLE_TABS = [
+  { key: "student", label: "Student", icon: GraduationCap },
+  { key: "teacher", label: "Teacher", icon: UserRound },
+  { key: "staff", label: "Staff", icon: BriefcaseBusiness },
+  { key: "joining", label: "Staff joining", icon: BriefcaseBusiness },
+  { key: "guard", label: "Security", icon: ShieldCheck },
+  { key: "parent", label: "Parents", icon: Users },
+] as const;
+
+type PeopleTab = (typeof PEOPLE_TABS)[number]["key"];
+
+function PeopleHub() {
+  const [tab, setTab] = useState<PeopleTab>("student");
+
+  return (
+    <div>
+      <div className="-mt-1 mb-5 flex flex-wrap gap-1 border-b border-slate-200">
+        {PEOPLE_TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold ${
+              tab === key
+                ? "border-blue-700 text-blue-800"
+                : "border-transparent text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "student" ? (
+        <AdmissionManagement />
+      ) : tab === "teacher" ? (
+        <TeacherManagement key="teacher" kind="teacher" />
+      ) : tab === "staff" ? (
+        <TeacherManagement key="staff" kind="staff" />
+      ) : tab === "joining" ? (
+        <StaffJoiningManagement />
+      ) : tab === "guard" ? (
+        <TeacherManagement key="guard" kind="guard" />
+      ) : (
+        <ParentManagement />
+      )}
+    </div>
+  );
+}
 
 const TITLES: Record<string, string> = {
   Class: "Create Class",
@@ -67,13 +106,7 @@ const TITLES: Record<string, string> = {
   Subject: "Subject Management",
   Attendance: "Mark Attendance",
   Exam: "Exams & Marks",
-  "Admission Form": "Admission Management",
-  Teacher: "Teacher Management",
-  Staff: "Staff Management",
-  "Staff Joining": "Staff Joining (Hiring)",
-  "Parent / Guardian": "Parent / Guardian Management",
-  "Security Guard": "Security Guard Management",
-  Notice: "Send Notice",
+  "Admission Form": "Admissions & People",
 };
 
 function AddHubContent() {
@@ -160,7 +193,7 @@ function AddHubContent() {
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-8">
             {selected === "Admission Form" ? (
-              <AdmissionManagement />
+              <PeopleHub />
             ) : selected === "Class" ? (
               <CreateClassPanel
                 key={`class-${refreshKey}`}
@@ -174,18 +207,6 @@ function AddHubContent() {
               <AttendanceManagement />
             ) : selected === "Exam" ? (
               <SchoolExams />
-            ) : selected === "Notice" ? (
-              <SchoolNotices mode="send" />
-            ) : selected === "Teacher" ? (
-              <TeacherManagement key="teacher" kind="teacher" />
-            ) : selected === "Staff" ? (
-              <TeacherManagement key="staff" kind="staff" />
-            ) : selected === "Staff Joining" ? (
-              <StaffJoiningManagement />
-            ) : selected === "Security Guard" ? (
-              <TeacherManagement key="guard" kind="guard" />
-            ) : selected === "Parent / Guardian" ? (
-              <ParentManagement />
             ) : null}
           </div>
         </section>
