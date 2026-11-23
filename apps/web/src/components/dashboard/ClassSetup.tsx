@@ -1208,6 +1208,30 @@ useEffect(() => {
 
 
 /* =====================================================
+   REUSABLE COMPONENTS
+===================================================== */
+
+function SummaryCard({
+  title,
+  value,
+  icon,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between border border-slate-200 bg-white p-5">
+      <div>
+        <p className="text-xs font-semibold text-slate-500">{title}</p>
+        <p className="mt-2 text-2xl font-bold text-slate-900">{value.toLocaleString()}</p>
+      </div>
+      <div className="bg-blue-50 p-3 text-blue-800">{icon}</div>
+    </div>
+  );
+}
+
+/* =====================================================
    EXPORT: create class + manage sections
 ===================================================== */
 
