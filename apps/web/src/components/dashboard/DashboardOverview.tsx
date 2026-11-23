@@ -9,6 +9,7 @@ import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
 import SchoolNotices from "./SchoolNotices";
+import SchoolClasses from "./SchoolClasses";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
 import SchoolAttendance from "./SchoolAttendance";
@@ -260,14 +261,6 @@ export default function DashboardOverview({ type }: { type: string }) {
                   <span className="hidden sm:inline">Notes</span>
                 </Link>
 
-                <Link
-                  href="/dashboard/add"
-                  title="Create or edit"
-                  className="flex h-8 items-center gap-1.5 bg-amber-400 px-2.5 text-xs font-bold text-white hover:bg-amber-500"
-                >
-                  <Plus size={14} />
-                  Add
-                </Link>
               </>
             )}
 
@@ -389,7 +382,7 @@ export default function DashboardOverview({ type }: { type: string }) {
                 soon.
               </div>
             ) : active === "Classes & Sections" ? (
-              <ClassesView refreshSignal={refreshSignal} />
+              <SchoolClasses refreshSignal={refreshSignal} />
             ) : active === "Students" ? (
               <SchoolStudents key={refreshSignal} />
             ) : active === "Subjects" ? (
@@ -495,12 +488,13 @@ export default function DashboardOverview({ type }: { type: string }) {
                       <h2 className="text-sm font-bold text-slate-900">
                         Recent admission applications
                       </h2>
-                      <Link
-                        href="/dashboard/add"
+                      <button
+                        type="button"
+                        onClick={() => setActive("Admissions")}
                         className="text-xs font-semibold text-blue-800 hover:underline"
                       >
-                        Manage in Add
-                      </Link>
+                        Manage admissions
+                      </button>
                     </div>
 
                     {loading && !summary ? (

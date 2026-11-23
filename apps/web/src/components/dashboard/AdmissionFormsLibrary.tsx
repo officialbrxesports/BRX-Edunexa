@@ -64,11 +64,11 @@ export default function AdmissionFormsLibrary() {
     <div className="space-y-5">
       <div>
         <Link
-          href="/dashboard/add"
+          href="/dashboard"
           className="mb-2 flex items-center gap-1 text-xs font-semibold text-blue-800"
         >
           <ChevronLeft size={14} />
-          Back to admissions
+          Back to dashboard
         </Link>
 
         <h2 className="text-xl font-bold text-slate-900">Admission Forms</h2>

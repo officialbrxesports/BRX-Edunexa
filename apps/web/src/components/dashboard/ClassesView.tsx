@@ -288,8 +288,10 @@ function SectionSeating({
 
 export default function ClassesView({
   refreshSignal = 0,
+  onCreate,
 }: {
   refreshSignal?: number;
+  onCreate?: () => void;
 }) {
   const [classes, setClasses] = useState<SeatingClass[]>([]);
   const [search, setSearch] = useState("");
@@ -446,15 +448,16 @@ export default function ClassesView({
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
             {search
               ? "Try another class name, section name or code."
-              : "Create your first class and its sections from the Add area."}
+              : "Create your first class and its sections using the Create class tab."}
           </p>
           {!search && (
-            <Link
-              href="/dashboard/add"
+            <button
+              type="button"
+              onClick={onCreate}
               className="mt-5 inline-flex items-center gap-2 bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-900"
             >
-              Go to Add
-            </Link>
+              Create a class
+            </button>
           )}
         </div>
       ) : (
