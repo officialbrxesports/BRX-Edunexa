@@ -29,7 +29,7 @@ const AUDIENCES = [
 const field =
   "mt-1 w-full border border-slate-300 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-600";
 
-export default function SchoolNotices() {
+export default function SchoolNotices({ mode = "both" }: { mode?: "send" | "history" | "both" }) {
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [sent, setSent] = useState<Sent[]>([]);
   const [title, setTitle] = useState("");
@@ -115,7 +115,8 @@ export default function SchoolNotices() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-5">
+    <div className={mode === "both" ? "grid gap-5 lg:grid-cols-5" : "max-w-3xl"}>
+      {mode !== "history" && (
       <form onSubmit={send} className="space-y-3 border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2">
         <h3 className="text-sm font-bold text-slate-900">Send a notice</h3>
         <label className="block text-xs font-semibold text-slate-600">
@@ -217,13 +218,17 @@ export default function SchoolNotices() {
           Everyone sees it in their own dashboard under Notices. No email is sent.
         </p>
       </form>
+      )}
 
+      {mode !== "send" && (
       <section className="border border-slate-200 bg-white shadow-sm lg:col-span-3">
         <h3 className="border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-900">
           Sent notices
         </h3>
         {sent.length === 0 ? (
-          <p className="p-6 text-sm text-slate-500">You have not sent any notice yet.</p>
+          <p className="p-6 text-sm text-slate-500">
+            You have not sent any notice yet. Send one from Add &gt; Notice.
+          </p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {sent.map((item) => (
@@ -255,6 +260,7 @@ export default function SchoolNotices() {
           </ul>
         )}
       </section>
+      )}
     </div>
   );
 }

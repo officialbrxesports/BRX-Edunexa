@@ -448,7 +448,7 @@ export default function ClassesView({
           <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
             {search
               ? "Try another class name, section name or code."
-              : "Create your first class and its sections using the Create class tab."}
+              : "Create your first class and its sections from Add > Class."}
           </p>
           {!search && (
             <button

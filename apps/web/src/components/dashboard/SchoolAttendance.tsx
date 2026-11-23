@@ -301,8 +301,10 @@ function Report() {
   );
 }
 
-export default function SchoolAttendance() {
+export default function SchoolAttendance({ reportOnly = false }: { reportOnly?: boolean }) {
   const [tab, setTab] = useState<"report" | "mark">("report");
+
+  if (reportOnly) return <Report />;
 
   return (
     <div>

@@ -9,7 +9,7 @@ import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
 import SchoolNotices from "./SchoolNotices";
-import SchoolClasses from "./SchoolClasses";
+import ClassesView from "./ClassesView";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
 import SchoolAttendance from "./SchoolAttendance";
@@ -79,8 +79,6 @@ const NAV: NavItem[] = [
   { label: "Attendance", icon: CalendarCheck },
   { label: "Exams & Rank", icon: Trophy },
   { label: "Notices", icon: Bell },
-  { label: "Admissions", icon: ClipboardList },
-  { label: "Joining links", icon: UserPlus },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -253,6 +251,15 @@ export default function DashboardOverview({ type }: { type: string }) {
                 </button>
 
 <Link
+                  href="/dashboard/add"
+                  title="Create or enter new things"
+                  className="flex h-8 items-center gap-1.5 bg-amber-400 px-2.5 text-xs font-bold text-white hover:bg-amber-500"
+                >
+                  <Plus size={14} />
+                  Add
+                </Link>
+
+                <Link
                   href="/editor"
                   title="Notes (Word-style editor)"
                   className="flex h-8 items-center gap-1.5 bg-white/10 px-2.5 text-xs font-semibold text-white hover:bg-white/20"
@@ -382,7 +389,10 @@ export default function DashboardOverview({ type }: { type: string }) {
                 soon.
               </div>
             ) : active === "Classes & Sections" ? (
-              <SchoolClasses refreshSignal={refreshSignal} />
+              <ClassesView
+                refreshSignal={refreshSignal}
+                onCreate={() => router.push("/dashboard/add")}
+              />
             ) : active === "Students" ? (
               <SchoolStudents key={refreshSignal} />
             ) : active === "Subjects" ? (
@@ -396,15 +406,11 @@ export default function DashboardOverview({ type }: { type: string }) {
             ) : active === "Parents" ? (
               <ParentManagement />
             ) : active === "Attendance" ? (
-              <SchoolAttendance />
+              <SchoolAttendance reportOnly />
             ) : active === "Notices" ? (
-              <SchoolNotices />
+              <SchoolNotices mode="history" />
             ) : active === "Exams & Rank" ? (
-              <SchoolExams />
-            ) : active === "Admissions" ? (
-              <AdmissionManagement />
-            ) : active === "Joining links" ? (
-              <StaffJoiningManagement />
+              <SchoolExams viewOnly />
             ) : (
               <>
                 {error && (
@@ -444,7 +450,7 @@ export default function DashboardOverview({ type }: { type: string }) {
                   />
                   <StatCard
                     title="Admissions to review"
-                    onClick={() => setActive("Admissions")}
+                    onClick={() => router.push("/dashboard/add")}
                     value={summary ? pendingAdmissions : "-"}
                     icon={UserCheck}
                     tint="bg-amber-50 text-amber-700"
@@ -488,13 +494,12 @@ export default function DashboardOverview({ type }: { type: string }) {
                       <h2 className="text-sm font-bold text-slate-900">
                         Recent admission applications
                       </h2>
-                      <button
-                        type="button"
-                        onClick={() => setActive("Admissions")}
+                      <Link
+                        href="/dashboard/add"
                         className="text-xs font-semibold text-blue-800 hover:underline"
                       >
-                        Manage admissions
-                      </button>
+                        Manage in Add
+                      </Link>
                     </div>
 
                     {loading && !summary ? (

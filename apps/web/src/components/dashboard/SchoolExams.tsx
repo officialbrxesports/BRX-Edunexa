@@ -161,7 +161,7 @@ function downloadCsv(name: string, rows: (string | number)[][]) {
   URL.revokeObjectURL(url);
 }
 
-export default function SchoolExams() {
+export default function SchoolExams({ viewOnly = false }: { viewOnly?: boolean }) {
   const [view, setView] = useState<View>({ kind: "list" });
   const [classes, setClasses] = useState<ClassOption[]>([]);
 
@@ -197,6 +197,7 @@ export default function SchoolExams() {
 
       {view.kind === "list" && (
         <ExamList
+          viewOnly={viewOnly}
           classes={classes}
           onSheet={(id) => setView({ kind: "sheet", id })}
           onRank={(id) => setView({ kind: "rank", id })}
@@ -211,6 +212,7 @@ export default function SchoolExams() {
       )}
       {view.kind === "rank" && (
         <RankList
+          viewOnly={viewOnly}
           id={view.id}
           onBack={() => setView({ kind: "list" })}
           onSheet={() => setView({ kind: "sheet", id: view.id })}
@@ -245,9 +247,11 @@ const EMPTY: FormState = {
 
 function ExamList({
   classes,
+  viewOnly,
   onSheet,
   onRank,
 }: {
+  viewOnly: boolean;
   classes: ClassOption[];
   onSheet: (id: string) => void;
   onRank: (id: string) => void;
@@ -398,13 +402,15 @@ function ExamList({
             ))}
           </select>
         </label>
-        <button
-          type="button"
-          onClick={startNew}
-          className="h-9 bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
-        >
-          + New exam
-        </button>
+        {!viewOnly && (
+          <button
+            type="button"
+            onClick={startNew}
+            className="h-9 bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800"
+          >
+            + New exam
+          </button>
+        )}
       </div>
 
       {message && <p className="bg-emerald-50 px-4 py-2 text-sm text-emerald-800">{message}</p>}
@@ -519,7 +525,9 @@ function ExamList({
 
       {!loading && exams.length === 0 ? (
         <p className="p-6 text-sm text-slate-500">
-          No exams yet. Click &quot;New exam&quot; to create one, then enter marks to get ranks.
+          {viewOnly
+            ? "No exams yet. Create one from Add > Exam."
+            : "No exams yet. Click \"New exam\" to create one, then enter marks to get ranks."}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -574,27 +582,33 @@ function ExamList({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5 text-xs">
-                      <button type="button" onClick={() => onSheet(exam.id)} className="bg-blue-50 px-2 py-1 font-semibold text-blue-800 hover:bg-blue-100">
-                        Marks
-                      </button>
+                      {!viewOnly && (
+                        <button type="button" onClick={() => onSheet(exam.id)} className="bg-blue-50 px-2 py-1 font-semibold text-blue-800 hover:bg-blue-100">
+                          Marks
+                        </button>
+                      )}
                       <button type="button" onClick={() => onRank(exam.id)} className="bg-amber-50 px-2 py-1 font-semibold text-amber-800 hover:bg-amber-100">
                         Rank list
                       </button>
-                      {exam.status === "DRAFT" ? (
-                        <button type="button" onClick={() => void changeStatus(exam, "PUBLISHED")} className="bg-emerald-50 px-2 py-1 font-semibold text-emerald-800 hover:bg-emerald-100">
-                          Publish
-                        </button>
-                      ) : (
-                        <button type="button" onClick={() => void changeStatus(exam, "DRAFT")} className="bg-slate-100 px-2 py-1 font-semibold text-slate-700 hover:bg-slate-200">
-                          Unpublish
-                        </button>
+                      {!viewOnly && (
+                        <>
+                          {exam.status === "DRAFT" ? (
+                            <button type="button" onClick={() => void changeStatus(exam, "PUBLISHED")} className="bg-emerald-50 px-2 py-1 font-semibold text-emerald-800 hover:bg-emerald-100">
+                              Publish
+                            </button>
+                          ) : (
+                            <button type="button" onClick={() => void changeStatus(exam, "DRAFT")} className="bg-slate-100 px-2 py-1 font-semibold text-slate-700 hover:bg-slate-200">
+                              Unpublish
+                            </button>
+                          )}
+                          <button type="button" onClick={() => startEdit(exam)} className="bg-slate-100 px-2 py-1 text-slate-700 hover:bg-slate-200">
+                            Edit
+                          </button>
+                          <button type="button" onClick={() => void remove(exam)} className="bg-red-50 px-2 py-1 text-red-700 hover:bg-red-100">
+                            Delete
+                          </button>
+                        </>
                       )}
-                      <button type="button" onClick={() => startEdit(exam)} className="bg-slate-100 px-2 py-1 text-slate-700 hover:bg-slate-200">
-                        Edit
-                      </button>
-                      <button type="button" onClick={() => void remove(exam)} className="bg-red-50 px-2 py-1 text-red-700 hover:bg-red-100">
-                        Delete
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -779,9 +793,11 @@ function MarksSheet({
 
 function RankList({
   id,
+  viewOnly,
   onBack,
   onSheet,
 }: {
+  viewOnly: boolean;
   id: string;
   onBack: () => void;
   onSheet: () => void;
@@ -817,9 +833,11 @@ function RankList({
           )}
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={onSheet} className="h-9 border border-slate-300 px-4 text-sm hover:bg-slate-50">
-            Edit marks
-          </button>
+          {!viewOnly && (
+            <button type="button" onClick={onSheet} className="h-9 border border-slate-300 px-4 text-sm hover:bg-slate-50">
+              Edit marks
+            </button>
+          )}
           {data && data.rows.length > 0 && (
             <button
               type="button"
@@ -850,7 +868,7 @@ function RankList({
 
       {summary && data && data.rows.length === 0 && (
         <p className="p-6 text-sm text-slate-500">
-          No marks entered yet. Open &quot;Edit marks&quot; to add them.
+          No marks entered yet.{viewOnly ? " Add them from Add > Exam." : ""}
         </p>
       )}
 
