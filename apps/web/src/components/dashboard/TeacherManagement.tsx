@@ -60,9 +60,12 @@ const inputClass =
 export default function TeacherManagement({
   kind = "teacher",
   studentPath = "/coaching/students",
+  readOnly = false,
 }: {
   kind?: "teacher" | "staff" | "guard" | "student";
   studentPath?: string;
+  /** List only - creating and editing happens from Add. */
+  readOnly?: boolean;
 }) {
   const path =
     kind === "staff"
@@ -235,6 +238,7 @@ export default function TeacherManagement({
 
   return (
     <div className="space-y-5">
+      {!readOnly && (
       <form
         onSubmit={submit}
         className="border border-slate-200 bg-white p-4"
@@ -327,6 +331,7 @@ export default function TeacherManagement({
           </p>
         )}
       </form>
+      )}
 
       {credentials && (
         <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -401,7 +406,9 @@ export default function TeacherManagement({
         ) : visible.length === 0 ? (
           <p className="p-6 text-sm text-slate-500">
             {teachers.length === 0
-              ? "Nothing here yet. Create the first one above."
+              ? readOnly
+                ? "Nothing here yet. Add people from the Add button."
+                : "Nothing here yet. Create the first one above."
               : "No results match your search."}
           </p>
         ) : (
@@ -429,7 +436,7 @@ export default function TeacherManagement({
                   </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className={readOnly ? "hidden" : "flex gap-2"}>
                   <button
                     type="button"
                     onClick={() => startEdit(teacher)}

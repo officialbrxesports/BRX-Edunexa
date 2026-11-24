@@ -55,7 +55,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return result as T;
 }
 
-export default function ParentManagement() {
+export default function ParentManagement({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [parents, setParents] = useState<Parent[]>([]);
   const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -254,6 +254,7 @@ export default function ParentManagement() {
 
   return (
     <div className="space-y-5">
+      {!readOnly && (
       <form onSubmit={submit} className="border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
@@ -406,6 +407,7 @@ export default function ParentManagement() {
           </p>
         )}
       </form>
+      )}
 
       {credentials && (
         <div className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -471,7 +473,9 @@ export default function ParentManagement() {
         ) : visibleParents.length === 0 ? (
           <p className="p-6 text-sm text-slate-500">
             {parents.length === 0
-              ? "No parents yet. Create the first one above."
+              ? readOnly
+                ? "No parents yet. Add them from the Add button."
+                : "No parents yet. Create the first one above."
               : "No results match your search."}
           </p>
         ) : (
@@ -506,7 +510,7 @@ export default function ParentManagement() {
                   </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div className={readOnly ? "hidden" : "flex gap-2"}>
                   <button
                     type="button"
                     onClick={() => startEdit(parent)}

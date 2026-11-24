@@ -17,6 +17,7 @@ import {
   type LucideIcon,
   FileText as NotesIcon,
 } from "lucide-react";
+import SharedSection, { sharedNav } from "./SharedSections";
 import { API_URL, apiRequest } from "../../lib/api";
 import type { OtherGroup, OtherNotice } from "./OtherManagement";
 
@@ -29,6 +30,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Groups", icon: UsersRound },
   { label: "Notices", icon: Megaphone },
+  ...sharedNav({ students: "Members", notices: false }),
 ];
 
 function StatCard({
@@ -358,6 +360,7 @@ export default function OtherDashboard() {
                 )}
               </section>
             )}
+            <SharedSection noNotices active={active} studentLabel="Members" studentPath="/other/members" />
           </div>
         </main>
       </div>

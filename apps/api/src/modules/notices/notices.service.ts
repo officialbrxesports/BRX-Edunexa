@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -26,17 +26,6 @@ const MAX_RECIPIENTS = 5000;
 @Injectable()
 export class NoticesService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private async assertSchool(institutionId: string) {
-    const institution = await this.prisma.institutions.findUnique({
-      where: { id: institutionId },
-      select: { type: true },
-    });
-
-    if (institution?.type !== 'SCHOOL') {
-      throw new ForbiddenException('Notices are available for schools only.');
-    }
-  }
 
   /** Active people of this school who should receive the notice. */
   private async recipients(
@@ -129,8 +118,6 @@ export class NoticesService {
   }
 
   async send(institutionId: string, senderId: string, input: NoticeInput) {
-    await this.assertSchool(institutionId);
-
     const title = (input.title ?? '').trim();
     const message = (input.message ?? '').trim();
 
@@ -184,8 +171,6 @@ export class NoticesService {
 
   /** Notices this school has sent, newest first (one row per notice). */
   async sent(institutionId: string) {
-    await this.assertSchool(institutionId);
-
     const where = {
       institutionId,
       type: 'ANNOUNCEMENT' as const,
@@ -225,8 +210,6 @@ export class NoticesService {
   }
 
   async remove(institutionId: string, input: { title?: string; message?: string; createdAt?: string }) {
-    await this.assertSchool(institutionId);
-
     const createdAt = new Date(input.createdAt ?? '');
 
     if (!input.title || !input.message || Number.isNaN(createdAt.getTime())) {

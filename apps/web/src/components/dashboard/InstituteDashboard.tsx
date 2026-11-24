@@ -17,6 +17,7 @@ import {
   type LucideIcon,
   FileText as NotesIcon,
 } from "lucide-react";
+import SharedSection, { sharedNav } from "./SharedSections";
 import { API_URL, apiRequest } from "../../lib/api";
 import type { CertificateRow, ShortCourse } from "./InstituteManagement";
 import ProgramAdmissionsCard, { type AdmissionsSummary } from "./ProgramAdmissionsCard";
@@ -41,6 +42,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Courses", icon: BookOpen },
   { label: "Certificates", icon: Award },
+  ...sharedNav({ students: "Students" }),
 ];
 
 function StatCard({
@@ -407,6 +409,7 @@ export default function InstituteDashboard() {
                 )}
               </section>
             )}
+            <SharedSection active={active} studentLabel="Students" studentPath="/institute/students" />
           </div>
         </main>
       </div>

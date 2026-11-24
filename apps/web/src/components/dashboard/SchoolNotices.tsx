@@ -130,7 +130,7 @@ export default function SchoolNotices({ mode = "both" }: { mode?: "send" | "hist
             }}
             className={field}
           >
-            {AUDIENCES.map(([value, label]) => (
+            {AUDIENCES.filter(([value]) => value !== "CLASS" || classes.length > 0).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>

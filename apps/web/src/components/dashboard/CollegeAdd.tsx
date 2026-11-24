@@ -19,6 +19,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import PeopleHub from "./PeopleHub";
 import {
   CourseManagement,
   DepartmentManagement,
@@ -49,14 +50,8 @@ const buildGroups = (university: boolean): { title: string; items: Item[] }[] =>
   {
     title: "PEOPLE",
     items: [
-      { name: "Admissions", icon: ClipboardCheck },
-      { name: "Student", icon: GraduationCap },
+      { name: "Admissions & People", icon: ClipboardCheck },
       { name: "Program & Semester", icon: ListChecks },
-      { name: "Teacher", icon: UserRound },
-      { name: "Staff", icon: BriefcaseBusiness },
-      { name: "Staff Joining", icon: BriefcaseBusiness },
-      { name: "Parent / Guardian", icon: Users },
-      { name: "Security Guard", icon: ShieldCheck },
     ],
   },
 ];
@@ -72,7 +67,7 @@ export default function CollegeAdd({
   const [selected, setSelected] = useState(university ? "Faculty" : "Department");
 
   useEffect(() => {
-    if (window.location.hash === "#admissions") setSelected("Admissions");
+    if (window.location.hash === "#admissions") setSelected("Admissions & People");
   }, []);
 
   return (
@@ -136,24 +131,10 @@ export default function CollegeAdd({
             {selected === "Results" && <ResultsManagement />}
             {selected === "Program" && <ProgramManagement />}
             {selected === "Course" && <CourseManagement />}
-            {selected === "Admissions" && <CollegeAdmissionManagement />}
-            {selected === "Student" && (
-              <TeacherManagement
-                key="student"
-                kind="student"
-                studentPath="/college/students"
-              />
+            {selected === "Admissions & People" && (
+              <PeopleHub student={<CollegeAdmissionManagement />} />
             )}
             {selected === "Program & Semester" && <EnrollmentManagement />}
-            {selected === "Teacher" && (
-              <TeacherManagement key="teacher" kind="teacher" />
-            )}
-            {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
-            {selected === "Staff Joining" && <StaffJoiningManagement />}
-            {selected === "Parent / Guardian" && <ParentManagement />}
-            {selected === "Security Guard" && (
-              <TeacherManagement key="guard" kind="guard" />
-            )}
           </div>
         </main>
       </div>

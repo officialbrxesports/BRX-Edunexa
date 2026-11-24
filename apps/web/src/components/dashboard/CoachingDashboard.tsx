@@ -20,6 +20,7 @@ import {
   type LucideIcon,
   FileText as NotesIcon,
 } from "lucide-react";
+import SharedSection, { sharedNav } from "./SharedSections";
 import { API_URL, apiRequest } from "../../lib/api";
 import AttendanceCard from "./AttendanceCard";
 import { ENQUIRY_LABELS, type Enquiry } from "./EnquiryManagement";
@@ -75,6 +76,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Batches", icon: Layers },
   { label: "Enquiries", icon: PhoneCall },
   { label: "Tests", icon: ClipboardList },
+  ...sharedNav({ students: "Students" }),
 ];
 
 function StatCard({
@@ -634,6 +636,7 @@ export default function CoachingDashboard() {
                 )}
               </section>
             )}
+            <SharedSection active={active} studentLabel="Students" studentPath="/coaching/students" />
           </div>
         </main>
       </div>

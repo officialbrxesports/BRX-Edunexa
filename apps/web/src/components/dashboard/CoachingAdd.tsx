@@ -16,6 +16,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import PeopleHub from "./PeopleHub";
 import AttendanceManagement from "./AttendanceManagement";
 import BatchManagement from "./BatchManagement";
 import EnquiryManagement from "./EnquiryManagement";
@@ -40,13 +41,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "PEOPLE",
     items: [
-      { name: "Admissions", icon: GraduationCap },
-      { name: "Student", icon: GraduationCap },
-      { name: "Teacher", icon: UserRound },
-      { name: "Staff", icon: BriefcaseBusiness },
-      { name: "Staff Joining", icon: BriefcaseBusiness },
-      { name: "Parent / Guardian", icon: Users },
-      { name: "Security Guard", icon: ShieldCheck },
+      { name: "Admissions & People", icon: GraduationCap },
     ],
   },
 ];
@@ -56,7 +51,7 @@ export default function CoachingAdd() {
 
   useEffect(() => {
     const sync = () => {
-      if (window.location.hash === "#admissions") setSelected("Admissions");
+      if (window.location.hash === "#admissions") setSelected("Admissions & People");
     };
 
     sync();
@@ -124,18 +119,8 @@ export default function CoachingAdd() {
             {selected === "Enquiry" && <EnquiryManagement />}
             {selected === "Test" && <TestManagement />}
             {selected === "Attendance" && <AttendanceManagement />}
-            {selected === "Student" && (
-              <TeacherManagement key="student" kind="student" />
-            )}
-            {selected === "Teacher" && (
-              <TeacherManagement key="teacher" kind="teacher" />
-            )}
-            {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
-            {selected === "Admissions" && <ProgramAdmissionManagement />}
-            {selected === "Staff Joining" && <StaffJoiningManagement />}
-            {selected === "Parent / Guardian" && <ParentManagement />}
-            {selected === "Security Guard" && (
-              <TeacherManagement key="guard" kind="guard" />
+            {selected === "Admissions & People" && (
+              <PeopleHub student={<ProgramAdmissionManagement />} />
             )}
           </div>
         </main>

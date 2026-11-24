@@ -20,6 +20,7 @@ import {
   type LucideIcon,
   FileText as NotesIcon,
 } from "lucide-react";
+import SharedSection, { sharedNav } from "./SharedSections";
 import { API_URL, apiRequest } from "../../lib/api";
 import type { Department, Program } from "./CollegeManagement";
 
@@ -85,6 +86,7 @@ const buildNav = (university: boolean): { label: string; icon: LucideIcon }[] =>
   { label: "Courses", icon: BookOpen },
   { label: "Admissions", icon: ClipboardCheck },
   { label: "Students", icon: GraduationCap },
+  ...sharedNav(),
 ];
 
 function StatCard({
@@ -657,6 +659,7 @@ export default function CollegeDashboard({
                 )}
               </section>
             )}
+            <SharedSection active={active} />
           </div>
         </main>
       </div>

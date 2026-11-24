@@ -25,6 +25,7 @@ import TeacherManagement from "../../../components/dashboard/TeacherManagement";
 import StaffJoiningManagement from "../../../components/dashboard/StaffJoiningManagement";
 import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
+import PeopleHub from "../../../components/dashboard/PeopleHub";
 import SchoolExams from "../../../components/dashboard/SchoolExams";
 import { CreateClassPanel, SectionsPanel } from "../../../components/dashboard/ClassSetup";
 
@@ -47,55 +48,6 @@ const categories = [
     items: [{ name: "Admission Form", icon: GraduationCap }],
   },
 ];
-
-/* Inside "Admission Form": one bar to admit or create every kind of person. */
-const PEOPLE_TABS = [
-  { key: "student", label: "Student", icon: GraduationCap },
-  { key: "teacher", label: "Teacher", icon: UserRound },
-  { key: "staff", label: "Staff", icon: BriefcaseBusiness },
-  { key: "guard", label: "Security", icon: ShieldCheck },
-  { key: "parent", label: "Parents", icon: Users },
-] as const;
-
-type PeopleTab = (typeof PEOPLE_TABS)[number]["key"];
-
-function PeopleHub() {
-  const [tab, setTab] = useState<PeopleTab>("student");
-
-  return (
-    <div>
-      <div className="-mt-1 mb-5 flex flex-wrap gap-1 border-b border-slate-200">
-        {PEOPLE_TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold ${
-              tab === key
-                ? "border-blue-700 text-blue-800"
-                : "border-transparent text-slate-500 hover:text-slate-800"
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "student" ? (
-        <AdmissionManagement />
-      ) : tab === "teacher" ? (
-        <StaffJoiningManagement key="teacher" fixedRole="TEACHER" />
-      ) : tab === "staff" ? (
-        <StaffJoiningManagement key="staff" fixedRole="STAFF" />
-      ) : tab === "guard" ? (
-        <StaffJoiningManagement key="guard" fixedRole="GUARD" />
-      ) : (
-        <StaffJoiningManagement key="parent" fixedRole="PARENT" />
-      )}
-    </div>
-  );
-}
 
 const TITLES: Record<string, string> = {
   Class: "Create Class",
@@ -190,7 +142,7 @@ function AddHubContent() {
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-8">
             {selected === "Admission Form" ? (
-              <PeopleHub />
+              <PeopleHub student={<AdmissionManagement />} />
             ) : selected === "Class" ? (
               <CreateClassPanel
                 key={`class-${refreshKey}`}

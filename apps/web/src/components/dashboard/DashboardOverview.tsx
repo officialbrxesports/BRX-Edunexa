@@ -388,13 +388,13 @@ export default function DashboardOverview({ type }: { type: string }) {
             ) : active === "Subjects" ? (
               <SubjectManagement />
             ) : active === "Teachers" ? (
-              <TeacherManagement key="teacher" kind="teacher" />
+              <TeacherManagement key="teacher" kind="teacher" readOnly />
             ) : active === "Staff" ? (
-              <TeacherManagement key="staff" kind="staff" />
+              <TeacherManagement key="staff" kind="staff" readOnly />
             ) : active === "Guards" ? (
-              <TeacherManagement key="guard" kind="guard" />
+              <TeacherManagement key="guard" kind="guard" readOnly />
             ) : active === "Parents" ? (
-              <ParentManagement />
+              <ParentManagement readOnly />
             ) : active === "Attendance" ? (
               <SchoolAttendance reportOnly />
             ) : active === "Notices" ? (

@@ -13,6 +13,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import PeopleHub from "./PeopleHub";
 import { OtherGroups, OtherNotices } from "./OtherManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
@@ -31,12 +32,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
   {
     title: "PEOPLE",
     items: [
-      { name: "Member", icon: Users },
-      { name: "Teacher", icon: UserRound },
-      { name: "Staff", icon: BriefcaseBusiness },
-      { name: "Staff Joining", icon: BriefcaseBusiness },
-      { name: "Parent / Guardian", icon: Users },
-      { name: "Security Guard", icon: ShieldCheck },
+      { name: "People", icon: Users },
     ],
   },
 ];
@@ -101,21 +97,13 @@ export default function OtherAdd() {
 
             {selected === "Group" && <OtherGroups />}
             {selected === "Notice" && <OtherNotices />}
-            {selected === "Member" && (
-              <TeacherManagement
-                key="member"
-                kind="student"
-                studentPath="/other/members"
+            {selected === "People" && (
+              <PeopleHub
+                studentLabel="Member"
+                student={
+                  <TeacherManagement key="member" kind="student" studentPath="/other/members" />
+                }
               />
-            )}
-            {selected === "Teacher" && (
-              <TeacherManagement key="teacher" kind="teacher" />
-            )}
-            {selected === "Staff" && <TeacherManagement key="staff" kind="staff" />}
-            {selected === "Staff Joining" && <StaffJoiningManagement />}
-            {selected === "Parent / Guardian" && <ParentManagement />}
-            {selected === "Security Guard" && (
-              <TeacherManagement key="guard" kind="guard" />
             )}
           </div>
         </main>
