@@ -12,7 +12,7 @@ import Link from "next/link";
 
 import { API_URL } from "../../lib/api";
 import AdmissionClassFields from "./AdmissionClassFields";
-import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
+import { buildFormHtml, loadPrintImages, printHtml } from "../../lib/admissionPrint";
 import {
   ALL_DOCUMENT_TYPES,
   documentLabel,
@@ -23,6 +23,7 @@ import {
   type Details,
   type MarkRow,
 } from "../../lib/admissionProfiles";
+import { PhotoSignaturePicker, EMPTY_PS, uploadPhotoSign, type PhotoSignValue } from "../forms/PhotoSignature";
 
 import {
   CheckCircle2,
@@ -412,6 +413,7 @@ export default function AdmissionManagement() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
+  const [photoSign, setPhotoSign] = useState<PhotoSignValue>(EMPTY_PS);
 
   const [rejectReason, setRejectReason] = useState("");
   const [reviewNote, setReviewNote] = useState("");
@@ -536,7 +538,7 @@ export default function AdmissionManagement() {
     return documents.map((doc) => doc.type);
   }
 
-  function printFilledForm(application: Admission) {
+  async function printFilledForm(application: Admission) {
     const profile = profileForApplication(application);
 
     if (!profile) {
@@ -544,8 +546,14 @@ export default function AdmissionManagement() {
       return;
     }
 
+    const images = await loadPrintImages(
+      documents,
+      (id) => `${API_URL}/students/admissions/${application.id}/documents/${id}/file`,
+    );
+
     printHtml(
       buildFormHtml(profile, institutionName, {
+        ...images,
         applicationNumber: application.applicationNumber,
         className:
           application.class?.name ||
@@ -1101,8 +1109,21 @@ export default function AdmissionManagement() {
 
       const created = await readResponse(response);
 
+      const newId = (created.application as { id?: string } | undefined)?.id;
+      const psProblem = newId
+        ? await uploadPhotoSign({
+            url: `${API_URL}/students/admissions/${newId}/documents`,
+            photoType: "STUDENT_PHOTO",
+            value: photoSign,
+            credentials: true,
+          })
+        : null;
+
+      setPhotoSign(EMPTY_PS);
+
       setMessage(
-        "Admission submitted. Upload the documents below, then print the filled form.",
+        psProblem ||
+          "Admission submitted. Upload the documents below, then print the filled form.",
       );
 
       if (created.application) {
@@ -2460,6 +2481,8 @@ export default function AdmissionManagement() {
                   </ul>
                 </div>
               )}
+
+              <PhotoSignaturePicker value={photoSign} onChange={setPhotoSign} />
 
               {activeProfile?.requiresDeclarationName && (
                 <label className="block text-xs font-semibold text-slate-600">

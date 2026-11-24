@@ -6,6 +6,7 @@ import { Printer, Upload, CheckCircle2 } from "lucide-react";
 import { API_URL } from "../../lib/api";
 import AdmissionClassFields from "../dashboard/AdmissionClassFields";
 import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
+import { PhotoSignaturePicker, EMPTY_PS, uploadPhotoSign, type PhotoSignValue } from "../forms/PhotoSignature";
 import {
   documentLabel,
   initialDetails,
@@ -121,6 +122,7 @@ export default function PublicApplyForm({ code }: { code: string }) {
   const [values, setValues] = useState<Values>({ ...EMPTY });
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
+  const [photoSign, setPhotoSign] = useState<PhotoSignValue>(EMPTY_PS);
   const [accepted, setAccepted] = useState(false);
   const [honeypot, setHoneypot] = useState("");
 
@@ -345,8 +347,16 @@ export default function PublicApplyForm({ code }: { code: string }) {
         );
       }
 
+      const psProblem = await uploadPhotoSign({
+        url: `${base}/documents`,
+        fields: { applicationNumber: data.applicationNumber, parentPhone: values.parentPhone.trim() },
+        photoType: "STUDENT_PHOTO",
+        value: photoSign,
+      });
+
+      setPhotoSign(EMPTY_PS);
       await loadStatus(data.applicationNumber, values.parentPhone.trim());
-      setNotice("Application submitted. Save your application number.");
+      setNotice(psProblem || "Application submitted. Save your application number.");
       setMode("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit.");
@@ -773,6 +783,8 @@ export default function PublicApplyForm({ code }: { code: string }) {
                     </ul>
                   </div>
                 )}
+
+                <PhotoSignaturePicker value={photoSign} onChange={setPhotoSign} />
 
                 {profile?.requiresDeclarationName && (
                   <label className="block text-xs font-semibold text-slate-600">

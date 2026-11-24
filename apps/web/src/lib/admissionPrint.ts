@@ -21,7 +21,45 @@ export type PrintData = {
   base?: Record<string, unknown>;
   details?: Details;
   uploadedTypes?: string[];
+  photoUrl?: string;
+  signUrl?: string;
 };
+
+/** Reads an uploaded photo / signature (image) as a data URL so it can be printed. */
+export async function loadPrintImages(
+  docs: { id: string; type: string }[],
+  urlFor: (id: string) => string,
+): Promise<{ photoUrl?: string; signUrl?: string }> {
+  const read = async (id?: string): Promise<string | undefined> => {
+    if (!id) return undefined;
+
+    try {
+      const response = await fetch(urlFor(id), { credentials: "include" });
+
+      if (!response.ok) return undefined;
+
+      const blob = await response.blob();
+
+      if (!blob.type.startsWith("image/")) return undefined;
+
+      return await new Promise<string | undefined>((resolve) => {
+        const reader = new FileReader();
+
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => resolve(undefined);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return undefined;
+    }
+  };
+
+  const photo = docs.find((d) => d.type === "STUDENT_PHOTO" || d.type === "PHOTO");
+  const sign = docs.find((d) => d.type === "SIGNATURE");
+  const [photoUrl, signUrl] = await Promise.all([read(photo?.id), read(sign?.id)]);
+
+  return { photoUrl, signUrl };
+}
 
 function esc(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (c) =>
@@ -389,10 +427,13 @@ export function buildFormHtml(
   const documentsHtml = `<div class="sec"><h3>Documents to attach (self-attested photocopies, bring originals)</h3><table><tr><th>Document</th><th>Need</th><th>Status</th></tr>${docRows}</table><p class="small">Allowed upload formats: JPG, PNG or PDF, maximum 2 MB each.</p></div>`;
 
   const signer = String(details.declarationName || "");
+  const signImg = data?.signUrl
+    ? `<img src="${data.signUrl}" alt="" style="position:absolute;left:50%;bottom:100%;transform:translateX(-50%);max-height:30px;max-width:90%">`
+    : "";
 
   const declaration = `<div class="decl"><b>Declaration</b><p style="margin:5px 0 0">I declare that all information given in this form is true and complete to the best of my knowledge. I will follow the rules of the institution. If any information is found false, the ${staff ? "appointment" : "admission"} may be cancelled.${
     signer ? `</p><p style="margin:6px 0 0">Signed (typed): <b>${esc(signer)}</b>` : ""
-  }</p><div class="sign">${staff ? "<div>Signature of applicant</div><div>Signature of Head / Principal</div><div>Date &amp; place</div>" : "<div>Signature of parent / guardian</div><div>Signature of student</div><div>Date &amp; place</div>"}</div></div>`;
+  }</p><div class="sign">${staff ? `<div style="position:relative">${signImg}Signature of applicant</div><div>Signature of Head / Principal</div><div>Date &amp; place</div>` : `<div>Signature of parent / guardian</div><div style="position:relative">${signImg}Signature of student</div><div>Date &amp; place</div>`}</div></div>`;
 
   const office = `<div class="office"><h3>For office use only</h3><div class="grid"><div class="f"><div class="l">Application no.</div><div class="v">${esc(
     data?.applicationNumber || "",
@@ -427,7 +468,11 @@ export function buildFormHtml(
     institutionName || "School name: ______________________________",
   )}</h1><h2>${esc(profile.title)}</h2><p>${esc(
     profile.description,
-  )}</p></div><div class="photo">Affix recent passport size photo</div></div>
+  )}</p></div><div class="photo">${
+    data?.photoUrl
+      ? `<img src="${data.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover">`
+      : "Affix recent passport size photo"
+  }</div></div>
 <div class="meta">${classLine}</div>
 ${instructions}${baseHtml}${profileHtml}${documentsHtml}${declaration}${office}
 </body></html>`;

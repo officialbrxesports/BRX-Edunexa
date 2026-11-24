@@ -12,6 +12,7 @@ import {
   type AdmissionProfile,
   type Details,
 } from "../../lib/admissionProfiles";
+import { PhotoSignaturePicker, EMPTY_PS, uploadPhotoSign, type PhotoSignValue } from "../forms/PhotoSignature";
 
 type Role = "TEACHER" | "STAFF" | "GUARD" | "PARENT";
 
@@ -77,6 +78,7 @@ export default function PublicJoinForm({ code }: { code: string }) {
   const [values, setValues] = useState({ ...EMPTY });
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
+  const [photoSign, setPhotoSign] = useState<PhotoSignValue>(EMPTY_PS);
   const [accepted, setAccepted] = useState(false);
   const [website, setWebsite] = useState(""); // honeypot
   const [working, setWorking] = useState(false);
@@ -174,6 +176,15 @@ export default function PublicJoinForm({ code }: { code: string }) {
       setLookup({ applicationNumber: data.applicationNumber, phone });
       setMessage(`Application submitted. Your application number is ${data.applicationNumber}. Save it.`);
       setValues({ ...EMPTY });
+      const psProblem = await uploadPhotoSign({
+        url: `${base}/documents`,
+        fields: { applicationNumber: data.applicationNumber, phone },
+        photoType: "PHOTO",
+        value: photoSign,
+      });
+
+      setPhotoSign(EMPTY_PS);
+      if (psProblem) setError(psProblem);
       await loadStatus(data.applicationNumber, phone);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit the form.");
@@ -419,6 +430,8 @@ export default function PublicJoinForm({ code }: { code: string }) {
               </ul>
             </div>
           )}
+
+          <PhotoSignaturePicker value={photoSign} onChange={setPhotoSign} />
 
           <label className="block text-xs font-semibold text-slate-600">
             Type your full name as signature

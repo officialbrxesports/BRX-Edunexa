@@ -48,6 +48,7 @@ const multi = (
 ): Field => ({ key, label, type: 'multi', options, ...extra });
 
 const PHOTO: DocSpec = { type: 'PHOTO', label: 'Passport size photo', required: true };
+const SIGN: DocSpec = { type: 'SIGNATURE', label: 'Signature', required: false };
 const AADHAAR: DocSpec = {
   type: 'AADHAAR',
   label: 'Aadhaar card (or other photo ID)',
@@ -152,6 +153,7 @@ export const PROGRAM_PROFILES: Profile[] = [
     ],
     documents: [
       PHOTO,
+      SIGN,
       AADHAAR,
       { type: 'MARKSHEET', label: 'Last marksheet / result', required: true },
       { type: 'SCHOOL_ID', label: 'School / college ID card', required: false },
@@ -223,6 +225,7 @@ export const PROGRAM_PROFILES: Profile[] = [
     ],
     documents: [
       PHOTO,
+      SIGN,
       AADHAAR,
       {
         type: 'QUALIFICATION_CERTIFICATE',

@@ -5,7 +5,7 @@ import { Copy, Download, Plus, Printer, RefreshCw, Upload } from "lucide-react";
 
 import { API_URL } from "../../lib/api";
 import AdmissionClassFields from "./AdmissionClassFields";
-import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
+import { buildFormHtml, loadPrintImages, printHtml } from "../../lib/admissionPrint";
 import {
   firstProfileProblem,
   initialDetails,
@@ -13,6 +13,7 @@ import {
   type AdmissionProfile,
   type Details,
 } from "../../lib/admissionProfiles";
+import { PhotoSignaturePicker, EMPTY_PS, uploadPhotoSign, type PhotoSignValue } from "../forms/PhotoSignature";
 
 type Role = "TEACHER" | "STAFF" | "GUARD" | "PARENT";
 
@@ -121,6 +122,7 @@ export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role
   const [values, setValues] = useState({ ...EMPTY });
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
+  const [photoSign, setPhotoSign] = useState<PhotoSignValue>(EMPTY_PS);
   const [accepted, setAccepted] = useState(false);
   const [working, setWorking] = useState(false);
 
@@ -232,7 +234,16 @@ export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role
 
       const created = await call("/staff-joining", json("POST", body));
 
-      setMessage("Application saved. Upload the documents next.");
+      const psProblem = await uploadPhotoSign({
+        url: `${API_URL}/staff-joining/${created.application.id}/documents`,
+        photoType: "PHOTO",
+        value: photoSign,
+        credentials: true,
+      });
+
+      setPhotoSign(EMPTY_PS);
+
+      setMessage(psProblem || "Application saved. Upload the documents next.");
       setValues({ ...EMPTY });
       setDetails(profile ? initialDetails(profile) : {});
       setDeclarationName("");
@@ -356,7 +367,7 @@ export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role
     }
   }
 
-  function printFilled() {
+  async function printFilled() {
     if (!detail) return;
 
     const app = detail.application;
@@ -364,11 +375,17 @@ export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role
 
     if (!p) return setError("Form layout is not loaded yet.");
 
+    const images = await loadPrintImages(
+      app.documents,
+      (id) => `${API_URL}/staff-joining/${app.id}/documents/${id}/file`,
+    );
+
     printHtml(
       buildFormHtml(
         p,
         institutionName,
         {
+          ...images,
           applicationNumber: app.applicationNumber,
           className: p.classLabel,
           submittedAt: app.submittedAt || undefined,
@@ -523,6 +540,8 @@ export default function StaffJoiningManagement({ fixedRole }: { fixedRole?: Role
               </ul>
             </div>
           )}
+
+          <PhotoSignaturePicker value={photoSign} onChange={setPhotoSign} />
 
           <label className="block text-xs font-semibold text-slate-600">
             Type applicant&apos;s full name as signature

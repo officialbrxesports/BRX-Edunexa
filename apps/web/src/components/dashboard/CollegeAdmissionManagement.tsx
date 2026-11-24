@@ -5,7 +5,7 @@ import { Printer, RefreshCw, Plus, Upload, Download, Copy } from "lucide-react";
 
 import { API_URL } from "../../lib/api";
 import AdmissionClassFields from "./AdmissionClassFields";
-import { buildFormHtml, printHtml } from "../../lib/admissionPrint";
+import { buildFormHtml, loadPrintImages, printHtml } from "../../lib/admissionPrint";
 import {
   documentLabel,
   firstProfileProblem,
@@ -18,6 +18,7 @@ import {
   type Details,
   type MarkRow,
 } from "../../lib/admissionProfiles";
+import { PhotoSignaturePicker, EMPTY_PS, uploadPhotoSign, type PhotoSignValue } from "../forms/PhotoSignature";
 
 type Program = { id: string; name: string; code: string };
 
@@ -135,6 +136,7 @@ export default function CollegeAdmissionManagement() {
   const [values, setValues] = useState({ ...EMPTY });
   const [details, setDetails] = useState<Details>({});
   const [declarationName, setDeclarationName] = useState("");
+  const [photoSign, setPhotoSign] = useState<PhotoSignValue>(EMPTY_PS);
   const [accepted, setAccepted] = useState(false);
   const [working, setWorking] = useState(false);
 
@@ -253,7 +255,16 @@ export default function CollegeAdmissionManagement() {
 
       const created = await call("/college/admissions", json("POST", body));
 
-      setMessage("Application saved. Upload the documents next.");
+      const psProblem = await uploadPhotoSign({
+        url: `${API_URL}/college/admissions/${created.application.id}/documents`,
+        photoType: "STUDENT_PHOTO",
+        value: photoSign,
+        credentials: true,
+      });
+
+      setPhotoSign(EMPTY_PS);
+
+      setMessage(psProblem || "Application saved. Upload the documents next.");
       setValues({ ...EMPTY });
       setDetails(profile ? initialDetails(profile) : {});
       setDeclarationName("");
@@ -355,7 +366,7 @@ export default function CollegeAdmissionManagement() {
     }
   }
 
-  function printFilled() {
+  async function printFilled() {
     if (!detail) return;
 
     const app = detail.application;
@@ -363,11 +374,17 @@ export default function CollegeAdmissionManagement() {
 
     if (!p) return setError("Form layout is not loaded yet.");
 
+    const images = await loadPrintImages(
+      app.documents,
+      (id) => `${API_URL}/college/admissions/${app.id}/documents/${id}/file`,
+    );
+
     printHtml(
       buildFormHtml(
         p,
         institutionName,
         {
+          ...images,
           applicationNumber: app.applicationNumber,
           className: app.program.name,
           submittedAt: app.submittedAt || undefined,
@@ -556,6 +573,8 @@ export default function CollegeAdmissionManagement() {
               </ul>
             </div>
           )}
+
+          <PhotoSignaturePicker value={photoSign} onChange={setPhotoSign} />
 
           {profile?.requiresDeclarationName && (
             <label className="block text-xs font-semibold text-slate-600">
