@@ -72,6 +72,43 @@ export default function DashboardAuth({
           return;
         }
 
+        if (headOnly && result.user.role === "HEAD") {
+          // A head must only see the dashboard (and Add page) of their own institution type.
+          const parts = pathname.split("/");
+          const area = parts[2] ?? "";
+          const expected =
+            area === "add" ? "SCHOOL" : area.toUpperCase() in HEAD_HOME ? area.toUpperCase() : "";
+
+          if (expected) {
+            try {
+              const meResponse = await fetch(`${API_URL}/dashboard/me`, {
+                credentials: "include",
+                cache: "no-store",
+              });
+
+              if (meResponse.ok) {
+                const me: { institution?: { type?: string } } = await meResponse.json();
+                const type = me.institution?.type;
+
+                if (type && type in HEAD_HOME && type !== expected) {
+                  const isAdd = parts[parts.length - 1] === "add";
+
+                  router.replace(
+                    isAdd
+                      ? type === "SCHOOL"
+                        ? "/dashboard/add"
+                        : `${HEAD_HOME[type]}/add`
+                      : HEAD_HOME[type],
+                  );
+                  return;
+                }
+              }
+            } catch {
+              // if the check fails, fall through and show the page
+            }
+          }
+        }
+
         if (
           !headOnly &&
           !platformOnly &&
