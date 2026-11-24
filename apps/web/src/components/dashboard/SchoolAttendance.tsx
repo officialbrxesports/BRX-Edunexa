@@ -188,7 +188,7 @@ function Report() {
       )}
 
       <section className={card}>
-        <h3 className="border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-900">Class-wise attendance</h3>
+        <h3 className="border-b border-slate-100 px-4 py-3 text-sm font-bold text-slate-900">Class / batch-wise attendance</h3>
         {overview && overview.rows.filter((row) => row.expected > 0).length === 0 ? (
           <p className="p-6 text-sm text-slate-500">No students are enrolled in any class yet.</p>
         ) : (

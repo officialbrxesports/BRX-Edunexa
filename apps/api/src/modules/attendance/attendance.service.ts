@@ -467,6 +467,10 @@ export class AttendanceService {
 
   /** Class-wise (section-wise) picture of one day. */
   async overview(institutionId: string, dateText?: string) {
+    if ((await this.mode(institutionId)) === 'BATCH') {
+      return this.batchOverview(institutionId, dateText);
+    }
+
     await this.assertSchool(institutionId);
     const date = parseDay(dateText);
 
@@ -535,6 +539,10 @@ export class AttendanceService {
 
   /** Day-by-day attendance percent for the last N days (default 30). */
   async trend(institutionId: string, daysText?: string) {
+    if ((await this.mode(institutionId)) === 'BATCH') {
+      return this.batchTrend(institutionId, daysText);
+    }
+
     await this.assertSchool(institutionId);
     const days = Math.min(90, Math.max(7, Number(daysText) || 30));
     const now = new Date();
@@ -584,6 +592,10 @@ export class AttendanceService {
 
   /** Students marked absent or late on one day. */
   async absentees(institutionId: string, dateText?: string) {
+    if ((await this.mode(institutionId)) === 'BATCH') {
+      return this.batchAbsentees(institutionId, dateText);
+    }
+
     await this.assertSchool(institutionId);
     const date = parseDay(dateText);
 
@@ -623,6 +635,10 @@ export class AttendanceService {
 
   /** Students below the given percent over the last 30 days (min 5 records). */
   async lowAttendance(institutionId: string, limitText?: string) {
+    if ((await this.mode(institutionId)) === 'BATCH') {
+      return this.batchLow(institutionId, limitText);
+    }
+
     await this.assertSchool(institutionId);
     const threshold = Math.min(100, Math.max(1, Number(limitText) || 75));
     const now = new Date();
@@ -693,6 +709,199 @@ export class AttendanceService {
           phone: user.phone,
           className: enrollment?.classes.name ?? '-',
           sectionName: enrollment?.sections.name ?? '-',
+          days: e.total,
+          absent: e.absent,
+          percent: Math.round((e.good / e.total) * 1000) / 10,
+        },
+      ];
+    });
+  }
+
+  /* ------------------------ coaching (batch) report ------------------------ */
+
+  private lastDays(count: number) {
+    const now = new Date();
+    const end = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+
+    return { end, start: new Date(end - (count - 1) * 86400000) };
+  }
+
+  private async batchOverview(institutionId: string, dateText?: string) {
+    const date = parseDay(dateText);
+
+    const [batches, enrolled, marked] = await Promise.all([
+      this.prisma.batches.findMany({
+        where: { institutionId, status: 'ACTIVE' },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true },
+      }),
+      this.prisma.batch_students.groupBy({
+        by: ['batchId'],
+        where: { institutionId },
+        _count: { _all: true },
+      }),
+      this.prisma.batch_attendance.groupBy({
+        by: ['batchId', 'status'],
+        where: { institutionId, date },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const rows = batches.map((batch) => {
+      const count = (status: Status) =>
+        marked.find((m) => m.batchId === batch.id && m.status === status)
+          ?._count._all ?? 0;
+      const present = count('PRESENT');
+      const absent = count('ABSENT');
+      const late = count('LATE');
+      const total = present + absent + late;
+
+      return {
+        sectionId: batch.id,
+        label: batch.name,
+        expected: enrolled.find((e) => e.batchId === batch.id)?._count._all ?? 0,
+        present,
+        absent,
+        late,
+        marked: total > 0,
+        percent:
+          total > 0 ? Math.round(((present + late) / total) * 1000) / 10 : null,
+      };
+    });
+
+    const sum = (key: 'expected' | 'present' | 'absent' | 'late') =>
+      rows.reduce((total, row) => total + row[key], 0);
+
+    return {
+      date: dateText,
+      totals: {
+        expected: sum('expected'),
+        present: sum('present'),
+        absent: sum('absent'),
+        late: sum('late'),
+        sectionsMarked: rows.filter((row) => row.marked && row.expected > 0).length,
+        sections: rows.filter((row) => row.expected > 0).length,
+      },
+      rows,
+    };
+  }
+
+  private async batchTrend(institutionId: string, daysText?: string) {
+    const days = Math.min(90, Math.max(7, Number(daysText) || 30));
+    const { end, start } = this.lastDays(days);
+
+    const rows = await this.prisma.batch_attendance.findMany({
+      where: { institutionId, date: { gte: start, lte: new Date(end + 86400000) } },
+      select: { date: true, status: true },
+    });
+
+    const byDay = new Map<string, { present: number; absent: number; late: number }>();
+
+    for (const row of rows) {
+      const key = row.date.toISOString().slice(0, 10);
+      const entry = byDay.get(key) ?? { present: 0, absent: 0, late: 0 };
+
+      if (row.status === 'PRESENT') entry.present += 1;
+      else if (row.status === 'ABSENT') entry.absent += 1;
+      else entry.late += 1;
+
+      byDay.set(key, entry);
+    }
+
+    return [...byDay.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([date, entry]) => {
+        const total = entry.present + entry.absent + entry.late;
+
+        return {
+          date,
+          ...entry,
+          percent: Math.round(((entry.present + entry.late) / total) * 1000) / 10,
+        };
+      });
+  }
+
+  private async batchAbsentees(institutionId: string, dateText?: string) {
+    const date = parseDay(dateText);
+
+    const rows = await this.prisma.batch_attendance.findMany({
+      where: { institutionId, date, status: { in: ['ABSENT', 'LATE'] } },
+      orderBy: [{ status: 'asc' }],
+      select: {
+        status: true,
+        batch: { select: { name: true, code: true } },
+        student: {
+          select: { id: true, firstName: true, lastName: true, brxUid: true, phone: true },
+        },
+      },
+    });
+
+    return rows.map((row) => ({
+      studentId: row.student.id,
+      name: this.name(row.student.firstName, row.student.lastName),
+      brxUid: row.student.brxUid,
+      phone: row.student.phone,
+      className: row.batch.name,
+      sectionName: row.batch.code,
+      status: row.status,
+    }));
+  }
+
+  private async batchLow(institutionId: string, limitText?: string) {
+    const threshold = Math.min(100, Math.max(1, Number(limitText) || 75));
+    const { end, start } = this.lastDays(30);
+
+    const rows = await this.prisma.batch_attendance.groupBy({
+      by: ['studentId', 'status'],
+      where: { institutionId, date: { gte: start, lte: new Date(end + 86400000) } },
+      _count: { _all: true },
+    });
+
+    const stats = new Map<string, { total: number; good: number; absent: number }>();
+
+    for (const row of rows) {
+      const entry = stats.get(row.studentId) ?? { total: 0, good: 0, absent: 0 };
+
+      entry.total += row._count._all;
+      if (row.status === 'ABSENT') entry.absent += row._count._all;
+      else entry.good += row._count._all;
+      stats.set(row.studentId, entry);
+    }
+
+    const low = [...stats.entries()]
+      .filter(([, e]) => e.total >= 5 && (e.good / e.total) * 100 < threshold)
+      .sort(([, a], [, b]) => a.good / a.total - b.good / b.total)
+      .slice(0, 30);
+
+    if (low.length === 0) return [];
+
+    const ids = low.map(([id]) => id);
+    const [users, links] = await Promise.all([
+      this.prisma.users.findMany({
+        where: { id: { in: ids }, institutionId },
+        select: { id: true, firstName: true, lastName: true, brxUid: true, phone: true },
+      }),
+      this.prisma.batch_students.findMany({
+        where: { institutionId, studentId: { in: ids } },
+        select: { studentId: true, batch: { select: { name: true, code: true } } },
+      }),
+    ]);
+
+    return low.flatMap(([id, e]) => {
+      const user = users.find((u) => u.id === id);
+
+      if (!user) return [];
+
+      const batch = links.find((l) => l.studentId === id)?.batch;
+
+      return [
+        {
+          studentId: id,
+          name: this.name(user.firstName, user.lastName),
+          brxUid: user.brxUid,
+          phone: user.phone,
+          className: batch?.name ?? '-',
+          sectionName: batch?.code ?? '-',
           days: e.total,
           absent: e.absent,
           percent: Math.round((e.good / e.total) * 1000) / 10,

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import ProgramAdmissionsCard, { type AdmissionsSummary } from "./ProgramAdmissionsCard";
 import {
   Building2,
+  CalendarCheck,
   CalendarClock,
   ClipboardList,
   GraduationCap,
@@ -21,6 +22,7 @@ import {
   FileText as NotesIcon,
 } from "lucide-react";
 import SharedSection, { sharedNav } from "./SharedSections";
+import SchoolAttendance from "./SchoolAttendance";
 import { API_URL, apiRequest } from "../../lib/api";
 import AttendanceCard from "./AttendanceCard";
 import { ENQUIRY_LABELS, type Enquiry } from "./EnquiryManagement";
@@ -76,6 +78,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Batches", icon: Layers },
   { label: "Enquiries", icon: PhoneCall },
   { label: "Tests", icon: ClipboardList },
+  { label: "Attendance", icon: CalendarCheck },
   ...sharedNav({ students: "Students" }),
 ];
 
@@ -636,6 +639,7 @@ export default function CoachingDashboard() {
                 )}
               </section>
             )}
+            {active === "Attendance" && <SchoolAttendance reportOnly />}
             <SharedSection active={active} studentLabel="Students" studentPath="/coaching/students" />
           </div>
         </main>
