@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  Wallet,
   ArrowLeft,
   School,
   Layers3,
@@ -27,6 +28,7 @@ import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
 import PeopleHub from "../../../components/dashboard/PeopleHub";
 import SchoolExams from "../../../components/dashboard/SchoolExams";
+import SchoolFees from "../../../components/dashboard/SchoolFees";
 import { CreateClassPanel, SectionsPanel } from "../../../components/dashboard/ClassSetup";
 
 /* The Add hub is for creating and entering things.
@@ -41,6 +43,7 @@ const categories = [
       { name: "Subject", icon: BookOpen },
       { name: "Attendance", icon: CalendarCheck },
       { name: "Exam", icon: Trophy },
+      { name: "Fees", icon: Wallet },
     ],
   },
   {
@@ -55,6 +58,7 @@ const TITLES: Record<string, string> = {
   Subject: "Subject Management",
   Attendance: "Mark Attendance",
   Exam: "Exams & Marks",
+  Fees: "Fees & Payments",
   "Admission Form": "Admissions & People",
 };
 
@@ -156,6 +160,8 @@ function AddHubContent() {
               <AttendanceManagement />
             ) : selected === "Exam" ? (
               <SchoolExams />
+            ) : selected === "Fees" ? (
+              <SchoolFees />
             ) : null}
           </div>
         </section>

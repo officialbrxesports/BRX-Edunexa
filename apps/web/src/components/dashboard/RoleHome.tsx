@@ -17,6 +17,7 @@ import {
 import { API_URL } from "../../lib/api";
 import NoticeInbox from "./NoticeInbox";
 import MyResults from "./MyResults";
+import MyFees from "./MyFees";
 import TeacherNoticeSend from "./TeacherNoticeSend";
 
 type TestMark = {
@@ -682,21 +683,12 @@ export default function RoleHome() {
 
             {me.role !== "HEAD" && <NoticeInbox />}
 
-            <Card title="Coming soon">
-              <p className="px-4 pb-1 pt-3 text-xs text-slate-500">
-                These are not built yet, so no numbers are shown.
-              </p>
-              <div className="flex flex-wrap gap-2 p-4">
-                {["Fees"].map((name) => (
-                  <span
-                    key={name}
-                    className="border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-500"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            </Card>
+            {me.institution.type === "SCHOOL" &&
+              (me.role === "STUDENT" || me.role === "PARENT") && (
+                <Card title="Fees">
+                  <MyFees showName={me.role === "PARENT"} />
+                </Card>
+              )}
           </>
         )}
       </main>

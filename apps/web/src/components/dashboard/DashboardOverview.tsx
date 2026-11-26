@@ -8,6 +8,7 @@ import AttendanceCard from "./AttendanceCard";
 import ClassesView from "./ClassesView";
 import SchoolStudents from "./SchoolStudents";
 import SchoolExams from "./SchoolExams";
+import SchoolFees from "./SchoolFees";
 import SchoolNotices from "./SchoolNotices";
 import TeacherManagement from "./TeacherManagement";
 import ParentManagement from "./ParentManagement";
@@ -25,6 +26,7 @@ import {
   GraduationCap,
   Layers3,
   Trophy,
+  Wallet,
   UserPlus,
   UserRound,
   LayoutDashboard,
@@ -77,6 +79,7 @@ const NAV: NavItem[] = [
   { label: "Parents", icon: UserRound },
   { label: "Attendance", icon: CalendarCheck },
   { label: "Exams & Rank", icon: Trophy },
+  { label: "Fees", icon: Wallet },
   { label: "Notices", icon: Bell },
 ];
 
@@ -89,8 +92,6 @@ const STATUS_LABELS: Record<string, string> = {
   REJECTED: "Rejected",
   ENROLLED: "Enrolled",
 };
-
-const COMING_SOON = ["Fees"];
 
 function StatCard({
   title,
@@ -401,6 +402,8 @@ export default function DashboardOverview({ type }: { type: string }) {
               <SchoolNotices />
             ) : active === "Exams & Rank" ? (
               <SchoolExams viewOnly />
+            ) : active === "Fees" ? (
+              <SchoolFees viewOnly />
             ) : (
               <>
                 {error && (
@@ -548,25 +551,6 @@ export default function DashboardOverview({ type }: { type: string }) {
                 </div>
 
                 <AttendanceCard />
-
-                <section className="mt-6 border border-slate-200 bg-white p-4 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900">
-                    Coming soon
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    These modules are not built yet, so no numbers are shown.
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {COMING_SOON.map((name) => (
-                      <span
-                        key={name}
-                        className="border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-500"
-                      >
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                </section>
               </>
             )}
 
