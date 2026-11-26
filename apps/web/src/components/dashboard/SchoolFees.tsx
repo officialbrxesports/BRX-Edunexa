@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "../../lib/api";
+import { printHtml } from "../../lib/admissionPrint";
 
 type ClassOption = {
   id: string;
@@ -42,6 +43,89 @@ const STATUS_STYLE: Record<FeeRow["status"], string> = {
 
 const inr = (value: number) =>
   `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+type PaymentList = {
+  institution: string;
+  fee: FeeRow;
+  payments: {
+    id: string;
+    amount: number;
+    method: string;
+    date: string;
+    transactionId: string | null;
+    note: string | null;
+  }[];
+};
+
+const esc = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function printReceipt(
+  data: PaymentList,
+  payment: PaymentList["payments"][number],
+) {
+  const fee = data.fee;
+
+  printHtml(`<!doctype html><html><head><meta charset="utf-8"><title>Fee receipt</title>
+<style>body{font-family:Arial,sans-serif;margin:32px;color:#0f172a}h1{font-size:20px;margin:0}
+.box{border:1px solid #334155;padding:20px;max-width:520px}table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+td{padding:6px 0;border-bottom:1px solid #e2e8f0}td:first-child{color:#475569;width:40%}
+.amt{font-size:22px;font-weight:bold;margin-top:14px}</style></head><body><div class="box">
+<h1>${esc(data.institution)}</h1><p style="margin:4px 0 0;color:#475569">Fee receipt</p>
+<table>
+<tr><td>Student</td><td>${esc(fee.name)} (${esc(fee.brxUid)})</td></tr>
+<tr><td>Class</td><td>${esc(fee.className)} ${esc(fee.sectionName)}</td></tr>
+<tr><td>Date</td><td>${new Date(payment.date).toLocaleDateString()}</td></tr>
+<tr><td>Method</td><td>${esc(payment.method.replace("_", " "))}</td></tr>
+${payment.transactionId ? `<tr><td>Transaction ID</td><td>${esc(payment.transactionId)}</td></tr>` : ""}
+<tr><td>Fee total</td><td>${inr(fee.total)}</td></tr>
+<tr><td>Total paid so far</td><td>${inr(fee.paid)}</td></tr>
+<tr><td>Balance due</td><td>${inr(fee.due)}</td></tr>
+</table>
+<p class="amt">Received: ${inr(payment.amount)}</p>
+<p style="margin-top:28px;font-size:12px;color:#64748b">Receipt no. ${esc(payment.id.slice(0, 8).toUpperCase())}</p>
+</div></body></html>`);
+}
+
+function History({ id }: { id: string }) {
+  const [data, setData] = useState<PaymentList | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiRequest<PaymentList>(`/fees/${id}/payments`)
+      .then(setData)
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Could not load payments."),
+      );
+  }, [id]);
+
+  if (error) return <p className="text-xs text-red-600">{error}</p>;
+  if (!data) return <p className="text-xs text-slate-500">Loading…</p>;
+  if (data.payments.length === 0) {
+    return <p className="text-xs text-slate-500">No payment received yet.</p>;
+  }
+
+  return (
+    <ul className="divide-y divide-slate-100 text-xs">
+      {data.payments.map((item) => (
+        <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+          <span>
+            {new Date(item.date).toLocaleDateString()} · {inr(item.amount)} ·{" "}
+            {item.method.replace("_", " ").toLowerCase()}
+            {item.transactionId ? ` · ${item.transactionId}` : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => printReceipt(data, item)}
+            className="font-semibold text-blue-800"
+          >
+            Print receipt
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 const field = "border border-slate-300 px-3 py-2 text-sm";
 
@@ -228,6 +312,7 @@ export default function SchoolFees({ viewOnly = false }: { viewOnly?: boolean })
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [history, setHistory] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -379,6 +464,15 @@ export default function SchoolFees({ viewOnly = false }: { viewOnly?: boolean })
                     <span className={`px-2 py-1 text-xs font-semibold ${STATUS_STYLE[row.status]}`}>
                       {row.status.toLowerCase()}
                     </span>
+                    {row.paid > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setHistory(history === row.id ? null : row.id)}
+                        className="text-xs font-semibold text-slate-700"
+                      >
+                        History
+                      </button>
+                    )}
                     {!viewOnly && (
                       <>
                         {row.due > 0 && (
@@ -403,6 +497,11 @@ export default function SchoolFees({ viewOnly = false }: { viewOnly?: boolean })
                     )}
                   </div>
                 </div>
+                {history === row.id && (
+                  <div className="mt-3 border-t border-slate-100 pt-3">
+                    <History id={row.id} />
+                  </div>
+                )}
                 {!viewOnly && open === row.id && (
                   <div className="mt-3 border-t border-slate-100 pt-3">
                     <PayRow

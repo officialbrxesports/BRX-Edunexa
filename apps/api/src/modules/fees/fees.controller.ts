@@ -55,6 +55,11 @@ export class FeesController {
     return this.fees.assign(institutionId(request), body);
   }
 
+  @Get(':id/payments')
+  payments(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return this.fees.payments(institutionId(request), id);
+  }
+
   @Post(':id/pay')
   pay(
     @Req() request: AuthenticatedRequest,

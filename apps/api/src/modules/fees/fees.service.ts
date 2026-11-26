@@ -282,6 +282,39 @@ export class FeesService {
     return { paid, due: left };
   }
 
+  /** Payments received against one fee (newest first), for history and receipts. */
+  async payments(institutionId: string, id: string) {
+    await this.assertSchool(institutionId);
+
+    const fee = await this.prisma.student_fees.findFirst({
+      where: { id, classes: { institutionId } },
+      select: {
+        ...this.select,
+        fee_payments: { orderBy: { paymentDate: 'desc' } },
+      },
+    });
+
+    if (!fee) throw new NotFoundException('Fee not found.');
+
+    const institution = await this.prisma.institutions.findUnique({
+      where: { id: institutionId },
+      select: { name: true },
+    });
+
+    return {
+      institution: institution?.name ?? '',
+      fee: this.row(fee),
+      payments: fee.fee_payments.map((item) => ({
+        id: item.id,
+        amount: money(item.amount),
+        method: item.paymentMethod,
+        date: item.paymentDate,
+        transactionId: item.transactionId,
+        note: item.note,
+      })),
+    };
+  }
+
   async remove(institutionId: string, id: string) {
     await this.assertSchool(institutionId);
 
