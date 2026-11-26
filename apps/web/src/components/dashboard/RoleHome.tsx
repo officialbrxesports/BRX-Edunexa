@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { API_URL } from "../../lib/api";
 import NoticeInbox from "./NoticeInbox";
+import MyResults from "./MyResults";
 
 type TestMark = {
   id: string;
@@ -665,6 +666,13 @@ export default function RoleHome() {
               </div>
             )}
 
+            {me.institution.type === "SCHOOL" &&
+              (me.role === "STUDENT" || me.role === "PARENT") && (
+                <Card title="Exam results & rank">
+                  <MyResults showName={me.role === "PARENT"} />
+                </Card>
+              )}
+
             {me.role !== "HEAD" && <NoticeInbox />}
 
             <Card title="Coming soon">
@@ -672,7 +680,7 @@ export default function RoleHome() {
                 These are not built yet, so no numbers are shown.
               </p>
               <div className="flex flex-wrap gap-2 p-4">
-                {["Attendance", "Exams & results", "Fees"].map((name) => (
+                {["Fees"].map((name) => (
                   <span
                     key={name}
                     className="border border-dashed border-slate-300 px-3 py-1.5 text-xs text-slate-500"
