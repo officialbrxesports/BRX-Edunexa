@@ -23,6 +23,7 @@ type Summary = {
 
 type FeeRow = {
   id: string;
+  title: string;
   name: string;
   brxUid: string;
   className: string;
@@ -73,6 +74,7 @@ td{padding:6px 0;border-bottom:1px solid #e2e8f0}td:first-child{color:#475569;wi
 .amt{font-size:22px;font-weight:bold;margin-top:14px}</style></head><body><div class="box">
 <h1>${esc(data.institution)}</h1><p style="margin:4px 0 0;color:#475569">Fee receipt</p>
 <table>
+<tr><td>Fee</td><td>${esc(fee.title)}</td></tr>
 <tr><td>Student</td><td>${esc(fee.name)} (${esc(fee.brxUid)})</td></tr>
 <tr><td>Class</td><td>${esc(fee.className)} ${esc(fee.sectionName)}</td></tr>
 <tr><td>Date</td><td>${new Date(payment.date).toLocaleDateString()}</td></tr>
@@ -146,6 +148,7 @@ function AssignForm({
   classes: ClassOption[];
   onDone: () => void;
 }) {
+  const [title, setTitle] = useState("");
   const [classId, setClassId] = useState("");
   const [sectionId, setSectionId] = useState("");
   const [amount, setAmount] = useState("");
@@ -166,6 +169,7 @@ function AssignForm({
       const result = await apiRequest<{ created: number }>("/fees/assign", {
         method: "POST",
         body: JSON.stringify({
+          title,
           classId,
           sectionId: sectionId || null,
           amount: Number(amount),
@@ -190,6 +194,22 @@ function AssignForm({
         Every active student of the class (or section) gets this amount as a due.
       </p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <input
+          list="fee-titles"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={80}
+          placeholder="Fee name (e.g. Tuition)"
+          required
+          className={`${field} sm:col-span-2 lg:col-span-4`}
+        />
+        <datalist id="fee-titles">
+          {["Tuition fee", "Admission fee", "Transport fee", "Exam fee", "Library fee", "Lab fee", "Annual charges"].map(
+            (name) => (
+              <option key={name} value={name} />
+            ),
+          )}
+        </datalist>
         <select
           value={classId}
           onChange={(e) => {
@@ -522,7 +542,10 @@ export default function SchoolFees({ viewOnly = false }: { viewOnly?: boolean })
               <li key={row.id} className="px-4 py-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">{row.name}</p>
+                    <p className="font-semibold text-slate-900">
+                      {row.name}{" "}
+                      <span className="text-xs font-normal text-slate-500">· {row.title}</span>
+                    </p>
                     <p className="text-xs text-slate-500">
                       {row.brxUid} · {row.className} {row.sectionName} · due{" "}
                       {new Date(row.dueDate).toLocaleDateString()}

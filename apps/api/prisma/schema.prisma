@@ -384,6 +384,7 @@ model student_fees {
   studentId    String
   classId      String
   sectionId    String
+  title        String?        @db.VarChar(80)
   totalAmount  Decimal        @db.Decimal(10, 2)
   paidAmount   Decimal        @default(0) @db.Decimal(10, 2)
   dueAmount    Decimal        @db.Decimal(10, 2)

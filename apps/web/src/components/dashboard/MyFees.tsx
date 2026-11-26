@@ -10,6 +10,7 @@ type Data = {
     totalDue: number;
     fees: {
       id: string;
+      title: string;
       total: number;
       paid: number;
       due: number;
@@ -55,7 +56,7 @@ export default function MyFees({ showName }: { showName?: boolean }) {
             {student.fees.map((fee) => (
               <li key={fee.id} className="flex flex-wrap justify-between gap-2 py-2">
                 <span>
-                  {inr(fee.total)} · due {new Date(fee.dueDate).toLocaleDateString()}
+                  {fee.title} · {inr(fee.total)} · due {new Date(fee.dueDate).toLocaleDateString()}
                 </span>
                 <span
                   className={

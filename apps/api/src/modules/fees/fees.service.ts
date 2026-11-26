@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export type AssignInput = {
+  title?: string;
   classId?: string;
   sectionId?: string | null;
   amount?: number | string;
@@ -58,6 +59,7 @@ export class FeesService {
 
   private row(item: {
     id: string;
+    title: string | null;
     totalAmount: unknown;
     paidAmount: unknown;
     dueAmount: unknown;
@@ -71,6 +73,7 @@ export class FeesService {
 
     return {
       id: item.id,
+      title: item.title || 'Fee',
       studentId: item.users.id,
       name: fullName(item.users.firstName, item.users.lastName),
       brxUid: item.users.brxUid,
@@ -86,6 +89,7 @@ export class FeesService {
 
   private readonly select = {
     id: true,
+    title: true,
     totalAmount: true,
     paidAmount: true,
     dueAmount: true,
@@ -103,6 +107,7 @@ export class FeesService {
 
     const amount = money(input.amount);
     const dueDate = new Date(input.dueDate ?? '');
+    const title = (input.title ?? '').trim().slice(0, 80) || 'Fee';
 
     if (!input.classId) throw new BadRequestException('Please choose a class.');
 
@@ -136,6 +141,7 @@ export class FeesService {
         studentId: item.studentId,
         classId: item.classId,
         sectionId: item.sectionId,
+        title,
         totalAmount: amount,
         paidAmount: 0,
         dueAmount: amount,
@@ -340,8 +346,8 @@ export class FeesService {
       const when = new Date(item.dueDate).toLocaleDateString('en-IN');
       const message =
         item.status === 'OVERDUE'
-          ? `Fee of ₹${item.due} for ${item.name} was due on ${when}. Please pay at the school office.`
-          : `Fee of ₹${item.due} for ${item.name} is due on ${when}.`;
+          ? `${item.title}: ₹${item.due} for ${item.name} was due on ${when}. Please pay at the school office.`
+          : `${item.title}: ₹${item.due} for ${item.name} is due on ${when}.`;
 
       for (const recipientId of targets) {
         data.push({
@@ -471,6 +477,7 @@ export class FeesService {
           totalDue: money(fees.reduce((total, item) => total + item.due, 0)),
           fees: fees.map((item) => ({
             id: item.id,
+            title: item.title,
             total: item.total,
             paid: item.paid,
             due: item.due,
