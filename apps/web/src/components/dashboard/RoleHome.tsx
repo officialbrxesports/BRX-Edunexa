@@ -17,6 +17,7 @@ import {
 import { API_URL } from "../../lib/api";
 import NoticeInbox from "./NoticeInbox";
 import MyResults from "./MyResults";
+import TeacherNoticeSend from "./TeacherNoticeSend";
 
 type TestMark = {
   id: string;
@@ -534,6 +535,12 @@ export default function RoleHome() {
                   </div>
                 </Card>
               )}
+
+            {me.role === "TEACHER" && me.institution.type === "SCHOOL" && (
+              <Card title="Send notice to my class">
+                <TeacherNoticeSend />
+              </Card>
+            )}
 
             {me.role === "TEACHER" && me.teacher && (
               <Card title={`My subjects (${me.teacher.assignments.length})`}>
