@@ -50,6 +50,14 @@ export class FeesController {
     return this.fees.list(institutionId(request), { classId, status, q });
   }
 
+  @Post('remind')
+  remind(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: { classId?: string; overdueOnly?: boolean },
+  ) {
+    return this.fees.remind(institutionId(request), request.user!.id, body);
+  }
+
   @Post('assign')
   assign(@Req() request: AuthenticatedRequest, @Body() body: AssignInput) {
     return this.fees.assign(institutionId(request), body);

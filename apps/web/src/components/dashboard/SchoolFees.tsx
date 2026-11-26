@@ -250,6 +250,76 @@ function AssignForm({
   );
 }
 
+function RemindForm({ classes }: { classes: ClassOption[] }) {
+  const [classId, setClassId] = useState("");
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+
+  async function send() {
+    setBusy(true);
+    setError("");
+    setDone("");
+
+    try {
+      const result = await apiRequest<{ sent: number; students: number }>(
+        "/fees/remind",
+        {
+          method: "POST",
+          body: JSON.stringify({ classId: classId || undefined, overdueOnly }),
+        },
+      );
+
+      setDone(
+        `Reminder sent to ${result.sent} people for ${result.students} students.`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reminders.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="border border-slate-200 bg-white p-4 shadow-sm">
+      <h3 className="text-sm font-bold text-slate-900">Send fee reminders</h3>
+      <p className="mt-1 text-xs text-slate-500">
+        Parents of students with a pending fee get a notice in their inbox
+        (the student gets it if no parent is linked).
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <select value={classId} onChange={(e) => setClassId(e.target.value)} className={field}>
+          <option value="">All classes</option>
+          {classes.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={overdueOnly}
+            onChange={(e) => setOverdueOnly(e.target.checked)}
+          />
+          Overdue only
+        </label>
+        <button
+          type="button"
+          onClick={send}
+          disabled={busy}
+          className="h-9 bg-amber-600 px-4 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-60"
+        >
+          {busy ? "Sending…" : "Send reminders"}
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {done && <p className="mt-2 text-sm text-emerald-700">{done}</p>}
+    </div>
+  );
+}
+
 function PayRow({ row, onDone }: { row: FeeRow; onDone: () => void }) {
   const [amount, setAmount] = useState(String(row.due));
   const [method, setMethod] = useState("CASH");
@@ -364,6 +434,7 @@ export default function SchoolFees({ viewOnly = false }: { viewOnly?: boolean })
       )}
 
       {!viewOnly && <AssignForm classes={classes} onDone={load} />}
+      {!viewOnly && <RemindForm classes={classes} />}
 
       {summary && (
         <>

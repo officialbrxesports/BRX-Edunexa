@@ -282,6 +282,91 @@ export class FeesService {
     return { paid, due: left };
   }
 
+  /**
+   * Send a due reminder to the parents of every student with a pending fee
+   * (the student gets it when no parent is linked). Optionally overdue only.
+   */
+  async remind(
+    institutionId: string,
+    senderId: string,
+    input: { classId?: string; overdueOnly?: boolean },
+  ) {
+    await this.assertSchool(institutionId);
+
+    const rows = await this.prisma.student_fees.findMany({
+      where: {
+        classes: { institutionId },
+        dueAmount: { gt: 0 },
+        ...(input.classId ? { classId: input.classId } : {}),
+      },
+      select: this.select,
+    });
+
+    const dues = rows
+      .map((item) => this.row(item))
+      .filter((item) => !input.overdueOnly || item.status === 'OVERDUE');
+
+    if (dues.length === 0) {
+      throw new BadRequestException('No pending fee found for this choice.');
+    }
+
+    const links = await this.prisma.parent_students.findMany({
+      where: {
+        institutionId,
+        studentId: { in: [...new Set(dues.map((item) => item.studentId))] },
+        parent: { status: 'ACTIVE' },
+      },
+      select: { studentId: true, parentId: true },
+    });
+
+    const now = new Date();
+    const data: {
+      id: string;
+      institutionId: string;
+      senderId: string;
+      recipientId: string;
+      title: string;
+      message: string;
+      type: 'ANNOUNCEMENT';
+      createdAt: Date;
+      updatedAt: Date;
+    }[] = [];
+
+    for (const item of dues) {
+      const recipients = links
+        .filter((link) => link.studentId === item.studentId)
+        .map((link) => link.parentId);
+      const targets = recipients.length > 0 ? recipients : [item.studentId];
+      const when = new Date(item.dueDate).toLocaleDateString('en-IN');
+      const message =
+        item.status === 'OVERDUE'
+          ? `Fee of ₹${item.due} for ${item.name} was due on ${when}. Please pay at the school office.`
+          : `Fee of ₹${item.due} for ${item.name} is due on ${when}.`;
+
+      for (const recipientId of targets) {
+        data.push({
+          id: randomUUID(),
+          institutionId,
+          senderId,
+          recipientId,
+          title: 'Fee reminder',
+          message,
+          type: 'ANNOUNCEMENT',
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
+    if (data.length > 5000) {
+      throw new BadRequestException('Too many reminders at once. Choose a class.');
+    }
+
+    await this.prisma.notifications.createMany({ data });
+
+    return { sent: data.length, students: dues.length };
+  }
+
   /** Payments received against one fee (newest first), for history and receipts. */
   async payments(institutionId: string, id: string) {
     await this.assertSchool(institutionId);
