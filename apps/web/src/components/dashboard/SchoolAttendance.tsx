@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "../../lib/api";
 import AttendanceManagement, { localDate } from "./AttendanceManagement";
+import StaffAttendance from "./StaffAttendance";
 
 type Overview = {
   totals: {
@@ -303,8 +304,34 @@ function Report() {
 
 export default function SchoolAttendance({ reportOnly = false }: { reportOnly?: boolean }) {
   const [tab, setTab] = useState<"report" | "mark">("report");
+  const [who, setWho] = useState<"students" | "staff">("students");
 
-  if (reportOnly) return <Report />;
+  if (reportOnly) {
+    return (
+      <div>
+        <div className="mb-4 flex gap-1 border-b border-slate-200">
+          {[
+            ["students", "Students"],
+            ["staff", "Teachers & staff"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setWho(key as "students" | "staff")}
+              className={`border-b-2 px-4 py-2 text-sm font-semibold ${
+                who === key
+                  ? "border-blue-700 text-blue-800"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {who === "students" ? <Report /> : <StaffAttendance viewOnly />}
+      </div>
+    );
+  }
 
   return (
     <div>

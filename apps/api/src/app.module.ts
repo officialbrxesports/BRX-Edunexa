@@ -18,6 +18,7 @@ import { OtherModule } from './modules/other/other.module';
 import { EmailModule } from './modules/email/email.module';
 import { ExamsModule } from './modules/exams/exams.module';
 import { FeesModule } from './modules/fees/fees.module';
+import { StaffAttendanceModule } from './modules/staff-attendance/staff-attendance.module';
 import { NoticesModule } from './modules/notices/notices.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { NoticesModule } from './modules/notices/notices.module';
     OtherModule,
     ExamsModule,
     FeesModule,
+    StaffAttendanceModule,
     NoticesModule,
   ],
 })

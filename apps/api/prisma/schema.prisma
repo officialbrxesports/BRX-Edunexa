@@ -801,6 +801,20 @@ model enquiries {
   @@index([followUpOn])
 }
 
+model staff_attendance {
+  id            String           @id
+  institutionId String
+  userId        String
+  date          DateTime         @db.Date
+  status        AttendanceStatus
+  markedBy      String
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime
+
+  @@unique([userId, date])
+  @@index([institutionId, date])
+}
+
 model note_sends {
   id            String   @id
   institutionId String

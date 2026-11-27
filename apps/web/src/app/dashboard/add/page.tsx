@@ -26,6 +26,7 @@ import TeacherManagement from "../../../components/dashboard/TeacherManagement";
 import StaffJoiningManagement from "../../../components/dashboard/StaffJoiningManagement";
 import ParentManagement from "../../../components/dashboard/ParentManagement";
 import AttendanceManagement from "../../../components/dashboard/AttendanceManagement";
+import StaffAttendance from "../../../components/dashboard/StaffAttendance";
 import PeopleHub from "../../../components/dashboard/PeopleHub";
 import SchoolExams from "../../../components/dashboard/SchoolExams";
 import SchoolFees from "../../../components/dashboard/SchoolFees";
@@ -42,6 +43,7 @@ const categories = [
       { name: "Section", icon: Layers3 },
       { name: "Subject", icon: BookOpen },
       { name: "Attendance", icon: CalendarCheck },
+      { name: "Staff Attendance", icon: CalendarCheck },
       { name: "Exam", icon: Trophy },
       { name: "Fees", icon: Wallet },
     ],
@@ -57,6 +59,7 @@ const TITLES: Record<string, string> = {
   Section: "Section Management",
   Subject: "Subject Management",
   Attendance: "Mark Attendance",
+  "Staff Attendance": "Staff Attendance",
   Exam: "Exams & Marks",
   Fees: "Fees & Payments",
   "Admission Form": "Admissions & People",
@@ -158,6 +161,8 @@ function AddHubContent() {
               <SubjectManagement />
             ) : selected === "Attendance" ? (
               <AttendanceManagement />
+            ) : selected === "Staff Attendance" ? (
+              <StaffAttendance />
             ) : selected === "Exam" ? (
               <SchoolExams />
             ) : selected === "Fees" ? (

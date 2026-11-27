@@ -18,6 +18,7 @@ import { API_URL } from "../../lib/api";
 import NoticeInbox from "./NoticeInbox";
 import MyResults from "./MyResults";
 import MyFees from "./MyFees";
+import MyStaffAttendance from "./MyStaffAttendance";
 import TeacherNoticeSend from "./TeacherNoticeSend";
 
 type TestMark = {
@@ -536,6 +537,12 @@ export default function RoleHome() {
                   </div>
                 </Card>
               )}
+
+            {(me.role === "TEACHER" || me.role === "STAFF" || me.role === "GUARD") && (
+              <Card title="My attendance">
+                <MyStaffAttendance />
+              </Card>
+            )}
 
             {me.role === "TEACHER" && me.institution.type === "SCHOOL" && (
               <Card title="Send notice to my class">
