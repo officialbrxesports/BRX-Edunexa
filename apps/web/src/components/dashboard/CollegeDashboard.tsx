@@ -86,7 +86,7 @@ const buildNav = (university: boolean): { label: string; icon: LucideIcon }[] =>
   { label: "Courses", icon: BookOpen },
   { label: "Admissions", icon: ClipboardCheck },
   { label: "Students", icon: GraduationCap },
-  ...sharedNav(),
+  ...sharedNav({ staffAttendance: true }),
 ];
 
 function StatCard({

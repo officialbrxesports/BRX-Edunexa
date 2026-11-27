@@ -30,7 +30,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Groups", icon: UsersRound },
   { label: "Notices", icon: Megaphone },
-  ...sharedNav({ students: "Members", notices: false }),
+  ...sharedNav({ students: "Members", notices: false, staffAttendance: true }),
 ];
 
 function StatCard({

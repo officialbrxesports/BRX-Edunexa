@@ -3,6 +3,7 @@
 import {
   Bell,
   BriefcaseBusiness,
+  CalendarCheck,
   GraduationCap,
   ShieldCheck,
   UserRound,
@@ -11,12 +12,15 @@ import {
 } from "lucide-react";
 import ParentManagement from "./ParentManagement";
 import SchoolNotices from "./SchoolNotices";
+import StaffAttendance from "./StaffAttendance";
 import TeacherManagement from "./TeacherManagement";
 
 type Options = {
   /** Sidebar label for the student list, or omit when the dashboard already has one. */
   students?: string;
   notices?: boolean;
+  /** Adds a read-only teachers & staff attendance report (not needed where the dashboard already has one). */
+  staffAttendance?: boolean;
 };
 
 /** Read-only people lists + notices that every institution type shows on its dashboard. */
@@ -26,6 +30,7 @@ export function sharedNav(options: Options = {}): { label: string; icon: LucideI
     { label: "Teachers", icon: UserRound },
     { label: "Staff", icon: BriefcaseBusiness },
     { label: "Guards", icon: ShieldCheck },
+    ...(options.staffAttendance ? [{ label: "Staff Attendance", icon: CalendarCheck }] : []),
     { label: "Parents", icon: Users },
     ...(options.notices === false ? [] : [{ label: "Notices", icon: Bell }]),
   ];
@@ -49,6 +54,7 @@ export default function SharedSection({
   if (active === "Teachers") return <TeacherManagement key="teacher" kind="teacher" readOnly />;
   if (active === "Staff") return <TeacherManagement key="staff" kind="staff" readOnly />;
   if (active === "Guards") return <TeacherManagement key="guard" kind="guard" readOnly />;
+  if (active === "Staff Attendance") return <StaffAttendance viewOnly />;
   if (active === "Parents") return <ParentManagement readOnly />;
   if (active === "Notices" && !noNotices) return <SchoolNotices />;
 

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import PeopleHub from "./PeopleHub";
 import AttendanceManagement from "./AttendanceManagement";
+import StaffAttendance from "./StaffAttendance";
 import BatchManagement from "./BatchManagement";
 import EnquiryManagement from "./EnquiryManagement";
 import ParentManagement from "./ParentManagement";
@@ -42,6 +43,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "PEOPLE",
     items: [
       { name: "Admissions & People", icon: GraduationCap },
+      { name: "Staff Attendance", icon: CalendarCheck },
     ],
   },
 ];
@@ -119,6 +121,7 @@ export default function CoachingAdd() {
             {selected === "Enquiry" && <EnquiryManagement />}
             {selected === "Test" && <TestManagement />}
             {selected === "Attendance" && <AttendanceManagement />}
+            {selected === "Staff Attendance" && <StaffAttendance />}
             {selected === "Admissions & People" && (
               <PeopleHub student={<ProgramAdmissionManagement />} />
             )}

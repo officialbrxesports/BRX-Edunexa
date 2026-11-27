@@ -42,7 +42,7 @@ const NAV: { label: string; icon: LucideIcon }[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Courses", icon: BookOpen },
   { label: "Certificates", icon: Award },
-  ...sharedNav({ students: "Students" }),
+  ...sharedNav({ students: "Students", staffAttendance: true }),
 ];
 
 function StatCard({

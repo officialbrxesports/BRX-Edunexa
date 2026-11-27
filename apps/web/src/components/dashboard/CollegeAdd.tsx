@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BookOpen,
   BriefcaseBusiness,
+  CalendarCheck,
   ClipboardCheck,
   Building2,
   GraduationCap,
@@ -26,6 +27,7 @@ import {
   ProgramManagement,
 } from "./CollegeManagement";
 import CollegeAdmissionManagement from "./CollegeAdmissionManagement";
+import StaffAttendance from "./StaffAttendance";
 import CollegeQuickSetup from "./CollegeQuickSetup";
 import EnrollmentManagement from "./EnrollmentManagement";
 import { FacultyManagement, ResultsManagement } from "./UniversityManagement";
@@ -51,6 +53,7 @@ const buildGroups = (university: boolean): { title: string; items: Item[] }[] =>
     title: "PEOPLE",
     items: [
       { name: "Admissions & People", icon: ClipboardCheck },
+      { name: "Staff Attendance", icon: CalendarCheck },
       { name: "Program & Semester", icon: ListChecks },
     ],
   },
@@ -134,6 +137,7 @@ export default function CollegeAdd({
             {selected === "Admissions & People" && (
               <PeopleHub student={<CollegeAdmissionManagement />} />
             )}
+            {selected === "Staff Attendance" && <StaffAttendance />}
             {selected === "Program & Semester" && <EnrollmentManagement />}
           </div>
         </main>

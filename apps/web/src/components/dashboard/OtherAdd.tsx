@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   BriefcaseBusiness,
   Building2,
+  CalendarCheck,
   Megaphone,
   ShieldCheck,
   UserRound,
@@ -18,6 +19,7 @@ import { OtherGroups, OtherNotices } from "./OtherManagement";
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
 import StaffJoiningManagement from "./StaffJoiningManagement";
+import StaffAttendance from "./StaffAttendance";
 
 type Item = { name: string; icon: LucideIcon };
 
@@ -33,6 +35,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "PEOPLE",
     items: [
       { name: "People", icon: Users },
+      { name: "Staff Attendance", icon: CalendarCheck },
     ],
   },
 ];
@@ -97,6 +100,7 @@ export default function OtherAdd() {
 
             {selected === "Group" && <OtherGroups />}
             {selected === "Notice" && <OtherNotices />}
+            {selected === "Staff Attendance" && <StaffAttendance />}
             {selected === "People" && (
               <PeopleHub
                 studentLabel="Member"

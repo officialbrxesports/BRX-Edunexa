@@ -8,6 +8,7 @@ import {
   BookOpen,
   BriefcaseBusiness,
   Building2,
+  CalendarCheck,
   GraduationCap,
   ListChecks,
   ShieldCheck,
@@ -24,6 +25,7 @@ import {
 import ParentManagement from "./ParentManagement";
 import TeacherManagement from "./TeacherManagement";
 import ProgramAdmissionManagement from "./ProgramAdmissionManagement";
+import StaffAttendance from "./StaffAttendance";
 import StaffJoiningManagement from "./StaffJoiningManagement";
 
 type Item = { name: string; icon: LucideIcon };
@@ -41,6 +43,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     title: "PEOPLE",
     items: [
       { name: "Admissions & People", icon: GraduationCap },
+      { name: "Staff Attendance", icon: CalendarCheck },
     ],
   },
 ];
@@ -117,6 +120,7 @@ export default function InstituteAdd() {
             {selected === "Course" && <InstituteCourses />}
             {selected === "Enrollment" && <InstituteEnrollments />}
             {selected === "Certificate" && <InstituteCertificates />}
+            {selected === "Staff Attendance" && <StaffAttendance />}
             {selected === "Admissions & People" && (
               <PeopleHub student={<ProgramAdmissionManagement />} />
             )}
