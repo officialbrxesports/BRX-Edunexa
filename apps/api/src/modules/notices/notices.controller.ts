@@ -63,6 +63,19 @@ export class InboxController {
     return this.notices.inbox(request.user!.id);
   }
 
+  @Get('email-pref')
+  emailPref(@Req() request: AuthenticatedRequest) {
+    return this.notices.emailPref(request.user!.id);
+  }
+
+  @Post('email-pref')
+  setEmailPref(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: { enabled?: boolean },
+  ) {
+    return this.notices.setEmailPref(request.user!.id, Boolean(body?.enabled));
+  }
+
   @Post('read')
   read(@Req() request: AuthenticatedRequest, @Body() body: { id?: string }) {
     return this.notices.markRead(request.user!.id, body?.id);

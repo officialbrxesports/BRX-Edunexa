@@ -28,7 +28,7 @@ export class NoticesService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Active people of this school who should receive the notice. */
-  private async recipients(
+  async recipients(
     institutionId: string,
     senderId: string,
     audience: Audience,
@@ -272,6 +272,24 @@ export class NoticesService {
           : null,
       })),
     };
+  }
+
+  async emailPref(userId: string) {
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { emailOptIn: true },
+    });
+
+    return { enabled: user?.emailOptIn ?? false };
+  }
+
+  async setEmailPref(userId: string, enabled: boolean) {
+    await this.prisma.users.update({
+      where: { id: userId },
+      data: { emailOptIn: Boolean(enabled), updatedAt: new Date() },
+    });
+
+    return { enabled: Boolean(enabled) };
   }
 
   async markRead(userId: string, id?: string) {

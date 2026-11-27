@@ -427,6 +427,7 @@ model users {
   phone                                              String?
   role                                               UserRole
   status                                             UserStatus            @default(ACTIVE)
+  emailOptIn                                         Boolean               @default(false)
   institutionId                                      String?
   createdAt                                          DateTime              @default(now())
   updatedAt                                          DateTime
@@ -798,6 +799,23 @@ model enquiries {
 
   @@index([institutionId, status])
   @@index([followUpOn])
+}
+
+model note_sends {
+  id            String   @id
+  institutionId String
+  senderId      String
+  documentId    String?
+  title         String   @db.VarChar(160)
+  audience      String   @db.VarChar(20)
+  classId       String?
+  sectionId     String?
+  recipients    Int      @default(0)
+  emailed       Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([institutionId, createdAt])
+  @@index([senderId])
 }
 
 model editor_documents {

@@ -18,6 +18,7 @@ type Inbox = {
 export default function NoticeInbox() {
   const [data, setData] = useState<Inbox | null>(null);
   const [error, setError] = useState("");
+  const [emailOn, setEmailOn] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -32,6 +33,25 @@ export default function NoticeInbox() {
 
     return () => window.clearTimeout(timer);
   }, [load]);
+
+  useEffect(() => {
+    apiRequest<{ enabled: boolean }>("/inbox/email-pref")
+      .then((pref) => setEmailOn(pref.enabled))
+      .catch(() => setEmailOn(null));
+  }, []);
+
+  async function toggleEmail(enabled: boolean) {
+    setEmailOn(enabled);
+
+    try {
+      await apiRequest("/inbox/email-pref", {
+        method: "POST",
+        body: JSON.stringify({ enabled }),
+      });
+    } catch {
+      setEmailOn(!enabled);
+    }
+  }
 
   async function markAllRead() {
     try {
@@ -58,6 +78,16 @@ export default function NoticeInbox() {
           </button>
         )}
       </div>
+      {emailOn !== null && (
+        <label className="flex items-center gap-2 border-b border-slate-100 px-4 py-2 text-xs text-slate-600">
+          <input
+            type="checkbox"
+            checked={emailOn}
+            onChange={(e) => void toggleEmail(e.target.checked)}
+          />
+          Also send me notes and notices by email
+        </label>
+      )}
       {error && <p className="p-4 text-sm text-red-700">{error}</p>}
       {data && data.items.length === 0 && (
         <p className="p-4 text-sm text-slate-500">No notice for you yet.</p>

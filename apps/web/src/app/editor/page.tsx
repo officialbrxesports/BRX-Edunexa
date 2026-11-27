@@ -28,6 +28,7 @@ import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import { Extension, Mark, Node as TiptapNode, mergeAttributes } from "@tiptap/core";
+import SendNoteModal from "../../components/dashboard/SendNoteModal";
 import {
   AlignCenter,
   AlignJustify,
@@ -1566,6 +1567,7 @@ export default function EditorPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [documentId, setDocumentId] = useState<string | null>(null);
+  const [sendOpen, setSendOpen] = useState(false);
   const [fontFamily, setFontFamily] = useState("Arial");
   const [fontSize, setFontSize] = useState("12pt");
   const [zoom, setZoom] = useState(100);
@@ -3002,6 +3004,20 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
             >
               <CloudUpload size={14} />
               {saving ? "Saving..." : "Cloud Save"}
+            </button>
+            <button
+              className="top-action"
+              onClick={async () => {
+                await saveToCloud(true);
+
+                if (documentIdRef.current) setSendOpen(true);
+                else notify("Save the note to cloud first (check your login).");
+              }}
+              disabled={saving}
+              type="button"
+              title="Send this note to students, parents or staff"
+            >
+              Send
             </button>
             <label className="flex items-center gap-1 text-[11px] text-blue-50">
               <input
@@ -4945,6 +4961,14 @@ blockquote{border-left:4px solid #2563eb;padding-left:16px}
             )}
           </div>
         </div>
+      )}
+
+      {sendOpen && documentId && (
+        <SendNoteModal
+          documentId={documentId}
+          title={title}
+          onClose={() => setSendOpen(false)}
+        />
       )}
 
       {cropOpen && imageInfo && (
